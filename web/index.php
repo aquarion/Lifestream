@@ -65,7 +65,7 @@ while($row = mysql_fetch_assoc($results)){
 		$icon = "http://imperial.istic.net/static/icons/silk/joystick.png";
 		if ($row['source'] == "Champions Online"){
 			$icon = "http://imperial.istic.net/static/icons/ChampionsOnline.png";
-			$row['url'] = "http://www.champions-online.com/character_profiles/325750/view";
+			$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
 		} elseif ($row['source'] == "XLN Live Integration"){
 			$icon = "http://imperial.istic.net/static/icons/silk/controller.png";
 			$row['url'] = "http://live.xbox.com/en-GB/profile/profile.aspx?pp=0&GamerTag=Jascain";
