@@ -16,7 +16,7 @@ lifestream.init = function(){
 		ui.panel   // element, that contains the selected/clicked tab contents
 		ui.index   // zero-based index of the selected (clicked) tab
 
-		setTimeout(lifestream.refresh, 5000);
+		setTimeout(lifestream.refresh, 15000);
 
 	});
 
@@ -51,7 +51,10 @@ lifestream.update = function (data){
 				+"<img src='"+this['icon']+"'/ height=\"16px\">"
 			+"</a>"
 			+"<span>"+this['content']+"</span>"
-			+" <a class=\"nicetime\" href=\""+this['url']+"\">"+this['nicetime']+"</a>";
+			+"<span class=\"moreinfo\">"
+			+ this['source']+"<br/>"
+			+"<a class=\"nicetime\" href=\""+this['url']+"\">"+this['nicetime']+" ago</a>"
+			+"</span>";
 
 
 			object = document.createElement("DIV");
@@ -67,6 +70,14 @@ lifestream.update = function (data){
 
 			$('#'+this['id']).show("slow");
 
+		} else {
+			$('#'+this['id']+" .nicetime").html(this['nicetime']+" ago");
+			//#$('#'+this['id']+" .nicetime").hide("slow",
+			//#	function(){
+			//		$('#'+this['id']+" .nicetime").html(this['nicetime']);
+			//		$('#'+this['id']+" .nicetime").show("slow");
+			//});
+			
 		}
 
 		if ($('#lifestreamContent div.lifestream').length > 10)

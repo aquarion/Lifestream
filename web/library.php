@@ -56,7 +56,7 @@ function niceTime($from, $to = false, $shortform = false){
         }
 
         if (!$shortform){
-                $date .= " ".$plus;
+                #$date .= " ".$plus;
         }
 
         #$date .= " (".$since.")";

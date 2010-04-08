@@ -43,11 +43,11 @@
 	display: block;
 	padding-left: 18px;
 	font-size: .8em;
-	line-height: .9em;
+	line-height: 1em;
 	padding-top: 8px;
 }
 
-#lifestreamContent .lifestream a.nicetime {
+#lifestreamContent .lifestream span.moreinfo{
 	display: block;
 	text-align: right;
 	color: #DDD;
@@ -55,6 +55,19 @@
 	line-height: .9em;
 	padding-top: -4px;
 	clear: both;
+}
+
+
+#lifestreamContent .lifestream span.moreinfo a{
+	color: #DDD;
+}
+
+#lifestreamContent .lifestream:hover {
+	background-color: #F5F5F5;
+}
+
+#lifestreamContent .lifestream:hover span.moreinfo, #lifestreamContent .lifestream:hover span.moreinfo a{
+	color: #666;
 }
 
 #lifestream .ui-tabs-selected {
