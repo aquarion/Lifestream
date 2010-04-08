@@ -19,7 +19,10 @@ password = sys.argv[3]
 
 twitter = Twitter(username, password)
 
-tweets = twitter.statuses.user_timeline()
+try:
+	tweets = twitter.statuses.user_timeline()
+except ValueError:
+	sys.exit(4)
 
 #print '-- Welcome to Twipistula'
 
