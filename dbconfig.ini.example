@@ -1,0 +1,7 @@
+[database]
+
+database = "lifestream";
+username = "lifestream"
+password = "[PASSWORD]"
+hostname = "localhost"
+
