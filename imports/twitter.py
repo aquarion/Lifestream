@@ -1,13 +1,29 @@
 #!/usr/bin/python
 
-import codecs, sys
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+import codecs, sys, os
+import ConfigParser, MySQLdb, socket
+
 import re
 
 from datetime import datetime
 
 from twitter import Twitter
 import calendar, rfc822
+
+
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
+basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+config = ConfigParser.ConfigParser()
+config.readfp(open(basedir+'/../dbconfig.ini'))
+db = {}
+
+
+for item in config.items("database"):
+	db[item[0]] = item[1]
+
+dbcxn = MySQLdb.connect(user = db['username'], passwd = db['password'], db = db['database'], host = db['hostname'])
+cursor = dbcxn.cursor()
 
 if (len(sys.argv) < 4):
 	print "Usage: lifestreamit class username password"
@@ -26,7 +42,7 @@ except ValueError:
 
 #print '-- Welcome to Twipistula'
 
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values ("%s", %s, "%s", "%s", "%s", "%s");'
+s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
 
 for i in range(len(tweets)):
 	tweet = tweets[i]
@@ -42,4 +58,4 @@ for i in range(len(tweets)):
 
 	url = "http://twitter.com/%s/status/%d" % (username, id)
 
-	print s_sql % (type, id, message, timestamp, url, source)
+	cursor.execute(s_sql, (type, id, message, timestamp, url, source))

@@ -1,9 +1,23 @@
 #!/usr/bin/python
 
 import feedparser, urlparse
-import codecs, sys
+import codecs, sys, os
+import ConfigParser, MySQLdb, socket
+
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
+basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+config = ConfigParser.ConfigParser()
+config.readfp(open(basedir+'/../dbconfig.ini'))
+
+db = {}
+
+for item in config.items("database"):
+	db[item[0]] = item[1]
+
+dbcxn = MySQLdb.connect(user = db['username'], passwd = db['password'], db = db['database'], host = db['hostname'])
+cursor = dbcxn.cursor()
 
 if (len(sys.argv) < 2):
 	print "Usage: rss Type url"
@@ -33,4 +47,4 @@ for i in range(len(fp['entries'])):
 	#else:
 	#	message = o_item['title']+": "+o_item['description'].replace('"', '\\"');
 	message = o_item['title'].replace('"', '\\"');
-	print s_sql % (type, id, message, o_item['links'][0]['href'], o_item['published'])
+	cursor.execute(s_sql, (type, id, message, o_item['links'][0]['href'], o_item['published']))

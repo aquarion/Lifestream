@@ -12,9 +12,11 @@ Lifestream is a wordpress plugin to make that work, too.
 h2. How to make it go:
 
 * Use the schema to create a database
-* Each import script accepts a username as a parameter and exports SQL, 
+* copy dbconfig.ini.example to lose the example bit
+* edit it to contain real live database details
+* Each import script accepts a username as a parameter
    pipe the output of the script to the database
-* eg:  twitter.py [Lifestream "Type"] [Twitter Username] [Twitter Password] | mysql -u[DBUser] -p[DBPass] [DBName]
+* eg:  twitter.py [Lifestream "Type"] [Twitter Username] [Twitter Password]
 * Cron this, because typing it every so often is dull.
 
 * Install the web dir somewhere accessible, edit the conn.php file with database stuff
