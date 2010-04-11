@@ -1,9 +1,10 @@
 <?PHP
 require("library.php");
-require("conn.php");
 
-$dbcxn = mysql_connect(DBHOST, DBUSER, DBPASS);
-mysql_select_db(DBNAME, $dbcxn);
+$config = parse_ini_file("../dbconfig.ini", true);
+
+$dbcxn = mysql_connect($config['database']['hostname'], $config['database']['username'], $config['database']['password']);
+mysql_select_db($config['database']['database'], $dbcxn);
 header('Content-type: text/html; charset=UTF-8') ;
 
 function escape_string($string){
@@ -53,7 +54,7 @@ function twitterFormat($text){
 	
 	$text = preg_replace("#^Aquarion: #", "", $text);
 
-	$text = preg_replace("#http://raptr.com/Aquarion#", "", $text);
+	$text = preg_replace("#http://raptr.com/\w*#", "", $text);
 	$text = preg_replace("#^Xbox Live: #", "", $text);
 	$text = preg_replace("# \(Xbox Live Nation\)$#", "", $text);
 	
@@ -95,7 +96,8 @@ while($row = mysql_fetch_assoc($results)){
 
 	case "steam":
 		$icon = "http://imperial.istic.net/static/icons/steam.png";
-		$row['url'] = "http://steamcommunity.com/id/aquarion/";
+		#$row['url'] = "http://steamcommunity.com/id/aquarion/";
+		$row['title'] = "Achieved: ".$row['title'];
 		break;
 
 	case "apps":
