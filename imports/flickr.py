@@ -4,6 +4,7 @@ import feedparser, urlparse
 import os, time,sys,codecs
 import ConfigParser, MySQLdb, socket
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+import dateutil.parser
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
@@ -32,7 +33,7 @@ fp = feedparser.parse(url)
 
 type = sys.argv[1]
 
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`) values (%s, %s, %s, %s, NOW(), "", "");'
+s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`) values (%s, %s, %s, %s, %s, "", "");'
 
 for i in range(len(fp['entries'])):
 	o_item = fp['entries'][i]
@@ -41,6 +42,8 @@ for i in range(len(fp['entries'])):
 
 	id = o_item['guid']
 
+	result = dateutil.parser.parse( o_item['published'])
+
 	#message = o_item.title.replace('"', '\\"');
 	#if o_item.has_key("content"):
 	#	message = o_item['content'][0]['value'].replace('"', '\\"');
@@ -48,4 +51,4 @@ for i in range(len(fp['entries'])):
 	#	message = o_item['title']+": "+o_item['description'].replace('"', '\\"');
 	message = o_item['title'].replace('"', '\\"');
 	#print s_sql % (type, id, message, o_item['links'][0]['href'], o_item['published'])
-	cursor.execute(s_sql, (type, id, message, o_item['links'][0]['href']))
+	cursor.execute(s_sql, (type, id, message, o_item['links'][0]['href'],  result))
