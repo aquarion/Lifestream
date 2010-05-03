@@ -31,7 +31,7 @@ user = sys.argv[1]
 s_sql = u'insert ignore into lifestream (`id`, `type`, `systemid`, `title`, `date_created`, `image`, `url`, `source`) values (0, %s, %s, %s, NOW(), %s, %s, "steam");'
 
 try:
-	gameslist_xml = urllib.urlopen("http://steamcommunity.com/id/%s/games?xml=1" % user)
+	gameslist_xml = urllib.urlopen("http://steamcommunity.com/id/%s/games?tab=recent&xml=1" % user)
 except IOError:
 	print >> sys.stderr, "Got socket error fetching games list"
 	os._exit(5)
