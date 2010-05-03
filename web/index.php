@@ -109,8 +109,38 @@ while($row = mysql_fetch_assoc($results)){
 			$row['content'] = sprintf('<a href="%s">%s</a>', $matches[2], $matches[1]);
 			$row['source'] = "YouTube";
 				
-			break;
+		} elseif($row['source'] == "LOVEFiLM.com Updates"){
+
+			$match = preg_match("#(Played|Watched|Has been sent) (.*?): (http://LOVEFiLM.com/r/\S*)#", $row['originaltext'], $matches);
+
+			$row['content'] = sprintf('%s <a href="%s">%s</a>', $matches[1], $matches[3], $matches[2]);
+
+			$icon = "http://imperial.istic.net/static/icons/other/favicon.png";
+			$row['source'] = "LOVEFiLM";
+		} elseif ($row['source'] == "foursquare"){
+			$icon = "http://imperial.istic.net/static/icons/silk/map_magnify.png";
+			$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
+
+
+			#preg_match("#(http://\S*)#", $row['content'], $matches);
+
+			#echo $row['originaltext']."<br/>";
+			
+			preg_match("#I'm at (.*?) \((.*?)\)\. (http://\S*)#", $row['originaltext'], $matches);
+
+
+			$row['content'] = sprintf('I\'m at <a href="%s">%s</a> (%s)', $matches[3], $matches[1], $matches[2]);
+			
+			
+			$row['url'] = $matches[1];
+			
+			#$row['content'] = preg_replace("#http://\S*#", "", $row['content']);
+			
+			#$row['content'] = twitterFormat($row['content']);
+			
+			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
 		}
+		break;
 	
 	case "twitter":
 		$icon = "http://imperial.istic.net/static/icons/twitter/squared-shiny-16x16/twitter-02.png";
@@ -122,18 +152,6 @@ while($row = mysql_fetch_assoc($results)){
 			$row['url'] = $matches[1];
 			
 			$row['content'] = preg_replace("#: http://\S*#", "", $row['content']);
-			
-			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
-		} elseif ($row['source'] == "foursquare"){
-			$icon = "http://imperial.istic.net/static/icons/silk/map_magnify.png";
-			$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
-			preg_match("#(http://\S*)#", $row['content'], $matches);
-			
-			$row['url'] = $matches[1];
-			
-			$row['content'] = preg_replace("#http://\S*#", "", $row['content']);
-			
-			$row['content'] = twitterFormat($row['content']);
 			
 			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
 		} elseif ($row['source'] == "web"){
