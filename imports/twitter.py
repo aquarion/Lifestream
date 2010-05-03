@@ -10,6 +10,8 @@ from datetime import datetime
 from twitter import Twitter
 import calendar, rfc822
 
+from urllib2 import URLError
+
 
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
@@ -39,7 +41,10 @@ try:
 	tweets = twitter.statuses.user_timeline()
 except ValueError:
 	sys.exit(4)
-
+except URLError, e:
+	if not e.reason[0] == 104:
+		print e.reason
+	sys.exit(5)
 #print '-- Welcome to Twipistula'
 
 s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
@@ -48,7 +53,8 @@ for i in range(len(tweets)):
 	tweet = tweets[i]
 	
 	id = tweet['id']
-	message = tweet['text'].replace('"', '\\"');
+	#message = tweet['text'].replace('"', '\\"');
+	message = tweet['text'].encode("utf_8")
 	source = tweet['source'];
 
 	source = re.sub(r'<[^>]*?>', '', source) 
