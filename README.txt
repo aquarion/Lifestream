@@ -14,6 +14,8 @@ h2. How to make it go:
 * Use the schema to create a database
 * copy dbconfig.ini.example to lose the example bit
 * edit it to contain real live database details
+* install Python Twitter Tools http://mike.verdone.ca/twitter/
+  * (Either globally, or put a symlink to it's /twitter directory inside imports)
 * Each import script accepts a username as a parameter
    pipe the output of the script to the database
 * eg:  twitter.py [Lifestream "Type"] [Twitter Username] [Twitter Password]
