@@ -38,12 +38,13 @@ except IOError:
 
 games = minidom.parse(gameslist_xml);
 gameslist = games.getElementsByTagName('game')
-for game in gameslist:
+for game in gameslist[0:3]:
 	statspage = game.getElementsByTagName('statsLink')
+	gamename = game.getElementsByTagName('name')[0].firstChild.data
+	#print gamename
 	if len(statspage) == 0:
 		continue;
 
-	gamename = game.getElementsByTagName('name')[0].firstChild.data
 	statspage = game.getElementsByTagName('statsLink')[0].firstChild.data
 	statspagexml = "%s?xml=1" % statspage
 	#print "%s %s" % (gamename, statspage)
