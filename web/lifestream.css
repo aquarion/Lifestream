@@ -30,7 +30,7 @@
 #lifestream .ui-tabs-panel {
 	padding: 0;
 	padding-left: .5em;
-	margin-left: .4em;
+	margin-left: 0em;
 	border: 1px solid #CCC;
 	padding-top: 1em;
 }
@@ -79,6 +79,8 @@
 	top: 1px;
 	background: white;
 	margin-right: 1px;
+	padding: .5em;
+	border-color: #CCCCCC;
 }
 
 #lifestream .ui-tabs-selected {

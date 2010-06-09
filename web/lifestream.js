@@ -30,7 +30,7 @@ lifestream.refresh = function(){
 	selected = $('#lifestream>ul li')[selected];
 
 	data = false;
-	url = 'http://www.aquarionics.com/misc/lifestream/';
+	url = '/misc/lifestream/';
 	if ($($('a', selected)[0]).attr("rel"))
 	{
 		data = { "filter" : $($('a', selected)[0]).attr("rel") }
@@ -98,4 +98,6 @@ lifestream.update = function (data){
 	setTimeout(lifestream.refresh, 10000);
 
 }
+
+$(document).ready(lifestream.init);
 
