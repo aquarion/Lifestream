@@ -43,8 +43,12 @@ except ValueError:
 	sys.exit(4)
 except URLError, e:
 	if not e.reason[0] == 104:
+		print "Caught error %s" % e.reason[0]
 		print e.reason
 	sys.exit(5)
+except Exception, e:
+	print "Caught error %s" % Exception
+	sys.exit(12)
 #print '-- Welcome to Twipistula'
 
 s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
