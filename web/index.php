@@ -85,6 +85,11 @@ while($row = mysql_fetch_assoc($results)){
 		if ($row['source'] == "Champions Online"){
 			$icon = "http://imperial.istic.net/static/icons/ChampionsOnline.png";
 			$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
+		} elseif ($row['source'] == "HeroStats"){
+
+			$icon = "http://imperial.istic.net/static/icons/cityofheroes.png";
+			$row['url'] = "http://cit.cohtitan.com/profile/13610";
+
 		} elseif ($row['source'] == "Raptr" && preg_match('#Champions Online! #', $text)){
 			$row['content'] .= "#";
 			continue 2;
@@ -102,9 +107,10 @@ while($row = mysql_fetch_assoc($results)){
 
 	case "apps":
 	
-		if(preg_match("#^I favorited a YouTube video#", $row['content'])){
+		if(preg_match("#^I\S* \w* a YouTube video#", $row['content'])){
 			$icon = "http://imperial.istic.net/static/icons/silk/film_add.png";
-			$match = preg_match("#I favorited a YouTube video -- (.*?) (http.*)#", $row['originaltext'], $matches);
+			$row['image'] = $icon;
+			$match = preg_match("#I\S* \w* a YouTube video -- (.*?) (http.*)#", $row['originaltext'], $matches);
 			
 			$row['content'] = sprintf('<a href="%s">%s</a>', $matches[2], $matches[1]);
 			$row['source'] = "YouTube";
@@ -113,7 +119,9 @@ while($row = mysql_fetch_assoc($results)){
 
 			$match = preg_match("#(Played|Watched|Has been sent) (.*?): (http://LOVEFiLM.com/r/\S*)#", $row['originaltext'], $matches);
 
+			if($match){
 			$row['content'] = sprintf('%s <a href="%s">%s</a>', $matches[1], $matches[3], $matches[2]);
+			}
 
 			$icon = "http://imperial.istic.net/static/icons/other/favicon.png";
 			$row['source'] = "LOVEFiLM";
@@ -126,11 +134,14 @@ while($row = mysql_fetch_assoc($results)){
 
 			#echo $row['originaltext']."<br/>";
 			
-			preg_match("#I'm at (.*?) \((.*?)\)\. (http://\S*)#", $row['originaltext'], $matches);
+			$imat = preg_match("#I'm at (.*?) \((.*?)\)\. (http://\S*)#", $row['originaltext'], $matches);
 
 
-			$row['content'] = sprintf('I\'m at <a href="%s">%s</a> (%s)', $matches[3], $matches[1], $matches[2]);
-			
+			if ($imat){
+				$row['content'] = sprintf('I\'m at <a href="%s">%s</a> (%s)', $matches[3], $matches[1], $matches[2]);
+			} else {
+				$row['content'] = twitterFormat($row['content']);
+			}
 			
 			$row['url'] = $matches[1];
 			
@@ -178,8 +189,11 @@ while($row = mysql_fetch_assoc($results)){
 
 	$row['id'] = md5($row['systemid']);
 
-	$out[] = $row;
-
+	if($out[count($out)-1]['content'] == $row['content']){
+		
+	} else {
+			$out[] = $row;
+	}
 	#echo "<div><img src='$icon'/ height=\"16px\"><a href=\"".$row['url']."\">".$row['title']."</a></div>\n";
 
 }
