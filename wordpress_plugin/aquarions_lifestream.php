@@ -1,36 +1,63 @@
 <?PHP
 /*
 Plugin Name: Aquarion Lifestream
-Plugin URI: /projects/raoss/lifestream
+Plugin URI: http://www.aquarionics.com/projects/raoss/lifestream
 Description: Lifestream
 Version: 0.1a
 Author: aquarion
-Author URI: 
+Author URI: http://www.aquarionics.com
 */ 
 
+
+#wp_enqueue_script("jquery");
+#wp_enqueue_script("aqxs_lifestream", "/misc/lifestream/lifestream.js", "jquery");
+
+
+
+add_action("wp_head", "aqxslifestream_css");
+
+
+function aqxslifestream_css(){
+
+echo <<<EOW
+<link rel="stylesheet" href="/misc/lifestream/lifestream.css"/>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.min.js"></script>
+
+<script src="/misc/lifestream/lifestream.js"></script>
+
+
+<script type="text/javascript">
+
+$(document).ready(lifestream.init);
+
+</script>
+
+
+EOW;
+
+
+}
 
 function widget_aqxslifestream($args) {
     extract($args);
 ?>
-        <?php echo $before_widget; ?>
-            <?php echo $before_title
-                . $after_title; ?>
-        
+<h2>Lifestream</h2>
 <div id="lifestream">
      <ul>
-        <li><a href="/misc/lifestream/?filter=-lastfm&format=html" title="Everything" rel="-lastfm">
+        <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=-lastfm&format=html" title="lifestreamContent" rel="-lastfm">
 			<span><img src="http://imperial.istic.net/static/icons/silk/asterisk_orange.png"/></span>
 		</a></li>
-         <li><a href="/misc/lifestream/?filter=lastfm&format=html" title="lifestreamContent" rel="lastfm">
+         <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=lastfm&format=html" title="lifestreamContent" rel="lastfm">
 			<span><img src="http://imperial.istic.net/static/icons/silk/music.png"/></span>
 		</a></li>
-         <li><a href="/misc/lifestream/?filter=gaming/steam&format=html" title="lifestreamContent"  rel="gaming/steam">
+         <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=gaming/steam&format=html" title="lifestreamContent"  rel="gaming/steam">
 			<span><img src="http://imperial.istic.net/static/icons/silk/joystick.png"/></span>
 		</a></li>
-        <li><a href="/misc/lifestream/?filter=twitter&format=html" title="lifestreamContent"  rel="twitter">
+        <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=twitter&format=html" title="lifestreamContent"  rel="twitter">
 			<span><img src="http://imperial.istic.net/static/icons/twitter/squared-shiny-16x16/twitter-02.png"/></span>
 		</a></li>
-        <li><a href="/misc/lifestream/?filter=flickr&format=html" title="lifestreamContent"  rel="flickr">
+        <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=flickr&format=html" title="lifestreamContent"  rel="flickr">
 			<span><img src="http://imperial.istic.net/static/icons/silk/camera.png"/></span>
 		</a></li>
      </ul>
