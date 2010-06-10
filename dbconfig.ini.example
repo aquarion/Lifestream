@@ -1,7 +1,13 @@
 [database]
 
-database = "lifestream";
-username = "lifestream"
-password = "[PASSWORD]"
-hostname = "localhost"
+database = DATABASENAME
+username = DATABASEUSER
+password = DATABASEPASSWORD
+hostname = localhost
 
+; Uncomment and fill out these if you have memcache installed and want to use it
+; (Hint, if you have memcache installed, you want to use it)
+;[memcache]
+;
+;port = 11211
+;host = localhost

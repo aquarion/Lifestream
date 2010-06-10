@@ -7,6 +7,20 @@ $dbcxn = mysql_connect($config['database']['hostname'], $config['database']['use
 mysql_select_db($config['database']['database'], $dbcxn);
 header('Content-type: text/html; charset=UTF-8') ;
 
+define("PAGEID", "aqlifestream_".md5($_SERVER['REQUEST_URI'].json_encode($_POST)));
+
+if(isset($config['memcache'])){
+	$memcached =  memcache_connect($config['memcache']['host'], $config['memcache']['port']);
+}
+
+if($memcached){
+	if($result = $memcached->get(PAGEID)){
+		error_log("From Memcache ".PAGEID);
+		echo $result;
+		exit;
+	}
+}
+
 function escape_string($string){
 	global $dbcxn;
 	return mysql_real_escape_string($string, $dbcxn);
@@ -205,8 +219,9 @@ if (isset($_REQUEST['format'])){
 
 switch ($format){
 	case "html":
+		$output = "";
 		foreach($out as $row){
-			echo "<div class=\"lifestream ".$row['type']."\" id=\"".$row['id']."\">
+			$output .= "<div class=\"lifestream ".$row['type']."\" id=\"".$row['id']."\">
 			<a href=\"".$row['url']."\">
 				<img src='".$row['icon']."'/ height=\"16px\" alt=\"".$row['source']."\">
 			</a>
@@ -216,5 +231,12 @@ switch ($format){
 		break;
 	
 	default:
-		echo json_encode($out);
+		$output = json_encode($out);
+}
+
+echo $output;
+
+if($memcached){
+	$memcached->set(PAGEID, $output, 0, 60);
+	error_log("Memcached ".PAGEID);
 }
