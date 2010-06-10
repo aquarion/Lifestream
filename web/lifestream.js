@@ -7,6 +7,8 @@ lifestream.init = function(){
 		spinner: '<img src="/assets/spinner.gif">'
 		});
 
+	
+	setTimeout(lifestream.refresh, 15000);
 
 
 	$('#lifestream').bind('tabsshow', function(event, ui) {
@@ -16,7 +18,6 @@ lifestream.init = function(){
 		ui.panel   // element, that contains the selected/clicked tab contents
 		ui.index   // zero-based index of the selected (clicked) tab
 
-		setTimeout(lifestream.refresh, 15000);
 
 	});
 
@@ -35,6 +36,8 @@ lifestream.refresh = function(){
 	{
 		data = { "filter" : $($('a', selected)[0]).attr("rel") }
 	}
+
+
 	$.post(url, data, lifestream.update, "json");
 }
 
@@ -99,5 +102,5 @@ lifestream.update = function (data){
 
 }
 
-$(document).ready(lifestream.init);
+//#$(document).ready(lifestream.init);
 
