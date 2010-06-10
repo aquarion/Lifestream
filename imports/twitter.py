@@ -47,7 +47,8 @@ except URLError, e:
 		print e.reason
 	sys.exit(5)
 except Exception, e:
-	print "Caught error %s" % Exception
+	#print "Caught error %s" % Exception
+	#print e
 	sys.exit(12)
 #print '-- Welcome to Twipistula'
 
