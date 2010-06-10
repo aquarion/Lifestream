@@ -15,7 +15,7 @@ if(isset($config['memcache'])){
 
 if($memcached){
 	if($result = $memcached->get(PAGEID)){
-		error_log("From Memcache ".PAGEID);
+		#error_log("From Memcache ".PAGEID);
 		echo $result;
 		exit;
 	}
@@ -238,5 +238,5 @@ echo $output;
 
 if($memcached){
 	$memcached->set(PAGEID, $output, 0, 60);
-	error_log("Memcached ".PAGEID);
+	#error_log("Memcached ".PAGEID);
 }
