@@ -28,7 +28,7 @@ if (len(sys.argv) < 2):
 
 user = sys.argv[1]
 
-s_sql = u'insert ignore into lifestream (`id`, `type`, `systemid`, `title`, `date_created`, `image`, `url`, `source`) values (0, %s, %s, %s, NOW(), %s, %s, "steam");'
+s_sql = u'insert delayed ignore into lifestream (`id`, `type`, `systemid`, `title`, `date_created`, `image`, `url`, `source`) values (0, %s, %s, %s, NOW(), %s, %s, "steam");'
 
 try:
 	gameslist_xml = urllib.urlopen("http://steamcommunity.com/id/%s/games?tab=recent&xml=1" % user)
@@ -38,7 +38,7 @@ except IOError:
 
 games = minidom.parse(gameslist_xml);
 gameslist = games.getElementsByTagName('game')
-for game in gameslist[0:3]:
+for game in gameslist[0:10]:
 	statspage = game.getElementsByTagName('statsLink')
 	gamename = game.getElementsByTagName('name')[0].firstChild.data
 	#print gamename
@@ -64,7 +64,9 @@ for game in gameslist[0:3]:
 		
 		name = achivement.getElementsByTagName('name')[0].firstChild.data
 		image = achivement.getElementsByTagName('iconClosed')[0].firstChild.data
-	
+
+		#print name	
+
 		message = "%s &ndash; %s" % (gamename, name)
 	
 		m.update(gamename);
