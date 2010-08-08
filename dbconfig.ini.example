@@ -11,3 +11,9 @@ hostname = localhost
 ;
 ;port = 11211
 ;host = localhost
+
+; twitter oauth values. Register your lifestream as an app at http://www.twitter.com/oauth
+[twitter]
+
+consumer_key = 
+consumer_secret =
