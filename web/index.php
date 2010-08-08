@@ -9,7 +9,9 @@ header('Content-type: text/html; charset=UTF-8') ;
 
 define("PAGEID", "aqlifestream_".md5($_SERVER['REQUEST_URI'].json_encode($_POST)));
 
-if(isset($config['memcache'])){
+$memcached = false;
+
+if(isset($config['memcache']) && ! isset($_GET['skipcache'])) {
 	$memcached =  memcache_connect($config['memcache']['host'], $config['memcache']['port']);
 }
 
@@ -97,11 +99,11 @@ while($row = mysql_fetch_assoc($results)){
 	case "gaming":
 		$icon = "http://imperial.istic.net/static/icons/silk/joystick.png";
 		if ($row['source'] == "Champions Online"){
-			$icon = "http://imperial.istic.net/static/icons/ChampionsOnline.png";
+			$icon = "http://imperial.istic.net/static/icons/games/ChampionsOnline.png";
 			$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
 		} elseif ($row['source'] == "HeroStats"){
 
-			$icon = "http://imperial.istic.net/static/icons/cityofheroes.png";
+			$icon = "http://imperial.istic.net/static/icons/games/cityofheroes.png";
 			$row['url'] = "http://cit.cohtitan.com/profile/13610";
 
 		} elseif ($row['source'] == "Raptr" && preg_match('#Champions Online! #', $text)){
@@ -110,11 +112,15 @@ while($row = mysql_fetch_assoc($results)){
 		} elseif ($row['source'] == "XLN Live Integration"){
 			$icon = "http://imperial.istic.net/static/icons/silk/controller.png";
 			$row['url'] = "http://live.xbox.com/en-GB/profile/profile.aspx?pp=0&GamerTag=Jascain";
+		} elseif (preg_match('#\#wow#', $text)){
+			$row['source'] = "World of Warcraft";
+			$icon = "http://imperial.istic.net/static/icons/games/world_of_warcraft.png";
+
 		}
 		break;
 
 	case "steam":
-		$icon = "http://imperial.istic.net/static/icons/steam.png";
+		$icon = "http://imperial.istic.net/static/icons/games/steam.png";
 		#$row['url'] = "http://steamcommunity.com/id/aquarion/";
 		$row['title'] = "Achieved: ".$row['title'];
 		break;
