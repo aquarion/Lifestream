@@ -8,6 +8,10 @@ import re
 from datetime import datetime
 
 from twitter import Twitter
+
+from twitter.oauth import OAuth, write_token_file, read_token_file
+from twitter.oauth_dance import oauth_dance
+
 import calendar, rfc822
 
 from urllib2 import URLError
@@ -27,15 +31,33 @@ for item in config.items("database"):
 dbcxn = MySQLdb.connect(user = db['username'], passwd = db['password'], db = db['database'], host = db['hostname'])
 cursor = dbcxn.cursor()
 
-if (len(sys.argv) < 4):
-	print "Usage: lifestreamit class username password"
+if (len(sys.argv) < 3):
+	print "Usage: lifestreamit class username"
 	sys.exit(5)
 
 type = sys.argv[1]
 username = sys.argv[2]
-password = sys.argv[3]
 
-twitter = Twitter(username, password)
+
+OAUTH_FILENAME = os.environ.get('HOME', '') + os.sep + '.lifesteam_oauth_'+username
+CONSUMER_KEY = config.get("twitter", "consumer_key")
+CONSUMER_SECRET = config.get("twitter", "consumer_secret")
+
+if not os.path.exists(OAUTH_FILENAME):
+	oauth_dance(
+	    "Lifestream", CONSUMER_KEY, CONSUMER_SECRET,
+	    OAUTH_FILENAME)
+
+
+oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
+
+twitter = Twitter(
+auth=OAuth(
+	oauth_token, oauth_token_secret, CONSUMER_KEY, CONSUMER_SECRET),
+	secure=True,
+	api_version='1',
+	domain='api.twitter.com')
+
 
 try:
 	tweets = twitter.statuses.user_timeline()
@@ -68,5 +90,5 @@ for i in range(len(tweets)):
 	timestamp = datetime.fromtimestamp(epoch).isoformat();
 
 	url = "http://twitter.com/%s/status/%d" % (username, id)
-
+	#print message
 	cursor.execute(s_sql, (type, id, message, timestamp, url, source))
