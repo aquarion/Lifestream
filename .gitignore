@@ -2,3 +2,4 @@ twitter*sh
 dbconfig.ini
 *.pyc
 imports/twitter
+imports/bioware.sh
