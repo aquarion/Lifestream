@@ -170,6 +170,8 @@ while($row = mysql_fetch_assoc($results)){
 			#$row['content'] = twitterFormat($row['content']);
 			
 			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
+		} elseif ($row['source'] == "Kindle"){
+			$icon = "http://imperial.istic.net/static/icons/silk/book_open.png";
 		}
 		break;
 	
