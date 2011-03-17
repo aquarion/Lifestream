@@ -88,22 +88,28 @@ end
 query = 'insert delayed ignore into lifestream (`id`, `type`, `systemid`, `title`, `date_created`, `image`, `url`, `source`) values (0, ?, ?, ?, NOW(), ?, ?, "bioware");'   
 root = "http://social.bioware.com";        
 
-if b.text.include? "Select a Profile"
+skus = ["dragonage1_pc"]
 
-  b.links.each do |link|
+  skus.each do |sku|
     
-    link.click
-    
-    
+    nid = ARGV[0]
+    sku_url = "http://social.bioware.com/playerprofile.php?sku=#{sku}&nid=#{nid}"
+
+    debug_log sku_url    
+
+    b.goto(sku_url)
     b.images.each do |image|
+    debug_log image.to_s
     if image.class_name == "achievement_list_item"     
         sysid = Digest::MD5.hexdigest(image.src)
         
-        params =  ["bioware", sysid, image.title, root+image.src, root+"/"+link.href]
+        params =  ["gaming", sysid, image.title, root+image.src, sku_url]
         
-        debug_log params.to_s
-        debug_log query
-        
+        #daebug_log params.to_s
+        #debug_log query
+
+	debug_log image.title        
+
         db.preparedQuery(query,params)
         
         
@@ -115,7 +121,6 @@ if b.text.include? "Select a Profile"
     
   end
 
-end
 
 if engine == :watir
   b.set_bool_preference("javascript.enabled", true)
