@@ -8,6 +8,8 @@ from datetime import datetime
 from github import github
 
 import calendar, rfc822
+import pytz
+import dateutil.parser
 
 from urllib2 import URLError, HTTPError
 
@@ -41,9 +43,6 @@ ls_type = "code"
 
 author = False
 
-class repomock:
-  name=""
-
 for r in gh.repos.forUser(USERNAME):
     ls_source = r.name
     
@@ -69,6 +68,9 @@ for r in gh.repos.forUser(USERNAME):
             #print c.id
             if not hasattr(c, 'message'):
               c.message = "Empty message"
-              
-            #print r.name, c.author.login, c.authored_date, c.message
-            cursor.execute(s_sql, (ls_type, c.id, c.message, c.authored_date, URL_PREFIX+c.url, ls_source))
+          
+            localdate = dateutil.parser.parse(c.authored_date)
+            utcdate = localdate.astimezone(pytz.utc).isoformat()
+
+            cursor.execute(s_sql, (ls_type, c.id, c.message, utcdate, URL_PREFIX+c.url, ls_source))
+
