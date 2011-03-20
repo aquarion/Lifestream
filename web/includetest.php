@@ -42,6 +42,9 @@ $(document).ready(lifestream.init);
         <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=twitter&format=html" title="lifestreamContent"  rel="twitter">
 			<span><img src="http://imperial.istic.net/static/icons/twitter/squared-shiny-16x16/twitter-02.png"/></span>
 		</a></li>
+		<li><a href="http://www.aquarionics.com/misc/lifestream/?filter=code&format=html" title="lifestreamContent"  rel="twitter">
+			<span><img src="http://imperial.istic.net/static/icons/silk/application_osx_terminal.png"/></span>
+		</a></li>
      </ul>
 	 <div id="lifestreamContent">
 		

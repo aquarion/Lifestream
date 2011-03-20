@@ -172,6 +172,8 @@ while($row = mysql_fetch_assoc($results)){
 			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
 		} elseif ($row['source'] == "Kindle"){
 			$icon = "http://imperial.istic.net/static/icons/silk/book_open.png";
+		} elseif ($row['source'] == "Miso"){
+			$icon = "http://imperial.istic.net/static/icons/silk/television.png";
 		}
 		break;
 	
@@ -197,6 +199,12 @@ while($row = mysql_fetch_assoc($results)){
 		$row['content'] = sprintf('<a href="%s">%s</a>', $row['url'], $row['content']);
 		break;
 
+  case "code":
+    $icon = "http://imperial.istic.net/static/icons/silk/application_osx_terminal.png";
+    $row['content'] = $row['source'].": ".$row['content'];
+    break;
+    
+    
 	default:
 		$icon = "http://imperial.istic.net/static/icons/silk/asterisk_orange.png";
 
