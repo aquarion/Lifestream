@@ -1,5 +1,4 @@
-Lifestream
-----------
+h1. Lifestream
 
 Lifestream is a series of scripts to grab data from places and dump it into a
 database.
