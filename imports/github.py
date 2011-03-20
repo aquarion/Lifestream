@@ -24,7 +24,7 @@ for item in config.items("database"):
 	
 API_KEY  = config.get("github", "key")
 USERNAME = config.get("github", "username")
-MAX_PAGES = 1
+MAX_PAGES = 2
 URL_PREFIX = "https://github.com"
 
 
@@ -70,5 +70,5 @@ for r in gh.repos.forUser(USERNAME):
             if not hasattr(c, 'message'):
               c.message = "Empty message"
               
-            print r.name, c.author.login, c.authored_date, c.message
-            #cursor.execute(s_sql, (ls_type, c.id, c.message, c.authored_date, URL_PREFIX+c.url, ls_source))
+            #print r.name, c.author.login, c.authored_date, c.message
+            cursor.execute(s_sql, (ls_type, c.id, c.message, c.authored_date, URL_PREFIX+c.url, ls_source))
