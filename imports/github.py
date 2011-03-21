@@ -68,9 +68,11 @@ for r in gh.repos.forUser(USERNAME):
             #print c.id
             if not hasattr(c, 'message'):
               c.message = "Empty message"
+
+            if len(c.message) > 250:
+		c.message = c.message[0:250]
           
             localdate = dateutil.parser.parse(c.authored_date)
-            utcdate = localdate.astimezone(pytz.utc).isoformat()
-
+            utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
             cursor.execute(s_sql, (ls_type, c.id, c.message, utcdate, URL_PREFIX+c.url, ls_source))
 

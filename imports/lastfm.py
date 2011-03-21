@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import dateutil.parser
+import pytz
 import feedparser, urlparse, datetime,time
 import os, time,sys,codecs
 import ConfigParser, MySQLdb, socket
@@ -41,7 +43,10 @@ for i in range(len(fp['entries'])):
 
 	#print o_item;
 
-	updated = datetime.datetime.fromtimestamp(time.mktime(o_item.updated_parsed)).strftime("%Y-%m-%d %H:%M");
+	#updated = datetime.datetime.fromtimestamp(time.mktime(o_item.updated_parsed)).strftime("%Y-%m-%d %H:%M");
+	
+	localdate = dateutil.parser.parse(o_item.updated)
+        updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
 	#title = o_item.title.replace('"', '\\"')
 	#message = o_item.title.replace('"', '\\"');

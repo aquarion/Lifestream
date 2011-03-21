@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+import dateutil.parser
+import pytz
+
 import codecs, sys, os
 import ConfigParser, MySQLdb, socket
 
@@ -86,9 +89,9 @@ for i in range(len(tweets)):
 
 	source = re.sub(r'<[^>]*?>', '', source) 
 	
-	epoch = calendar.timegm(rfc822.parsedate(tweet['created_at']));
-	timestamp = datetime.fromtimestamp(epoch).isoformat();
-
 	url = "http://twitter.com/%s/status/%d" % (username, id)
+	
+	localdate = dateutil.parser.parse(tweet['created_at'])
+        utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 	#print message
-	cursor.execute(s_sql, (type, id, message, timestamp, url, source))
+	cursor.execute(s_sql, (type, id, message, utcdate, url, source))
