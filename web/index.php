@@ -1,10 +1,8 @@
 <?PHP
 require("library.php");
 
-$config = parse_ini_file("../dbconfig.ini", true);
+$dbcxn = getDatabase();
 
-$dbcxn = mysql_connect($config['database']['hostname'], $config['database']['username'], $config['database']['password']);
-mysql_select_db($config['database']['database'], $dbcxn);
 header('Content-type: text/html; charset=UTF-8') ;
 
 define("PAGEID", "aqlifestream_".md5($_SERVER['REQUEST_URI'].json_encode($_POST)));
@@ -60,171 +58,16 @@ $results = mysql_query($q) or die(mysql_error());
 
 $out = array();
 
-function twitterFormat($text){
-	
-
-	$text = nl2br(ereg_replace("[[:alpha:]]+://[^<>[:space:]]+[[:alnum:]/]","<a href=\"\\0\">\\0</a>", $text));
-	$text = preg_replace("#@(\w*)?#","<a href=\"http://www.twitter.com/\\1\">@\\1</a>", $text);
-	
-	$text = preg_replace("/#(\w*)/", "<a href=\"http://twitter.com/#search?q=%23\\1\">#\\1</a>", $text);
-	
-	$text = preg_replace("#^Aquarion: #", "", $text);
-
-	$text = preg_replace("#http://raptr.com/\w*#", "", $text);
-	$text = preg_replace("#^Xbox Live: #", "", $text);
-	$text = preg_replace("# \(Xbox Live Nation\)$#", "", $text);
-	
-	return $text;
-	
-}
 
 while($row = mysql_fetch_assoc($results)){
 
-	$text = $row['title'];
-	$row['originaltext'] = $row['title'];
+  $row = process_lifestream_item($row);
 
-	
-	$row['content'] = twitterFormat($text);
-	
-	if(!$row['source']){
-		$row['source'] = $row['type'];
-	}
-
-	switch ($row['type']) {
-		
-	case "lastfm":
-		$icon = "http://imperial.istic.net/static/icons/silk/music.png";
-		break;
-		
-	case "gaming":
-		$icon = "http://imperial.istic.net/static/icons/silk/joystick.png";
-		if ($row['source'] == "Champions Online"){
-			$icon = "http://imperial.istic.net/static/icons/games/ChampionsOnline.png";
-			$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
-		} elseif ($row['source'] == "HeroStats"){
-
-			$icon = "http://imperial.istic.net/static/icons/games/cityofheroes.png";
-			$row['url'] = "http://cit.cohtitan.com/profile/13610";
-
-		} elseif ($row['source'] == "Raptr" && preg_match('#Champions Online! #', $text)){
-			$row['content'] .= "#";
-			continue 2;
-		} elseif ($row['source'] == "XLN Live Integration"){
-			$icon = "http://imperial.istic.net/static/icons/silk/controller.png";
-			$row['url'] = "http://live.xbox.com/en-GB/profile/profile.aspx?pp=0&GamerTag=Jascain";
-		} elseif (preg_match('#\#wow#', $text)){
-			$row['source'] = "World of Warcraft";
-			$icon = "http://imperial.istic.net/static/icons/games/world_of_warcraft.png";
-
-		}
-		break;
-
-	case "steam":
-		$icon = "http://imperial.istic.net/static/icons/games/steam.png";
-		#$row['url'] = "http://steamcommunity.com/id/aquarion/";
-		$row['title'] = "Achieved: ".$row['title'];
-		break;
-
-	case "apps":
-	
-		if(preg_match("#^I\S* \w* a YouTube video#", $row['content'])){
-			$icon = "http://imperial.istic.net/static/icons/silk/film_add.png";
-			$row['image'] = $icon;
-			$match = preg_match("#I\S* \w* a YouTube video -- (.*?) (http.*)#", $row['originaltext'], $matches);
-			
-			$row['content'] = sprintf('<a href="%s">%s</a>', $matches[2], $matches[1]);
-			$row['source'] = "YouTube";
-				
-		} elseif($row['source'] == "LOVEFiLM.com Updates"){
-
-			$match = preg_match("#(Played|Watched|Has been sent) (.*?): (http://LOVEFiLM.com/r/\S*)#", $row['originaltext'], $matches);
-
-			if($match){
-			$row['content'] = sprintf('%s <a href="%s">%s</a>', $matches[1], $matches[3], $matches[2]);
-			}
-
-			$icon = "http://imperial.istic.net/static/icons/other/favicon.png";
-			$row['source'] = "LOVEFiLM";
-		} elseif ($row['source'] == "foursquare"){
-			$icon = "http://imperial.istic.net/static/icons/silk/map_magnify.png";
-			$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
-
-
-			#preg_match("#(http://\S*)#", $row['content'], $matches);
-
-			#echo $row['originaltext']."<br/>";
-			
-			$imat = preg_match("#I'm at (.*?) \((.*?)\)\. (http://\S*)#", $row['originaltext'], $matches);
-
-
-			if ($imat){
-				$row['content'] = sprintf('I\'m at <a href="%s">%s</a> (%s)', $matches[3], $matches[1], $matches[2]);
-			} else {
-				$row['content'] = twitterFormat($row['content']);
-			}
-			
-			$row['url'] = $matches[1];
-			
-			#$row['content'] = preg_replace("#http://\S*#", "", $row['content']);
-			
-			#$row['content'] = twitterFormat($row['content']);
-			
-			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
-		} elseif ($row['source'] == "Kindle"){
-			$icon = "http://imperial.istic.net/static/icons/silk/book_open.png";
-		} elseif ($row['source'] == "Miso"){
-			$icon = "http://imperial.istic.net/static/icons/silk/television.png";
-		}
-		break;
-	
-	case "twitter":
-		$icon = "http://imperial.istic.net/static/icons/twitter/squared-shiny-16x16/twitter-02.png";
-		if ($row['source'] == "Steepster"){
-			$icon = "http://imperial.istic.net/static/icons/silk/cup.png";
-			$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
-			preg_match("#(http://\S*)#", $row['content'], $matches);
-			
-			$row['url'] = $matches[1];
-			
-			$row['content'] = preg_replace("#: http://\S*#", "", $row['content']);
-			
-			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
-		} elseif ($row['source'] == "web"){
-			$row['source'] = "Twitter";
-		}
-		break; 
-
-	case "flickr":
-		$icon = "http://imperial.istic.net/static/icons/silk/picture.png";
-		$row['content'] = sprintf('<a href="%s">%s</a>', $row['url'], $row['content']);
-		break;
-
-  case "code":
-    $icon = "http://imperial.istic.net/static/icons/silk/application_osx_terminal.png";
-    $row['content'] = $row['source'].": ".$row['content'];
-    break;
-    
-    
-	default:
-		$icon = "http://imperial.istic.net/static/icons/silk/asterisk_orange.png";
-
-	}
-
-	if($row['image']){
-		$icon = $row['image'];
-	} 
-
-	$row['icon'] = $icon;
-	$row['nicetime'] = nicetime($row['epoch']);
-
-	$row['id'] = md5($row['systemid']);
-
-	if($out[count($out)-1]['content'] == $row['content']){
+	if(isset($out[count($out)-1]) && $out[count($out)-1]['content'] == $row['content']){
 		
 	} else {
 			$out[] = $row;
 	}
-	#echo "<div><img src='$icon'/ height=\"16px\"><a href=\"".$row['url']."\">".$row['title']."</a></div>\n";
 
 }
 
