@@ -4,3 +4,5 @@ dbconfig.ini
 imports/twitter
 imports/github
 imports/bioware.sh
+oauth2
+python-oauth2
