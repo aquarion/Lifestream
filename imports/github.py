@@ -44,7 +44,7 @@ ls_type = "code"
 author = False
 
 for r in gh.repos.forUser(USERNAME):
-    ls_source = r.name
+    ls_source = "github"
     
     p = 1
     keep_going = True
@@ -68,10 +68,13 @@ for r in gh.repos.forUser(USERNAME):
             #print c.id
             if not hasattr(c, 'message'):
               c.message = "Empty message"
-
+              
+            
+            c.message = "%s: %s" % (r.name, c.message)
+            
             if len(c.message) > 250:
-		c.message = c.message[0:250]
-          
+		          c.message = c.message[0:250]
+		        
             localdate = dateutil.parser.parse(c.authored_date)
             utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
             cursor.execute(s_sql, (ls_type, c.id, c.message, utcdate, URL_PREFIX+c.url, ls_source))
