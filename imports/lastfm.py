@@ -34,7 +34,7 @@ type = "lastfm"
 
 s_sql = u'replace into lifestream (`id`, `type`, `systemid`, `title`, `date_created`, `url` ) values (0, %s, %s, %s, %s, %s);'
 
-for i in range(len(fp['entries'])):
+for i in range(1,len(fp['entries'])):
 	o_item = fp['entries'][i]
 
 	id = o_item['guid']
