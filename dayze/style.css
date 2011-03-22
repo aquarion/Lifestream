@@ -1,0 +1,152 @@
+
+body {
+  background: #EEE;
+  font-family: "Trebuchet MS";
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+}
+
+h1#header {
+  font-size: 400%;
+  text-align: center;
+  background: #DDD;
+  margin: 0 0 0 0;
+}
+
+nav {
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+  text-align: center;
+  background: #DDD;
+  
+}
+
+h2#nav{
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+  background: -moz-linear-gradient(100% 100% 90deg, #DDD, #EEE);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#DDD), to(#EEE));
+}
+
+#Games {
+  background-color: #1a82f7;
+  background: -moz-linear-gradient(100% 100% 90deg, #64A8F5, #1a82f7);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#1a82f7), to(#64A8F5));
+}
+
+#Twitter {
+  background-color: #50BFEB;
+  background: -moz-linear-gradient(100% 100% 90deg, #50BFEB, #B5DAE8);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#50BFEB), to(#B5DAE8));
+}
+
+#Twitter {
+  background-color: #50BFEB;
+  background: -moz-linear-gradient(100% 100% 90deg, #50BFEB, #B5DAE8);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#50BFEB), to(#B5DAE8));
+}
+
+#Music {
+  backgroud: #B266DE;
+  background: -moz-linear-gradient(100% 100% 90deg, #B266DE, #DBC0EB);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#B266DE), to(#DBC0EB));
+}
+
+#Code {
+  backgroud: #E8965F;
+  background: -moz-linear-gradient(100% 100% 90deg, #E8965F, #E6B595);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#E8965F), to(#E6B595));
+}
+
+#Other {
+  backgroud: #4EB34B;
+  background: -moz-linear-gradient(100% 100% 90deg, #4EB34B, #CFE3CF);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#4EB34B), to(#CFE3CF));
+}
+#Location {
+  backgroud: #4EB34B;
+  background: -moz-linear-gradient(100% 100% 90deg, #4EB34B, #CFE3CF);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#4EB34B), to(#CFE3CF));
+}
+
+#Blog {
+  backgroud: #609187;
+  background: -moz-linear-gradient(100% 100% 90deg, #609187, #B2D6CE);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#609187), to(#B2D6CE));
+}
+
+.contentbox {
+  border: 1px solid #666;
+  border-top-color: #CCC;
+  border-left-color: #CCC;
+  border-bottom: none;
+  width: 15em;
+  float: left;
+  
+  background-color: #666;
+  background: -moz-linear-gradient(100% 100% 90deg, #, #333);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#EEE), to(#333));
+  margin: .2em;
+  padding: 0 0 0 0;
+  
+  -border-radius: 2em;
+}
+
+.contentbox ul {
+  list-style: none;
+  padding-top: 1em;
+  padding-left: 0em;
+  display: block;
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+  overflow: hidden;
+}
+
+.contentbox li {
+  padding: 1em;
+  border-bottom: 1px solid #666;
+  border-top: 1px solid #EEE;
+}
+
+.contentbox h1 {
+  color: #EEE;
+  padding: 0;
+  margin: 0;
+  position: relative;
+  top: -.2em;
+  border-bottom: 1px solid #666;
+}
+
+.contentbox img {
+  float: left;
+  margin: .2em;
+  max-width: 64px;
+}
+
+.contentbox a {
+  text-decoration: none;
+  color: black;
+}
+.contentbox a:hover {
+  border-bottom: 1px dotted black;
+}
+
+.contentbox br {
+  
+  clear: both;
+}
+
+
+h2#nav {
+  font-size: 200%;
+  text-align: center;
+}
+
+h2#nav a {
+  text-decoration: none;
+}
+
+#tiles {
+	margin-left: auto;
+	margin-right: auto;
+}
