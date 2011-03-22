@@ -186,9 +186,12 @@ function process_lifestream_item($row){
 
   case "code":
     $icon = "http://imperial.istic.net/static/icons/silk/application_osx_terminal.png";
-    $row['content'] = $row['source'].": ".$row['content'];
+    $row['content'] = $row['content'];
     break;
-    
+  
+  case "oyster":
+    $icon = "http://imperial.istic.net/static/icons/tfl.png";
+    break;
     
 	default:
 		$icon = "http://imperial.istic.net/static/icons/silk/asterisk_orange.png";
