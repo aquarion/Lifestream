@@ -119,6 +119,7 @@ while ($row = mysql_fetch_assoc($results)){
   }
   
   
+  
   if (!isset($structure[$class])){
     $structure[$class] = array();
   }
@@ -174,6 +175,7 @@ while ($row = mysql_fetch_assoc($results)){
 <br clear="both"/>
 
 
+<div id="tiles" >
 <?PHP 
 
 foreach($structure as $classname => $items){
@@ -189,7 +191,7 @@ foreach($structure as $classname => $items){
       echo "<img src='".$row['icon']."'/>";
     }
     
-    echo "<a href=\"".$row['url']."\">".$row['content']."</a><br/></li>\n";
+    echo "<a href=\"".$row['url']."\">[".date("H:i", $row['epoch'])."] ".$row['content']."</a><br/></li>\n";
   }
   
   print '</ul>
@@ -197,6 +199,7 @@ foreach($structure as $classname => $items){
 }
   
 ?>
+</div>
 
 </body>
 </html>

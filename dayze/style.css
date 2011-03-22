@@ -90,6 +90,13 @@ h2#nav{
   padding: 0 0 0 0;
   
   -border-radius: 2em;
+  
+  max-height: 800;
+  overflow: hidden;
+}
+
+.contentbox:hover {
+  overflow: auto;
 }
 
 .contentbox ul {
