@@ -10,6 +10,8 @@ define("A_DAY", 60*60*24 );
 define("A_MONTH", 60*60*24*30 );
 define("A_YEAR", 60*60*24*364 );
 
+$today = false;
+
 if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $y = intval($_GET['year']);
   $m = intval($_GET['month']);  
@@ -25,6 +27,15 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $onwards_title   = date($dateformat_txt, $from+A_DAY);
   $backwards_title = date($dateformat_txt, $from-A_DAY);
   
+    
+  $noforwards = false;
+  if ($to > time()){
+    $noforwards = true;
+  }
+  
+  if(date("Y-m-d", $from) == date("Y-m-d")){
+    $today = true;
+  }
   
 } elseif (isset($_GET['year']) && isset($_GET['month'])){
   $y = intval($_GET['year']);
@@ -64,6 +75,13 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $dateformat = "Y";
   $datetitle = date($dateformat, $from);
   
+    
+  $noforwards = false;
+  if (date("Y", $next) > date("Y")){
+    $noforwards = true;
+  }
+
+  
 } else {
   $from = mktime(0,0);
   $to = mktime(23,59,59);
@@ -75,8 +93,9 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   
   $onwards_title = date($dateformat_txt, $from+A_DAY);
   $backwards_title = date($dateformat_txt, $from-A_DAY);
+  
+  $today = $noforwards = true;
 }
-
 
 
 $q = sprintf("select *, unix_timestamp(date_created) as epoch from lifestream where date_created between '%s' and '%s' order by date_created", date(DATE_ISO8601, $from), date(DATE_ISO8601, $to));
@@ -109,6 +128,7 @@ while ($row = mysql_fetch_assoc($results)){
       break;
       
     case "location":
+    case "oyster":
       $class = "Location";
       break;
     
@@ -168,19 +188,22 @@ while ($row = mysql_fetch_assoc($results)){
 <h2 id="nav">
   <a href="<?PHP echo $backwards ?>" title="<?PHP echo $backwards_title ?>">&lt;</a>
   <?PHP echo $datetitle ?>
+  <?PHP if(!$noforwards){?>
   <a href="<?PHP echo $onwards ?>"   title="<?PHP echo $onwards_title ?>">&gt;</a>
+  <?PHP } ?>
   
 </h2>
 
 <br clear="both"/>
-
 
 <div id="tiles" >
 <?PHP 
 
 foreach($structure as $classname => $items){
   
-  print '<div id="'.$classname.'" class="contentbox content">
+  print '
+  
+  <div id="'.$classname.'" class="contentbox content">
   <h1>'.$classname.'</h1>
   <ul>
   ';
@@ -188,10 +211,17 @@ foreach($structure as $classname => $items){
   foreach($items as $row){
     echo "<li>";
     if ($row['icon']){
-      echo "<img src='".$row['icon']."'/>";
+      echo "<img src='".$row['icon']."' class=\"icon\"/>";
     }
     
-    echo "<a href=\"".$row['url']."\">[".date("H:i", $row['epoch'])."] ".$row['content']."</a><br/></li>\n";
+    #echo "[".date("H:i", $row['epoch'])."]</a>";
+    
+    echo $row['content'];
+    
+    echo "<br/>";
+  
+    echo "<a href=\"".$row['url']."\" class=\"cite\">".$row['source']."</a>";
+    echo "</li>\n";
   }
   
   print '</ul>
@@ -199,7 +229,22 @@ foreach($structure as $classname => $items){
 }
   
 ?>
+
+
+<?PHP if($today){ ?>
+
+<div id="Currently" class="contentbox content">
+  <h1>Currently</h1>
+
+<!-- Google Public Location Badge -->
+<!-- Google Public Location Badge -->
+<iframe src="http://www.google.co.uk/latitude/apps/badge/api?user=-5055593116820320694&type=iframe&maptype=hybrid" width="180" height="300" frameborder="0"></iframe>
+<!-- To disable location sharing, you *must* visit https://www.google.com/latitude/apps/badge and disable the Google Public Location badge. Removing this code snippet is not enough! -->
 </div>
+<?PHP } ?>
+
+</div>
+
 
 </body>
 </html>

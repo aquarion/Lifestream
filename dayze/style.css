@@ -11,6 +11,7 @@ h1#header {
   text-align: center;
   background: #DDD;
   margin: 0 0 0 0;
+  text-shadow: 2px 2px 2px rgba(0,0,0,.25);
 }
 
 nav {
@@ -26,6 +27,7 @@ h2#nav{
   margin: 0 0 0 0;
   background: -moz-linear-gradient(100% 100% 90deg, #DDD, #EEE);
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#DDD), to(#EEE));
+  text-shadow: 2px 2px 2px rgba(0,0,0,.15);
 }
 
 #Games {
@@ -75,6 +77,16 @@ h2#nav{
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#609187), to(#B2D6CE));
 }
 
+#Currently {
+  background: #FFF;
+  border-bottom: 1px solid #666;
+}
+
+#Currently iframe {
+  
+  padding: 1em;
+}
+
 .contentbox {
   border: 1px solid #666;
   border-top-color: #CCC;
@@ -89,7 +101,7 @@ h2#nav{
   margin: .2em;
   padding: 0 0 0 0;
   
-  -border-radius: 2em;
+  border-radius: 1em;
   
   max-height: 800;
   overflow: hidden;
@@ -113,6 +125,7 @@ h2#nav{
   padding: 1em;
   border-bottom: 1px solid #666;
   border-top: 1px solid #EEE;
+  text-shadow: 1px 1px 1px rgba(0,0,0,.25);
 }
 
 .contentbox h1 {
@@ -122,12 +135,18 @@ h2#nav{
   position: relative;
   top: -.2em;
   border-bottom: 1px solid #666;
+  padding-left: .5em;
+  text-shadow: 2px 2px 2px rgba(0,0,0,.5);
 }
 
-.contentbox img {
+.contentbox img.icon {
   float: left;
   margin: .2em;
   max-width: 64px;
+}
+
+#Location img.icon {
+  max-width: 32px;
 }
 
 .contentbox a {
@@ -135,12 +154,24 @@ h2#nav{
   color: black;
 }
 .contentbox a:hover {
-  border-bottom: 1px dotted black;
+  border-bottom: 1px dashed black;
 }
 
 .contentbox br {
   
   clear: both;
+}
+
+.contentbox a {
+  border-bottom: 1px dotted black;
+}
+
+.contentbox a.cite {
+  color: rgba(0,0,0,.5);
+  font-size: 8pt;
+  display: block;
+  float: right;
+  text-shadow: none;
 }
 
 
