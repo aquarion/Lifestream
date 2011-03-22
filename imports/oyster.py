@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/python
 
 import codecs, sys, os
 import ConfigParser, MySQLdb, socket
@@ -117,7 +117,7 @@ while page < 3:
         
     message = "%s %s" % (action, location)
         
-    cursor.execute(s_sql, ("oyster", id.hexdigest(), message, utcdate, "#", action))
+    cursor.execute(s_sql, ("oyster", id.hexdigest(), message, utcdate, "#", "oyster"))
     
   page += 1
   link=br.find_link(text="%s" % page)
