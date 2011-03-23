@@ -111,6 +111,7 @@ function process_lifestream_item($row){
 		break;
 
 	case "apps":
+	case "location":
 	
 		if(preg_match("#^I\S* \w* a YouTube video#", $row['content'])){
 			$icon = "http://imperial.istic.net/static/icons/silk/film_add.png";
@@ -130,8 +131,15 @@ function process_lifestream_item($row){
 
 			$icon = "http://imperial.istic.net/static/icons/other/favicon.png";
 			$row['source'] = "LOVEFiLM";
-		} elseif ($row['source'] == "foursquare"){
-			$icon = "http://imperial.istic.net/static/icons/silk/map_magnify.png";
+		} elseif (
+		            strtolower($row['source']) == "foursquare" 
+		            or strtolower($row['source']) == "foursquare-mayor"
+		          ){
+		  if ($row['source'] == "Foursquare-Mayor"){
+		    $icon = "http://imperial.istic.net/static/icons/foursquare%20icons/mayorCrown.png";
+		  } else {
+			  $icon = "http://imperial.istic.net/static/icons/foursquare%20icons/foursquare%20256x256.png";
+		  }
 			$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
 
 
@@ -186,9 +194,12 @@ function process_lifestream_item($row){
 
   case "code":
     $icon = "http://imperial.istic.net/static/icons/silk/application_osx_terminal.png";
-    $row['content'] = $row['source'].": ".$row['content'];
+    $row['content'] = $row['content'];
     break;
-    
+  
+  case "oyster":
+    $icon = "http://imperial.istic.net/static/icons/tfl.png";
+    break;
     
 	default:
 		$icon = "http://imperial.istic.net/static/icons/silk/asterisk_orange.png";

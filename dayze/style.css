@@ -1,10 +1,28 @@
 
 body {
   background: #EEE;
+  color: #000040;
   font-family: "Trebuchet MS";
   padding: 0 0 0 0;
   margin: 0 0 0 0;
 }
+
+
+a {
+  color: #0000F5;
+  text-decoration: none;
+  border-bottom: 1px dotted black;
+}
+
+a:hover {
+  border-bottom: 1px dashed black;
+}
+
+a:visited {
+  color: #0000FF;
+  border-bottom: 1px dashed #0000F5;
+}
+
 
 h1#header {
   font-size: 400%;
@@ -103,7 +121,7 @@ h2#nav{
   
   border-radius: 1em;
   
-  max-height: 800;
+  max-height: 1000;
   overflow: hidden;
 }
 
@@ -149,21 +167,9 @@ h2#nav{
   max-width: 32px;
 }
 
-.contentbox a {
-  text-decoration: none;
-  color: black;
-}
-.contentbox a:hover {
-  border-bottom: 1px dashed black;
-}
-
 .contentbox br {
   
   clear: both;
-}
-
-.contentbox a {
-  border-bottom: 1px dotted black;
 }
 
 .contentbox a.cite {
@@ -182,9 +188,18 @@ h2#nav {
 
 h2#nav a {
   text-decoration: none;
+  border: none;
 }
 
 #tiles {
 	margin-left: auto;
 	margin-right: auto;
+}
+
+hr {
+  clear: both;
+}
+
+footer {
+  text-align: center;
 }
