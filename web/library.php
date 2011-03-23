@@ -140,6 +140,7 @@ function process_lifestream_item($row){
 		  } else {
 			  $icon = "http://imperial.istic.net/static/icons/foursquare%20icons/foursquare%20256x256.png";
 		  }
+		  
 			$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
 
 
