@@ -194,10 +194,13 @@ while ($row = mysql_fetch_assoc($results)){
 <h1 id="header">Nicholas Avenell</h1>
 <nav>[ <a href="http://hol.istic.net/Aquarion">Who?</a> | <a href="http://www.github.com/aquarion">Works</a> | <a href="http://www.linkedin.com/in/webperson">Worker</a> | <a href="http://www.aquarionics.com">Weblog</a> | <a href="http://hol.istic.net/Walrus">Walrus</a> ]</nav>
 <h2 id="nav">
-  <a href="<?PHP echo $backwards ?>" title="<?PHP echo $backwards_title ?>">&lt;</a>
+  <a href="<?PHP echo $backwards ?>" title="<?PHP echo $backwards_title ?>">&#xff1c;</a>
   <?PHP echo $datetitle ?>
   <?PHP if(!$noforwards){?>
-  <a href="<?PHP echo $onwards ?>"   title="<?PHP echo $onwards_title ?>">&gt;</a>
+  <a href="<?PHP echo $onwards ?>"   title="<?PHP echo $onwards_title ?>">&#xff1e;</a>
+  <?PHP } ?>
+  <?PHP if(!$today){?>
+   <a href="/"   title="Today">&#x226b;</a>
   <?PHP } ?>
   
 </h2>
