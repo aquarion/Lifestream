@@ -36,7 +36,9 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   if(date("Y-m-d", $from) == date("Y-m-d")){
     $today = true;
   }
-  
+
+  $annualink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
+
 } elseif (isset($_GET['year']) && isset($_GET['month'])){
   $y = intval($_GET['year']);
   $m = intval($_GET['month']);  
@@ -61,6 +63,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   }
   
   $datetitle = date($dateformat, $from);
+  $annualink = "/[YEAR]/".date("m", $from);
   
 } elseif (isset($_GET['year'])){
   $y = intval($_GET['year']);
@@ -82,6 +85,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $dateformat = "Y";
   $datetitle = date($dateformat, $from);
   
+  $annuallink="/[YEAR]/";
     
   $noforwards = false;
   if (date("Y", $next) > date("Y")){
@@ -102,6 +106,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $backwards_title = date($dateformat_txt, $from-A_DAY);
   
   $today = $noforwards = true;
+  $annualink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
 }
 
 
@@ -111,10 +116,16 @@ $results = mysql_query($q) or die(mysql_error());
 
 $structure = array();
 
+$structure['things'] = array();
+
+$music = array();
+
 while ($row = mysql_fetch_assoc($results)){
   
   $class = "Other";
   $row = process_lifestream_item($row);
+  
+  $id = md5($row['title']);
   
   switch ($row['type']){
     case "gaming":
@@ -124,6 +135,18 @@ while ($row = mysql_fetch_assoc($results)){
       
     case "lastfm":
       $class = "Music";
+      list($artist, $track) = split("–", $row['title']);
+      $id = md5($artist);
+      if(strlen($artist) > 31){
+        $artist = substr($artist, 0, 31);
+      }
+      
+      if (!isset($music[$artist])){
+        $music[$artist] = 1;
+      } else {
+        $music[$artist] += 1;
+      }
+      continue 2;
       break;
       
     case "code":
@@ -137,6 +160,7 @@ while ($row = mysql_fetch_assoc($results)){
     case "location":
     case "oyster":
       $class = "Location";
+      $id = md5($row['title']+$row['epoch']);
       break;
     
   }
@@ -145,14 +169,22 @@ while ($row = mysql_fetch_assoc($results)){
     $class= "Location";
   }
   
+  $row['class'] = $class;
   
+  $class = "things";
   
   if (!isset($structure[$class])){
     $structure[$class] = array();
   }
   
-  $structure[$class][md5($row['title'])] = $row;
-  
+  if (isset($structure[$class][$id])){
+      if (!isset($structure[$class][$id]['subitems'])){
+       $structure[$class][$id]['subitems'] = array();
+      }
+      $structure[$class][$id]['subitems'][] = $row['title'];
+  } else {  
+    $structure[$class][$id] = $row;
+  }
 }
 
 
@@ -175,6 +207,15 @@ while ($row = mysql_fetch_assoc($results)){
     $structure[$class] = array();
   }
   
+  
+  
+  $row['class'] = $class;
+  
+  $class = "things";
+  
+  
+  
+  
   $structure[$class][md5($row['title'])] = $row;
   
 }
@@ -186,15 +227,69 @@ while ($row = mysql_fetch_assoc($results)){
 <head>
 <title>Nicholas Avenell - Web Developer</title>
 
-<link rel="stylesheet" href="/style.css"/> 
+<link rel="stylesheet" href="/assets/css/style.css"/> 
 
+<!--[if IE]><script language="javascript" type="text/javascript" src="/assets/js/jqplot/src/excanvas.js"></script><![endif]-->
+<script type="text/javascript" src="/assets/js/jqplot/src/jquery-1.5.1.min.js"></script>
+<script type="text/javascript" src="/assets/js/jqplot/src/jquery.jqplot.js"></script>
+<script type="text/javascript" src="/assets/js/jqplot/src/plugins/jqplot.pieRenderer.js"></script>
+<link rel="stylesheet" type="text/css" href="/assets/js/jqplot/src/jquery.jqplot.css" />
+
+<script type="text/javascript">
+
+<?PHP
+if(count($music) > 10){
+  $chartClass = 'chart_massive';
+} elseif(count($music) > 5){
+  $chartClass = 'chart_normal';
+} else {
+  $chartClass = 'chart_small';
+}
+
+printf('var chartClass = "%s"', $chartClass);
+?>
+
+var music_data = [
+<?PHP foreach($music as $artist => $count){
+    printf("\t['%s', %d],\n", addslashes($artist), $count);
+  }?>]
+
+init = function(){
+  
+  $('#musicChart').addClass(chartClass);
+  
+  $.jqplot.config.enablePlugins = true;
+  
+  line1 = music_data;
+  plot1 = $.jqplot('musicChart', [line1], {
+  title: 'Music',
+  seriesDefaults:{
+    renderer:$.jqplot.PieRenderer,
+    rendererOptions:{sliceMargin:0, fill:true, shadow:true}
+  },
+  legend:{show:true},
+  
+  grid: { drawBorder: false, shadow: false },
+  
+  cursor: {
+    showTooltip: true
+  }
+
+});
+}
+
+$(document).ready(init);
+
+</script>
 
 </head>
 <body>
+<nav>
 <h1 id="header">Nicholas Avenell</h1>
-<nav>[ <a href="http://hol.istic.net/Aquarion">Who?</a> | <a href="http://www.github.com/aquarion">Works</a> | <a href="http://www.linkedin.com/in/webperson">Worker</a> | <a href="http://www.aquarionics.com">Weblog</a> | <a href="http://hol.istic.net/Walrus">Walrus</a> ]</nav>
-<h2 id="nav">
-  <a href="<?PHP echo $backwards ?>" title="<?PHP echo $backwards_title ?>">&#xff1c;</a>
+<p>Bespoke Typing.</p>
+[ <a href="http://hol.istic.net/Aquarion">Who?</a> | <a href="http://www.github.com/aquarion">Works</a> | <a href="http://www.linkedin.com/in/webperson">Worker</a> | <a href="http://www.aquarionics.com">Weblog</a> | <a href="http://hol.istic.net/Walrus">Walrus</a> ]</nav>
+<div id="datenav">
+  <h2><a href="<?PHP echo $backwards ?>" title="<?PHP echo $backwards_title ?>">&#xff1c;</a>
   <?PHP echo $datetitle ?>
   <?PHP if(!$noforwards){?>
   <a href="<?PHP echo $onwards ?>"   title="<?PHP echo $onwards_title ?>">&#xff1e;</a>
@@ -204,10 +299,21 @@ while ($row = mysql_fetch_assoc($results)){
   <?PHP } ?>
   
 </h2>
+<?PHP 
+for($i=2000; $i <= date("Y"); $i++){
+	$link = str_replace("[YEAR]", $i, $annualink);
+	print "| <a href=\"".$link."\">".$i."</a>";
+}
 
+?> |
+
+</div>
 <br clear="both"/>
 
 <div id="tiles" >
+
+<ul>
+  
 <?PHP 
 
 $order = array();
@@ -215,21 +321,14 @@ foreach($structure as $classname => $items){
   $order[$classname] = count($items);
 }
 
-arsort($order);
-
+  
 foreach($order as $classname => $count){
   
   $items = $structure[$classname];
   
-  print '
-  
-  <div id="'.$classname.'" class="contentbox content">
-  <h1>'.$classname.'</h1>
-  <ul>
-  ';
   
   foreach($items as $row){
-    echo "<li>";
+    echo "<li class=\"contentbox ".$row['class']."\" >";
     
     if ($row['icon']){
       echo "<a href=\"".$row['url']."\" >";
@@ -237,26 +336,29 @@ foreach($order as $classname => $count){
       echo "</a>";
     }
     
-    #echo "[".date("H:i", $row['epoch'])."]</a>";
+    $content = $row['content'];
     
-    echo $row['content'];
+    if (isset($row['subitems'])){
+      $content .= " (+ ".count($row['subitems'])." more)";
+    }
+    
+    echo $content;
     
     echo "<br/>";
-  
-    echo "<a href=\"".$row['url']."\" class=\"cite\">".$row['source']."</a>";
+    
+    echo "<span class=\"cite\">".date("d/M/Y H:i", $row['epoch'])." &mdash; ";
+    echo "<a href=\"".$row['url']."\" >".$row['source']."</a></span>";
     echo "</li>\n";
   }
   
-  print '</ul>
-  </div>';
 }
-  
+
 ?>
 
 
 <?PHP if($today){ ?>
 
-<div id="Currently" class="contentbox content">
+<li id="Currently" class="contentbox content">
   <h1>Currently</h1>
 
 <!-- Google Public Location Badge -->
@@ -264,6 +366,24 @@ foreach($order as $classname => $count){
 <iframe src="http://www.google.co.uk/latitude/apps/badge/api?user=-5055593116820320694&amp;type=iframe&amp;maptype=hybrid" width="180" height="300" frameborder="0"></iframe>
 </div>
 <?PHP } ?>
+
+<?PHP if($from > time()){
+
+  print '<div id="singleitem" class="contentbox">
+    <a href="http://xkcd.com/338/"><img src="http://imgs.xkcd.com/comics/future.png" /></a><br/>
+    <p>The future is a different country.<br/>
+    We will do (willan on-do) thinks differently (willen differentian) there.</p>
+  </div>'; 
+  
+}?>
+
+
+<?PHP if(count($music)){?>
+  <li id="musicChart" class="contentbox Music chart"></li>
+<?PHP } ?>
+
+</ul>
+  </div>
 
 </div>
 

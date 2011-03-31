@@ -85,7 +85,7 @@ b.divs.each do |div|
   if div.attribute_value("class") == "unlocked_outer_left" or div.attribute_value("class") == "unlocked_outer_right"
     achievement = div
     image = root+achievement.image.src
-    text  = achievement.div(:class, "unlocked_text").text
+    text  = achievement.div(:class, "unlocked_title").text
     sysid = image.split("/")[-1].split(".")[0]
     
     debug_log "This is %s" % text

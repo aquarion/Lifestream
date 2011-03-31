@@ -1,0 +1,257 @@
+
+body {
+  color: #000040;
+  font-family: "Trebuchet MS";
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+
+  background: #FFF url('../img/tweetcloud.png') no-repeat fixed center center;
+}
+
+
+a {
+  color: #0000F5;
+  text-decoration: none;
+  border-bottom: 1px dotted black;
+}
+
+a:hover {
+  border-bottom: 1px dashed black;
+}
+
+a:visited {
+  color: #0000FF;
+  border-bottom: 1px dashed #0000F5;
+}
+
+
+h1#header {
+  font-size: 400%;
+  text-align: center;
+  background: rgba(255,255,255,.9);
+  xxxbackground: #DDD;
+  margin: 0 0 0 0;
+  text-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+nav {
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+  text-align: center;
+  background: rgba(255,255,255,.9);
+  
+}
+
+
+#datenav{
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+  background: -moz-linear-gradient(100% 100% 90deg, #DDD, #FFF);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(255,255,255,.9)), to(rgba(255,255,255,.0)));
+  text-align: center;
+}
+
+#datenav h2 {
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+  text-shadow: 2px 2px 2px rgba(0,0,0,.15);
+}
+
+#datenav a {
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+  background-color: rgba(255,255,255,.7);
+  text-shadow: 5px 5px 5px rgba(255,255,255,1);
+}
+
+.Games {
+  background-color: rgba(26,130,247, .8);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(100, 168, 245, .5), rgba(26,130,247, .9));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(100, 168, 245, .9)), to(rgba(26,130,247, .9)));
+}
+
+/* 
+#rgba(,,, .8) 
+
+*/
+
+.Twitter {
+  background-color: rgba(80,191,235, .8);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(80,191,235, .8), rgba(80,191,235, .9));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(80,191,235, .9)), to(rgba(80,191,235, .9)));
+}
+
+.Music {
+  backgroud: rgba(178,102,222, .8);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(178,102,222, .8), rgba(219,192,235, .9));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(178,102,222, .9)), to(rgba(219,192,235, .9)));
+}
+
+.Code {
+  backgroud: rgba(232,150,95, .8);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(232,150,95, .8), rgba(230,181,149, .9));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(232,150,95, .9)), to(rgba(230,181,149, .9)));
+}
+
+.Other {
+  backgroud: rgba(78,179,75, .8);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(78,179,75, .8), rgba(207,22,207, .9));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(78,179,75, .9)), to(rgba(207,22,207, .9)));
+}
+
+.Location {
+  backgroud: rgba(78,179,75, .8);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(78,179,75, .8), rgba(207,227,207, .9));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(78,179,75, .9)), to(rgba(207,227,207, .9)));
+}
+
+.Blog {
+  backgroud: rgba(96,145,135, .8);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(96,145,135, .8), rgba(178,214,206, .9));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(96,145,135, .9)), to(rgba(178,214,206, .9)));
+}
+
+#Currently {
+  background: rgba(255,255,255, .8);
+  border-bottom: 1px solid #666;
+}
+
+
+#singleitem {
+  background: rgba(255,255,255, .8);
+  border-bottom: 1px solid #666;
+  width: 50em;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  color: #222;
+}
+
+
+#Currently iframe {
+  
+  padding: 1em;
+}
+
+.contentbox {
+  border: 1px solid #666;
+  border-top-color: #CCC;
+  border-left-color: #CCC;
+  border-bottom: none;
+  width: 15em;
+  float: left;
+  
+  /*background-color: #666;
+  background: -moz-linear-gradient(100% 100% 90deg, #, #333);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#EEE), to(#333));*/
+  margin: .2em;
+  padding: 0 0 0 0;
+  
+  border-radius: 1em;
+  
+  max-height: 1000;
+  overflow: hidden;
+  
+  color: white;
+  font-weight: bold;
+}
+
+.contentbox ul {
+  list-style: none;
+  padding-top: 1em;
+  padding-left: 0em;
+  display: block;
+  padding: 0 0 0 0;
+  margin: 0 0 0 0;
+  overflow: hidden;
+}
+
+.contentbox {
+  padding: 1em;
+  border-bottom: 1px solid #666;
+  border-top: 1px solid #EEE;
+  text-shadow: 1px 1px 1px rgba(0,0,0,.25);
+  min-height: 8em;
+}
+
+.contentbox h1, .chart .jqplot-title {
+  color: #EEE;
+  padding: 0;
+  margin: 0;
+  position: relative;
+  top: -.2em;
+  text-align: left;
+  font-size: 2em;
+  padding-left: .5em;
+  text-shadow: 2px 2px 2px rgba(0,0,0,.5);
+}
+
+.contentbox img.icon {
+  float: left;
+  margin: .2em;
+  max-width: 64px;
+}
+
+#Location img.icon {
+  max-width: 32px;
+}
+
+.contentbox br {
+  
+  clear: both;
+}
+
+.contentbox .cite {
+  color: rgba(0,0,0,.3);
+  font-size: 8pt;
+  display: block;
+  float: right;
+  text-shadow: none;
+}
+
+.contentbox .cite a {
+  color: rgba(0,0,0,.3);
+  
+}
+
+
+.chart_massive {
+  width: 50em;
+  height: 60em;
+}
+
+.chart_normal {
+  width: 32.5em;
+  height: 30em;
+}
+
+.chart_small {
+  width: 30em;
+  height: 15em;
+}
+
+h2#nav {
+  font-size: 200%;
+  text-align: center;
+}
+
+h2#nav a {
+  text-decoration: none;
+  border: none;
+}
+
+#tiles {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+hr {
+  clear: both;
+  border: 0;
+}
+
+footer {
+  text-align: center;
+  background: rgba(255,255,255,.9);
+  padding: 1em;
+}

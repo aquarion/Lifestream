@@ -2,6 +2,8 @@
 import codecs, sys, os
 import ConfigParser, MySQLdb, socket
 
+import pytz
+
 import re
 
 from datetime import datetime
@@ -77,12 +79,13 @@ for location in checkins:
         message = location['location']['name']
         
     epoch = location['createdAt']
-
-    utcdate = datetime.fromtimestamp(epoch).strftime("%Y-%m-%d %H:%M")
+    localzone = pytz.timezone(location['timeZone'])
+    localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
+    utcdate = localtime.strftime("%Y-%m-%d %H:%M")
     
     id = location['id']
 
-    #print utcdate, message, image
+    #print utcdate, message, localzone
     cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
 
 response, content = web.request(URL_BASE% "users/self/badges")
@@ -100,7 +103,11 @@ for badgeid, badge in badges.items():
         
     checkin = badge['unlocks'][0]['checkins'][0]
     id      = checkin['id']
-    epoch   = checkin['createdAt']
-    utcdate = datetime.fromtimestamp(epoch).strftime("%Y-%m-%d %H:%M")
+
+    epoch = location['createdAt']
+    localzone = pytz.timezone(location['timeZone'])
+    localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
+    utcdate = localtime.strftime("%Y-%m-%d %H:%M")
+
     cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
     #print utcdate, message, image
