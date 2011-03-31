@@ -1,3 +1,12 @@
 [submodule "dayze/assets/js/jqplot"]
 	path = dayze/assets/js/jqplot
 	url = https://github.com/aquarion/jqplot.git
+[submodule "lib/github"]
+	path = lib/github
+	url = https://github.com/dustin/py-github.git
+[submodule "lib/python-oauth2"]
+	path = lib/python-oauth2
+	url = https://github.com/simplegeo/python-oauth2
+[submodule "libs/twitter"]
+	path = libs/twitter
+	url = http://github.com/sixohsix/twitter.git
