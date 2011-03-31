@@ -7,9 +7,6 @@
 [submodule "lib/python-oauth2"]
 	path = lib/python-oauth2
 	url = https://github.com/simplegeo/python-oauth2
-[submodule "libs/twitter"]
-	path = libs/twitter
-	url = http://github.com/sixohsix/twitter.git
 [submodule "lib/twitter"]
 	path = lib/twitter
 	url = http://github.com/sixohsix/twitter.git
