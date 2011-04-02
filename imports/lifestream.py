@@ -1,15 +1,16 @@
 import site
-site.addsitedir("../lib")
-
 import ConfigParser
 import os
-import MySQLdb
 import sys
+import MySQLdb
 import codecs
+
+basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+site.addsitedir(basedir+"/../lib")
+
 
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
-basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 config  = ConfigParser.ConfigParser()
 config.readfp(open(basedir+'/../dbconfig.ini'))
 
