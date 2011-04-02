@@ -157,6 +157,11 @@ while ($row = mysql_fetch_assoc($results)){
       $class = "Twitter";
       break;
       
+    case "tumblr":
+      $class = "Tumblr";
+      $row['content'] = $row['title'];
+      break;
+      
     case "location":
     case "oyster":
       $class = "Location";
@@ -343,8 +348,9 @@ foreach($order as $classname => $count){
     }
     
     echo $content;
-    
+        
     echo "<br/>";
+    
     
     echo "<span class=\"cite\">".date("d/M/Y H:i", $row['epoch'])." &mdash; ";
     echo "<a href=\"".$row['url']."\" >".$row['source']."</a></span>";
