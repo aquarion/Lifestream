@@ -94,9 +94,9 @@ nav {
 }
 
 .Other {
-  backgroud: rgba(78,179,75, .8);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(78,179,75, .8), rgba(207,22,207, .9));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(78,179,75, .9)), to(rgba(207,22,207, .9)));
+  backgroud: rgba(125,96,103, .8);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(125,96,103, .8), rgba(184,163,168, .9));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(125,96,103, .9)), to(rgba(184,163,168, .9)));
 }
 
 .Location {
