@@ -138,7 +138,8 @@ while ($row = mysql_fetch_assoc($results)){
       
     case "lastfm":
       $class = "Music";
-      list($artist, $track) = split("–", $row['title']);
+      
+      list($artist, $track) = explode(" – ", $row['title']);
       $id = md5($artist);
       if(strlen($artist) > 31){
         $artist = substr($artist, 0, 31);
