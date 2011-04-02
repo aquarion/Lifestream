@@ -1,4 +1,4 @@
 twitter*sh
 dbconfig.ini
 *.pyc
-imports/bioware.sh
+shell/bioware.sh

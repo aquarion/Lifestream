@@ -17,7 +17,7 @@ trap "{ rm -f $LOCKFILE; exit 255; }" 15
 trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
-echo `dirname $0`/twitter.py twitter twitterusername
+echo `dirname $0`/tweets.py twitter twitterusername
 
 # IMPORTANT: Run this first in a terminal or ssh session to go though the oauth keys
 # before you add it to cron.
