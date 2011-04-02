@@ -1,26 +1,17 @@
 #!/usr/bin/python
+
+import lifestream
 from xml.dom import minidom
 import urllib
 import hashlib
-import os, time,sys,codecs
-import ConfigParser, MySQLdb, socket
-
+import sys
+import time
 DEBUG = False;
 
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
-basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+dbcxn  = lifestream.getDatabaseConnection()
+cursor = lifestream.cursor(dbcxn)
 
-config = ConfigParser.ConfigParser()
-config.readfp(open(basedir+'/../dbconfig.ini'))
-
-db = {}
-
-for item in config.items("database"):
-	db[item[0]] = item[1]
-
-dbcxn = MySQLdb.connect(user = db['username'], passwd = db['password'], db = db['database'], host = db['hostname'])
-cursor = dbcxn.cursor()
 
 type = "steam"
 

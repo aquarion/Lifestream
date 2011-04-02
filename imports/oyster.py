@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-import codecs, sys, os
-import ConfigParser, MySQLdb, socket
+import lifestream
+import sys
 import mechanize
 from BeautifulSoup import BeautifulSoup
 import pytz
@@ -10,17 +10,9 @@ import hashlib
 
 from datetime import datetime
 
-basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
-config = ConfigParser.ConfigParser()
-config.readfp(open(basedir+'/../dbconfig.ini'))
-db = {}
+dbcxn  = lifestream.getDatabaseConnection()
+cursor = lifestream.cursor(dbcxn)
 
-
-for item in config.items("database"):
-	db[item[0]] = item[1]
-
-dbcxn = MySQLdb.connect(user = db['username'], passwd = db['password'], db = db['database'], host = db['hostname'])
-cursor = dbcxn.cursor()
 
 if (len(sys.argv) < 3):
 	print "Usage: %s class oystercard_number" % sys.argv[0]
@@ -28,8 +20,8 @@ if (len(sys.argv) < 3):
 
 TYPE          = sys.argv[1]
 OYSTER_NUMBER = sys.argv[2]
-USERNAME      = config.get("oyster", "username")
-PASSWORD      = config.get("oyster", "password")
+USERNAME      = lifestream.config.get("oyster", "username")
+PASSWORD      = lifestream.config.get("oyster", "password")
 
 londontime    = pytz.timezone("Europe/London")
 

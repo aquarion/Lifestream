@@ -27,5 +27,4 @@ for i in range(len(fp['entries'])):
 	id       = o_item['guid']
 	dt       = datetime.fromtimestamp(mktime(o_item['updated_parsed']))
 	updated  = dt.strftime("%Y-%m-%d %H:%M")
-		
-	cursor.execute(s_sql, (type, id, o_item['title'], o_item['links'][0]['href'],  updated))
+	cursor.execute(s_sql, (type, id, o_item['summary'], o_item['links'][0]['href'],  updated))
