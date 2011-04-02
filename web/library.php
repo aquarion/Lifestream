@@ -246,6 +246,7 @@ function getDatabase(){
   $config = parse_ini_file("../dbconfig.ini", true);
   $dbcxn = mysql_connect($config['database']['hostname'], $config['database']['username'], $config['database']['password']);
   mysql_select_db($config['database']['database'], $dbcxn);
+  mysql_query("SET NAMES 'utf8' COLLATE 'utf8_unicode_ci'");
   return $dbcxn;
 }
 

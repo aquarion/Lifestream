@@ -1,6 +1,9 @@
 <?PHP
 require("../web/library.php");
 header('Content-type: text/html; charset=UTF-8') ;
+mb_language('uni');
+mb_internal_encoding('UTF-8');
+
 $dbcxn = getDatabase();
 
 $dateformat = "l j<\s\u\p>S</\s\u\p> F Y";
