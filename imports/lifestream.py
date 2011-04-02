@@ -11,7 +11,7 @@ sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 config  = ConfigParser.ConfigParser()
-config.readfp(open('../dbconfig.ini'))
+config.readfp(open(basedir+'/../dbconfig.ini'))
 
 def getDatabaseConnection():
   
