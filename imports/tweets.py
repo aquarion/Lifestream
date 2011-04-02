@@ -1,11 +1,10 @@
 #!/usr/bin/python
 
+import lifestream
 import dateutil.parser
 import pytz
 
-import codecs, sys, os
-import ConfigParser, MySQLdb, socket
-
+import sys, os
 import re
 
 from datetime import datetime
@@ -20,31 +19,19 @@ import calendar, rfc822
 from urllib2 import URLError
 
 
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
-
-basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
-config = ConfigParser.ConfigParser()
-config.readfp(open(basedir+'/../dbconfig.ini'))
-db = {}
-
-
-for item in config.items("database"):
-	db[item[0]] = item[1]
-
-dbcxn = MySQLdb.connect(user = db['username'], passwd = db['password'], db = db['database'], host = db['hostname'])
-cursor = dbcxn.cursor()
-
 if (len(sys.argv) < 3):
 	print "Usage: lifestreamit class username"
 	sys.exit(5)
 
-type = sys.argv[1]
-username = sys.argv[2]
+type            = sys.argv[1]
+username        = sys.argv[2]
 
+dbcxn           = lifestream.getDatabaseConnection()
+cursor          = lifestream.cursor(dbcxn)
 
-OAUTH_FILENAME = os.environ.get('HOME', '') + os.sep + '.lifesteam_oauth_'+username
-CONSUMER_KEY = config.get("twitter", "consumer_key")
-CONSUMER_SECRET = config.get("twitter", "consumer_secret")
+OAUTH_FILENAME  = os.environ.get('HOME', '') + os.sep + '.lifesteam_oauth_'+username
+CONSUMER_KEY    = lifestream.config.get("twitter", "consumer_key")
+CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
 
 if not os.path.exists(OAUTH_FILENAME):
 	oauth_dance(
