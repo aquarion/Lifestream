@@ -17,4 +17,4 @@ trap "{ rm -f $LOCKFILE; exit 255; }" 15
 trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
-/home/aquarion/projects/lifestream/imports/github.py
+/home/aquarion/projects/lifestream/imports/github_commits.py

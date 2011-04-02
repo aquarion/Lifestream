@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 import lifestream
-from github import github
+
+import github
 import pytz
 import dateutil.parser
 
@@ -10,7 +11,6 @@ from urllib2 import URLError, HTTPError
 dbcxn  = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
-	
 API_KEY    = lifestream.config.get("github", "key")
 USERNAME   = lifestream.config.get("github", "username")
 MAX_PAGES  = 2
