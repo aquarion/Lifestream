@@ -291,12 +291,26 @@ $(document).ready(init);
 
 </script>
 
+<style type="text/css">
+<?PHP
+if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".date("Y/m/d", $from).".jpg") ) {
+  ?>
+  body {
+    background-image: url("http://dailyphoto.aquarionics.com/<?PHP echo date("Y/m/d", $from); ?>.jpg");
+  }
+  <?PHP
+}//endif
+?>
+</style>
+
 </head>
 <body>
-<nav>
+
+<header>
 <h1 id="header">Nicholas Avenell</h1>
 <p>Bespoke Typing.</p>
-[ <a href="http://hol.istic.net/Aquarion">Who?</a> | <a href="http://www.github.com/aquarion">Works</a> | <a href="http://www.linkedin.com/in/webperson">Worker</a> | <a href="http://www.aquarionics.com">Weblog</a> | <a href="http://hol.istic.net/Walrus">Walrus</a> ]</nav>
+<nav>[ <a href="http://hol.istic.net/Aquarion">Who?</a> | <a href="http://www.github.com/aquarion">Works</a> | <a href="http://www.linkedin.com/in/webperson">Worker</a> | <a href="http://www.aquarionics.com">Weblog</a> | <a href="http://hol.istic.net/Walrus">Walrus</a> ]</nav>
+</header>
 <div id="datenav">
   <h2><a href="<?PHP echo $backwards ?>" title="<?PHP echo $backwards_title ?>">&#xff1c;</a>
   <?PHP echo $datetitle ?>

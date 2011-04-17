@@ -76,5 +76,5 @@ function widget_aqxslifestream($args) {
 }
 
 
-register_sidebar_widget('Lifestream Widget', 'widget_aqxslifestream');
+wp_register_sidebar_widget("com.aquarionics.lifestream.widgit", 'Lifestream Widget', 'widget_aqxslifestream', null);
 
