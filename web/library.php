@@ -157,8 +157,9 @@ function process_lifestream_item($row){
 				$row['content'] = twitterFormat($row['content']);
 			}
 			
+			if (isset($matches[1])){
 			$row['url'] = $matches[1];
-			
+			}
 			#$row['content'] = preg_replace("#http://\S*#", "", $row['content']);
 			
 			#$row['content'] = twitterFormat($row['content']);
