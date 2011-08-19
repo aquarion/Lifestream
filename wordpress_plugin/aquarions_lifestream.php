@@ -64,7 +64,7 @@ function widget_aqxslifestream($args) {
     <li>
       <a href="http://www.aquarionics.com/misc/lifestream/?filter=code&format=html" title="lifestreamContent" rel="code">
       <span><img src="http://imperial.istic.net/static/icons/silk/application_osx_terminal.png"/></span>
-    </a></li>
+</a></li>
 		
      </ul>
 	 <div id="lifestreamContent">

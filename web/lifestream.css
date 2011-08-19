@@ -8,8 +8,13 @@
 	text-indent:7px;
 }
 
+
 #lifestream a img {
 	border: 0;
+}
+
+#lifestream .lifestream {
+	overflow: hidden;
 }
 
 #lifestream .ui-widget-header {
@@ -79,8 +84,11 @@
 	top: 1px;
 	background: white;
 	margin-right: 1px;
-	padding: .5em;
 	border-color: #CCCCCC;
+}
+
+#lifestream .ui-tabs-nav li:before {
+    content: '';
 }
 
 #lifestream .ui-tabs-selected {
@@ -141,7 +149,7 @@
 ----------------------------------*/
 .ui-widget { font-family: Verdana,Arial,sans-serif; font-size: 1.1em; }
 .ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button { font-family: Verdana,Arial,sans-serif; font-size: 1em; }
-.ui-widget-content { border: 1px solid #aaaaaa; background: #ffffff url(images/ui-bg_flat_75_ffffff_40x100.png) 50% 50% repeat-x; color: #222222; }
+.ui-widget-content { border: 1px solid #aaaaaa; color: #222222; }
 .ui-widget-content a { color: #222222; }
 .ui-widget-header { border: 1px solid #aaaaaa; background: #1b2050 url(images/ui-bg_highlight-soft_75_1b2050_1x100.png) 50% 50% repeat-x; color: #ffebeb; font-weight: bold; }
 .ui-widget-header a { color: #ffebeb; }
