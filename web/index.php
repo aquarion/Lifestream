@@ -1,6 +1,9 @@
 <?PHP
 require("library.php");
 
+$config = parse_ini_file("../dbconfig.ini", true);
+
+
 $dbcxn = getDatabase();
 
 header('Content-type: text/html; charset=UTF-8') ;
@@ -13,9 +16,16 @@ if(isset($config['memcache']) && ! isset($_GET['skipcache'])) {
 	$memcached =  memcache_connect($config['memcache']['host'], $config['memcache']['port']);
 }
 
+
 if($memcached){
 	if($result = $memcached->get(PAGEID)){
 		#error_log("From Memcache ".PAGEID);
+		$md5 = md5($result);
+		if(isset($_SERVER['ETAG']) && $md5 == $_SERVER['ETAG'] ){
+			#header("HTTP/1.1 304 Not Modified");
+			header('Not Modified',true,304);
+		}
+		header("Etag: \"".$md5."\"");
 		echo $result;
 		exit;
 	}
@@ -93,9 +103,11 @@ switch ($format){
 		$output = json_encode($out);
 }
 
-echo $output;
 
 if($memcached){
 	$memcached->set(PAGEID, $output, 0, 60);
 	#error_log("Memcached ".PAGEID);
+	$md5 = md5($output);
+	header("Etag: ". $md5);
 }
+echo $output;
