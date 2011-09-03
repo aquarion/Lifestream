@@ -12,7 +12,10 @@ site.addsitedir(basedir+"/../lib")
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 config  = ConfigParser.ConfigParser()
-config.readfp(open(basedir+'/../dbconfig.ini'))
+try:
+    config.readfp(open(basedir+'/../dbconfig.ini'))
+except IOError:
+    config.readfp(open(os.getcwd()+'/../dbconfig.ini'))
 
 def getDatabaseConnection():
   

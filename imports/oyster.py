@@ -25,7 +25,7 @@ PASSWORD      = lifestream.config.get("oyster", "password")
 
 londontime    = pytz.timezone("Europe/London")
 
-
+`2`
 br = mechanize.Browser()
 br.set_handle_robots(False)
 
@@ -49,6 +49,9 @@ br.submit()
 link=br.find_link(text="Journey history")
 br.follow_link(link)
 
+link=br.find_link(text="Switch to the previous version")
+br.follow_link(link)
+
 ############### Journey History
 
 html = br.response().read()
@@ -58,7 +61,7 @@ page = 1
 
 s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
 
-while page < 3:
+while page < 9:
     
   history = soup.findAll(attrs={"class":"journeyhistory"})[0]
   rows = history.findAll("tr")[1:]
@@ -79,6 +82,11 @@ while page < 3:
   
   for row in rows:
     cells = row.findAll("td")
+    
+    print len(cells)
+    
+    if len(cells) < 4:
+        continue;
     
     if cells[0] and not cells[0].string.strip() == "&nbsp;":
       date = cells[0].string.strip()
@@ -108,7 +116,7 @@ while page < 3:
     id.update(location)
         
     message = "%s %s" % (action, location)
-        
+
     cursor.execute(s_sql, ("oyster", id.hexdigest(), message, utcdate, "#", "oyster"))
     
   page += 1
