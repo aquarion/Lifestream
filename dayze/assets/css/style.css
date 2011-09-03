@@ -5,7 +5,8 @@ body {
   padding: 0 0 0 0;
   margin: 0 0 0 0;
 
-  background: #FFF url('../img/tweetcloud.png') no-repeat fixed center center;
+  /*background: #FFF url('../img/tweetcloud.png') no-repeat fixed center center;*/
+  background: #99D;
 }
 
 header {
