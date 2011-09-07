@@ -83,8 +83,6 @@ while page < 9:
   for row in rows:
     cells = row.findAll("td")
     
-    print len(cells)
-    
     if len(cells) < 4:
         continue;
     
