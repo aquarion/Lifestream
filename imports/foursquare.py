@@ -98,8 +98,8 @@ for badgeid, badge in badges.items():
     checkin = badge['unlocks'][0]['checkins'][0]
     id      = checkin['id']
 
-    epoch = location['createdAt']
-    localzone = pytz.timezone(location['timeZone'])
+    epoch = checkin['createdAt']
+    localzone = pytz.timezone(checkin['timeZone'])
     localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
     utcdate = localtime.strftime("%Y-%m-%d %H:%M")
 
