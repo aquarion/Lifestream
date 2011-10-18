@@ -258,6 +258,80 @@ if(count($music) > 10){
 printf('var chartClass = "%s"', $chartClass);
 ?>
 
+var Move =	{
+
+  copy	:   function(e, target)	{
+	    var eId      = $(e);
+	    var copyE    = eId.cloneNode(true);
+	    var cLength  = copyE.childNodes.length -1;
+	    copyE.id     = e+'-copy';
+
+	    for(var i = 0; cLength >= i;  i++)	{
+	    if(copyE.childNodes[i].id) {
+	    var cNode   = copyE.childNodes[i];
+	    var firstId = cNode.id;
+	    cNode.id    = firstId+'-copy'; }
+	    }
+	    $(target).append(copyE);
+	    },
+  element:  function(e, target, type)	{
+	    var eId =  $(e);
+	    if(type == 'move') {
+	       $(target).append(eId);
+	    }
+
+	    else if(type == 'copy')	{
+	       this.copy(e, target);
+	    }
+	    }
+}
+
+
+function rearrange(){
+
+	b = 256;
+
+	boxes = new Array()
+
+	$('.contentbox').each(function(){
+		t = $(this)
+
+		if (t.height() % b){
+			h = t.outerHeight();
+			d = h - t.height();
+			n = b*(Math.floor(h/b) +1);
+			t.height(n-d);
+		}
+		boxes.push(t);
+		
+	});
+
+	boxes.sort( function (a, b){
+		ah = $(a).height();
+		bh = $(b).height();
+
+		if (ah == bh){
+			return 0;
+		} else if(ah > bh) {
+			return -1;
+		} else {
+			return 1;
+		}
+
+	} );
+
+	t  = $('#tiles');
+	tl = $('#tilelist');
+
+
+	for(k in boxes){
+		$(boxes[k]).appendTo(t);
+		$(boxes[k]).appendTo(tl);
+	}
+
+
+}
+
 var music_data = [
 <?PHP foreach($music as $artist => $count){
     printf("\t['%s', %d],\n", addslashes($artist), $count);
@@ -285,9 +359,17 @@ init = function(){
   }
 
 });
+
+
+
+}
+
+load = function(){
+ rearrange();
 }
 
 $(document).ready(init);
+$(window).load(load);
 
 </script>
 
@@ -335,7 +417,7 @@ for($i=2000; $i <= date("Y"); $i++){
 
 <div id="tiles" >
 
-<ul>
+<ul id="tilelist">
   
 <?PHP 
 
@@ -402,7 +484,7 @@ foreach($order as $classname => $count){
 }?>
 
 
-<?PHP if(count($music)){?>
+<?PHP if(count($music) && false){?>
   <li id="musicChart" class="contentbox Music chart"></li>
 <?PHP } ?>
 
