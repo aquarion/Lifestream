@@ -7,6 +7,7 @@ body {
 
   /*background: #FFF url('../img/tweetcloud.png') no-repeat fixed center center;*/
   background: #99D;
+  background-size: auto 100%;
 }
 
 header {

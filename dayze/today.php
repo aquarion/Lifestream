@@ -375,10 +375,27 @@ $(window).load(load);
 
 <style type="text/css">
 <?PHP
-if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".date("Y/m/d", $from).".jpg") ) {
+
+$fn = date("Y/m/d", $from).".jpg";
+$mn = date("Y/m", $from).".jpg";
+$yn = date("Y", $from).".jpg";
+
+if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$fn) ) {
   ?>
   body {
-    background-image: url("http://dailyphoto.aquarionics.com/<?PHP echo date("Y/m/d", $from); ?>.jpg");
+    background-image: url("http://dailyphoto.aquarionics.com/<?PHP echo $fn; ?>");
+  }
+  <?PHP
+} elseif (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$mn) ) {
+  ?>
+  body {
+    background-image: url("http://dailyphoto.aquarionics.com/<?PHP echo $mn; ?>");
+  }
+  <?PHP
+} elseif (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$yn) ) {
+  ?>
+  body {
+    background-image: url("http://dailyphoto.aquarionics.com/<?PHP echo $yn; ?>");
   }
   <?PHP
 }//endif
