@@ -92,7 +92,7 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 
 		message = "%s &ndash; %s" % (gamename, name)
 	
-		m.update(gamename);
+		m.update(gamename.encode('utf-8'));
 		m.update(name); 
 		id = image
 	
