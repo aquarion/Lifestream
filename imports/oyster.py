@@ -118,10 +118,10 @@ while page < 9:
     cursor.execute(s_sql, ("oyster", id.hexdigest(), message, utcdate, "#", "oyster"))
     
   page += 1
-  link=br.find_link(text="%s" % page)
-  br.follow_link(link)
-  html = br.response().read()
-  soup = BeautifulSoup(html)
+  #link=br.find_link(text="%s" % page)
+  #br.follow_link(link)
+  #html = br.response().read()
+  #soup = BeautifulSoup(html)
   
 
   
