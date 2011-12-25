@@ -2,10 +2,11 @@
 
 import lifestream
 from xml.dom import minidom
-import urllib
+import urllib2 as urllib
 import hashlib
 import sys
 import time
+import os
 DEBUG = False;
 
 
@@ -72,9 +73,13 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 	statspagexml = "%s?xml=1" % statspage
 
 	try:
+		if DEBUG:
+			print "       + Getting Stats: %s" % statspagexml
 		game = minidom.parse(urllib.urlopen(statspagexml))
 	except IOError:
-		print >> sys.stderr, "Got socket error fetching %s achievement list" % gamename
+		if DEBUG:
+			print "       + Got socket error fetching %s achievement list" % gamename
+		continue
 		os._exit(5)
 
 	for achivement in game.getElementsByTagName("achievement"):
