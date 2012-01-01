@@ -7,6 +7,9 @@ import hashlib
 import sys
 import time
 import os
+
+from xml.parsers.expat import ExpatError
+
 DEBUG = False;
 
 
@@ -80,7 +83,10 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 		if DEBUG:
 			print "       + Got socket error fetching %s achievement list" % gamename
 		continue
-		os._exit(5)
+	except ExpatError:
+		if DEBUG:
+			print "       + XML Error reading file. Not a real stats page."
+			continue
 
 	for achivement in game.getElementsByTagName("achievement"):
 		closed =  achivement.getAttribute("closed")
@@ -93,7 +99,7 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 		image = achivement.getElementsByTagName('iconClosed')[0].firstChild.data
 
 		if DEBUG:
-			print "         %s" % name	
+			print "         + %s" % name	
 
 		message = "%s &ndash; %s" % (gamename, name)
 	
