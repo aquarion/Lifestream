@@ -70,6 +70,8 @@ function process_lifestream_item($row){
 	$row['originaltext'] = $row['title'];
 
 	
+
+	
 	$row['content'] = twitterFormat($text);
 	
 	if(!$row['source']){
@@ -169,24 +171,41 @@ function process_lifestream_item($row){
 			$icon = "http://imperial.istic.net/static/icons/silk/book_open.png";
 		} elseif ($row['source'] == "Miso"){
 			$icon = "http://imperial.istic.net/static/icons/silk/television.png";
+			preg_match("#(http://\S*)#", $row['originaltext'], $matches);
+			$row['url'] = $matches[1];
+			$row['content'] = preg_replace("# http://\S*#", "", $row['originaltext']);
 		}
 		break;
-	
+
+
+	  
+
+
 	case "twitter":
 		$icon = "http://imperial.istic.net/static/icons/twitter/squared-shiny-16x16/twitter-02.png";
-		if ($row['source'] == "Steepster"){
-			$icon = "http://imperial.istic.net/static/icons/silk/cup.png";
-			$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
-			preg_match("#(http://\S*)#", $row['content'], $matches);
-			
-			$row['url'] = $matches[1];
-			
-			$row['content'] = preg_replace("#: http://\S*#", "", $row['content']);
-			
-			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
-		} elseif ($row['source'] == "web"){
-			$row['source'] = "Twitter";
+
+		switch ($row['source']){
+
+			case "Steepster":
+				$icon = "http://imperial.istic.net/static/icons/silk/cup.png";
+				$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
+				preg_match("#(http://\S*)#", $row['content'], $matches);
+				$row['url'] = $matches[1];
+				$row['content'] = preg_replace("#: http://\S*#", "", $row['content']);
+				break;
+
+			case "Goodreads":
+				$icon = 'http://imperial.istic.net/static/icons/silk/book_open.png';
+				preg_match("#(http://\S*)#", $row['originaltext'], $matches);
+				$row['url'] = $matches[1];
+				$row['content'] = preg_replace("# http://\S*#", "", $row['originaltext']);
+				break;
+
+			default:
+				$row['source'] = "Twitter";
+
 		}
+
 		break; 
 
 	case "flickr":
@@ -202,8 +221,8 @@ function process_lifestream_item($row){
   case "oyster":
     $icon = "http://imperial.istic.net/static/icons/tfl.png";
     break;
-    
-	default:
+
+  default:
 		$icon = "http://imperial.istic.net/static/icons/silk/asterisk_orange.png";
 
 	}
@@ -219,6 +238,7 @@ function process_lifestream_item($row){
 
 
   return $row;
+
   
 }
 
