@@ -45,7 +45,7 @@ function widget_aqxslifestream($args) {
 <h2>Lifestream</h2>
 <div id="lifestream">
      <ul>
-        <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=-lastfm&format=html" title="lifestreamContent" rel="-lastfm">
+        <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=-lastfm/-tumblr&format=html" title="lifestreamContent" rel="-lastfm/-tumblr">
 			<span><img src="http://imperial.istic.net/static/icons/silk/asterisk_orange.png"/></span>
 		</a></li>
          <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=lastfm&format=html" title="lifestreamContent" rel="lastfm">
