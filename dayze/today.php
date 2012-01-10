@@ -150,7 +150,7 @@ while ($row = mysql_fetch_assoc($results)){
       } else {
         $music[$artist] += 1;
       }
-      continue 2;
+      #continue 2;
       break;
       
     case "code":
@@ -164,6 +164,7 @@ while ($row = mysql_fetch_assoc($results)){
     case "tumblr":
       $class = "Tumblr";
       $row['content'] = $row['title'];
+      continue 2;
       break;
       
     case "location":
@@ -289,7 +290,7 @@ var Move =	{
 
 function rearrange(){
 
-	b = 256;
+	b = 128;
 
 	boxes = new Array()
 
