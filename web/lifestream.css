@@ -4,6 +4,13 @@
 	border: 0;
 }
 
+#lifestream ul.ui-tabs-nav li.ui-state-default {
+	background: rgba(255,255,255,.8) !important;
+	border-bottom: 1px solid rgba(255,255,255,.8);
+	border-bottom-width: 1 !important;
+	
+}
+
 .the_content ul li, #sidebar ul ul li {
 	text-indent:7px;
 }
@@ -37,6 +44,9 @@
 	padding-left: .5em;
 	margin-left: 0em;
 	border: 1px solid #CCC;
+	
+	background: rgba(255,255,255,.8);
+	
 	padding-top: 1em;
 }
 
@@ -76,7 +86,7 @@
 }
 
 #lifestream .ui-tabs-selected {
-	background: #DDD;
+	
 }
 
 #lifestream .ui-tabs-nav li {
@@ -85,6 +95,8 @@
 	background: white;
 	margin-right: 1px;
 	border-color: #CCCCCC;
+	
+	
 }
 
 #lifestream .ui-tabs-nav li:before {
@@ -95,7 +107,7 @@
 	position: relative;
 	top: -1px;
 	background: white;
-	border-bottom: 1px solid white !important;
+	border-bottom: 1px solid rgba(255,255,255,.8) !important;
 }
 /*
 * jQuery UI CSS Framework

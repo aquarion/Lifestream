@@ -42,28 +42,27 @@ EOW;
 function widget_aqxslifestream($args) {
     extract($args);
 ?>
-<h2>Lifestream</h2>
 <div id="lifestream">
      <ul>
         <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=-lastfm/-tumblr&format=html" title="lifestreamContent" rel="-lastfm/-tumblr">
-			<span><img src="http://imperial.istic.net/static/icons/silk/asterisk_orange.png"/></span>
+			<span><img src="http://cdn.aquarionics.com/assets/icons/silk/asterisk_orange.png"/></span>
 		</a></li>
          <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=lastfm&format=html" title="lifestreamContent" rel="lastfm">
-			<span><img src="http://imperial.istic.net/static/icons/silk/music.png"/></span>
+			<span><img src="http://cdn.aquarionics.com/assets/icons/silk/music.png"/></span>
 		</a></li>
          <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=gaming/steam&format=html" title="lifestreamContent"  rel="gaming/steam">
-			<span><img src="http://imperial.istic.net/static/icons/silk/joystick.png"/></span>
+			<span><img src="http://cdn.aquarionics.com/assets/icons/silk/joystick.png"/></span>
 		</a></li>
         <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=twitter&format=html" title="lifestreamContent"  rel="twitter">
-			<span><img src="http://imperial.istic.net/static/icons/twitter/squared-shiny-16x16/twitter-02.png"/></span>
+			<span><img src="http://cdn.aquarionics.com/assets/icons/twitter/squared-shiny-16x16/twitter-02.png"/></span>
 		</a></li>
         <li><a href="http://www.aquarionics.com/misc/lifestream/?filter=flickr&format=html" title="lifestreamContent"  rel="flickr">
-			<span><img src="http://imperial.istic.net/static/icons/silk/camera.png"/></span>
+			<span><img src="http://cdn.aquarionics.com/assets/icons/silk/camera.png"/></span>
 		</a></li>
 		
     <li>
       <a href="http://www.aquarionics.com/misc/lifestream/?filter=code&format=html" title="lifestreamContent" rel="code">
-      <span><img src="http://imperial.istic.net/static/icons/silk/application_osx_terminal.png"/></span>
+      <span><img src="http://cdn.aquarionics.com/assets/icons/silk/application_osx_terminal.png"/></span>
 </a></li>
 		
      </ul>
