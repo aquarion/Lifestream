@@ -80,6 +80,11 @@ root = "http://social.bioware.com";
 #if not achievements.respond_to?('each')
 #  achievements = [achievements]
 #end
+
+if b.text.include? "Invalid login details."
+	throw "Login failed"
+end
+
 debug_log "Found Divs"
 b.divs.each do |div|
   if div.attribute_value("class") == "unlocked_outer_left" or div.attribute_value("class") == "unlocked_outer_right"
