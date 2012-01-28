@@ -81,33 +81,33 @@ function process_lifestream_item($row){
 	switch ($row['type']) {
 		
 	case "lastfm":
-		$icon = "http://cdn.aquarionics.com/assets/icons/silk/music.png";
+		$icon = "http://art.istic.net/iconography/silk/music.png";
 		break;
 		
 	case "gaming":
-		$icon = "http://cdn.aquarionics.com/assets/icons/silk/joystick.png";
+		$icon = "http://art.istic.net/iconography/silk/joystick.png";
 		if ($row['source'] == "Champions Online"){
-			$icon = "http://cdn.aquarionics.com/assets/icons/games/ChampionsOnline.png";
+			$icon = "http://art.istic.net/iconography/games/ChampionsOnline.png";
 			$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
 		} elseif ($row['source'] == "HeroStats"){
 
-			$icon = "http://cdn.aquarionics.com/assets/icons/games/cityofheroes.png";
+			$icon = "http://art.istic.net/iconography/games/cityofheroes.png";
 			$row['url'] = "http://cit.cohtitan.com/profile/13610";
 
 		} elseif ($row['source'] == "Raptr" && preg_match('#Champions Online! #', $text)){
 			$row['content'] .= "#";
 		} elseif ($row['source'] == "XLN Live Integration"){
-			$icon = "http://cdn.aquarionics.com/assets/icons/silk/controller.png";
+			$icon = "http://art.istic.net/iconography/silk/controller.png";
 			$row['url'] = "http://live.xbox.com/en-GB/profile/profile.aspx?pp=0&GamerTag=Jascain";
 		} elseif (preg_match('#\#wow#', $text)){
 			$row['source'] = "World of Warcraft";
-			$icon = "http://cdn.aquarionics.com/assets/icons/games/world_of_warcraft.png";
+			$icon = "http://art.istic.net/iconography/games/world_of_warcraft.png";
 
 		}
 		break;
 
 	case "steam":
-		$icon = "http://cdn.aquarionics.com/assets/icons/games/steam.png";
+		$icon = "http://art.istic.net/iconography/games/steam.png";
 		#$row['url'] = "http://steamcommunity.com/id/aquarion/";
 		$row['title'] = "Achieved: ".$row['title'];
 		break;
@@ -116,7 +116,7 @@ function process_lifestream_item($row){
 	case "location":
 	
 		if(preg_match("#^I\S* \w* a YouTube video#", $row['content'])){
-			$icon = "http://cdn.aquarionics.com/assets/icons/silk/film_add.png";
+			$icon = "http://art.istic.net/iconography/silk/film_add.png";
 			$row['image'] = $icon;
 			$match = preg_match("#I\S* \w* a YouTube video -- (.*?) (http.*)#", $row['originaltext'], $matches);
 			
@@ -131,16 +131,16 @@ function process_lifestream_item($row){
 			$row['content'] = sprintf('%s <a href="%s">%s</a>', $matches[1], $matches[3], $matches[2]);
 			}
 
-			$icon = "http://cdn.aquarionics.com/assets/icons/other/favicon.png";
+			$icon = "http://art.istic.net/iconography/other/favicon.png";
 			$row['source'] = "LOVEFiLM";
 		} elseif (
 		            strtolower($row['source']) == "foursquare" 
 		            or strtolower($row['source']) == "foursquare-mayor"
 		          ){
 		  if ($row['source'] == "Foursquare-Mayor"){
-		    $icon = "http://cdn.aquarionics.com/assets/icons/foursquare%20icons/mayorCrown.png";
+		    $icon = "http://art.istic.net/iconography/foursquare%20icons/mayorCrown.png";
 		  } else {
-			  $icon = "http://cdn.aquarionics.com/assets/icons/foursquare%20icons/foursquare%20256x256.png";
+			  $icon = "http://art.istic.net/iconography/foursquare%20icons/foursquare%20256x256.png";
 		  }
 		  
 			$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
@@ -168,9 +168,9 @@ function process_lifestream_item($row){
 			
 			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
 		} elseif ($row['source'] == "Kindle"){
-			$icon = "http://cdn.aquarionics.com/assets/icons/silk/book_open.png";
+			$icon = "http://art.istic.net/iconography/silk/book_open.png";
 		} elseif ($row['source'] == "Miso"){
-			$icon = "http://cdn.aquarionics.com/assets/icons/silk/television.png";
+			$icon = "http://art.istic.net/iconography/silk/television.png";
 			preg_match("#(http://\S*)#", $row['originaltext'], $matches);
 			$row['url'] = $matches[1];
 			$row['content'] = preg_replace("# http://\S*#", "", $row['originaltext']);
@@ -182,12 +182,12 @@ function process_lifestream_item($row){
 
 
 	case "twitter":
-		$icon = "http://cdn.aquarionics.com/assets/icons/twitter/squared-shiny-16x16/twitter-02.png";
+		$icon = "http://art.istic.net/iconography/twitter/squared-shiny-16x16/twitter-02.png";
 
 		switch ($row['source']){
 
 			case "Steepster":
-				$icon = "http://cdn.aquarionics.com/assets/icons/silk/cup.png";
+				$icon = "http://art.istic.net/iconography/silk/cup.png";
 				$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
 				preg_match("#(http://\S*)#", $row['content'], $matches);
 				$row['url'] = $matches[1];
@@ -195,7 +195,7 @@ function process_lifestream_item($row){
 				break;
 
 			case "Goodreads":
-				$icon = 'http://cdn.aquarionics.com/assets/icons/silk/book_open.png';
+				$icon = 'http://art.istic.net/iconography/silk/book_open.png';
 				preg_match("#(http://\S*)#", $row['originaltext'], $matches);
 				$row['url'] = $matches[1];
 				$row['content'] = preg_replace("# http://\S*#", "", $row['originaltext']);
@@ -209,21 +209,21 @@ function process_lifestream_item($row){
 		break; 
 
 	case "flickr":
-		$icon = "http://cdn.aquarionics.com/assets/icons/silk/picture.png";
+		$icon = "http://art.istic.net/iconography/silk/picture.png";
 		$row['content'] = sprintf('<a href="%s">%s</a>', $row['url'], $row['content']);
 		break;
 
   case "code":
-    $icon = "http://cdn.aquarionics.com/assets/icons/silk/application_osx_terminal.png";
+    $icon = "http://art.istic.net/iconography/silk/application_osx_terminal.png";
     $row['content'] = $row['content'];
     break;
   
   case "oyster":
-    $icon = "http://cdn.aquarionics.com/assets/icons/tfl.png";
+    $icon = "http://art.istic.net/iconography/tfl.png";
     break;
 
   default:
-		$icon = "http://cdn.aquarionics.com/assets/icons/silk/asterisk_orange.png";
+		$icon = "http://art.istic.net/iconography/silk/asterisk_orange.png";
 
 	}
 
