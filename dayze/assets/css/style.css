@@ -6,26 +6,50 @@ body {
   margin: 0 0 0 0;
 
   /*background: #FFF url('../img/tweetcloud.png') no-repeat fixed center center;*/
-  background: #99D;
-  background-size: auto 100%;
+background-attachment: fixed;
+background-color: #EEE;
+background-image: url(http://cdn.aquarionics.com/wp-content/uploads/2012/01/londonkrt13.jpg);
+background-position: 50% 0%;
+background-repeat: no-repeat;
 }
 
 header {
-  background: rgba(255,255,255,.7);
+  background: rgba(128,128,255,.3);
   text-align: center;
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(255,255,255,1)), to(rgba(255,255,255,.5)));
+  color: white;
+  width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: .5em;
+  border-radius: 0 0 10px 10px;
 }
 
 #datenav {
-  background: -moz-linear-gradient(100% 100% 90deg, #DDD, #FFF);
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(255,255,255,.5)), to(rgba(255,255,255,.0)));
+	background: rgba(255,255,255,.3);
+  width: 900px;
+  color: #DDD;
+  margin-left: auto;
+  margin-right: auto;
+  padding: .5em;
+  text-align: center;
+  border-radius: 0 0 10px 10px;
+}
+
+header a, #datenav a {
+	color: #FFF;
+  text-decoration: none;
+}
+
+header a:visited, #datenav a:visited {
+	color: #DDD;
+  text-decoration: none;
 }
 
 a {
-  color: #0000F5;
+  color: #555555;
   text-decoration: none;
   border-bottom: 1px dotted black;
-  text-shadow: 2px 2px 2px rgba(255,255,255,.5);
+  text-shadow: 2px 2px 2px rgba(0,0,0,.5);
 }
 
 a:hover {
@@ -52,11 +76,6 @@ nav {
 }
 
 
-#datenav{
-  padding: 0 0 0 0;
-  margin: 0 0 0 0;
-  text-align: center;
-}
 
 #datenav h2 {
   padding: 0 0 0 0;
@@ -70,66 +89,66 @@ nav {
 }
 
 .Games {
-  background-color: rgba(26,130,247, .8);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(100, 168, 245, .5), rgba(26,130,247, .9));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(100, 168, 245, .9)), to(rgba(26,130,247, .9)));
+  background-color: rgba(26,130,247, .4);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(100, 168, 245, .5), rgba(26,130,247, .4));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(100, 168, 245, .4)), to(rgba(26,130,247, .4)));
 }
 
 /* 
-#rgba(,,, .8) 
+#rgba(,,, .4) 
 
 */
 
 .Twitter {
-  background-color: rgba(80,191,235, .8);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(80,191,235, .8), rgba(80,191,235, .9));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(80,191,235, .9)), to(rgba(80,191,235, .9)));
+  background-color: rgba(80,191,235, .4);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(80,191,235, .4), rgba(80,191,235, .4));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(80,191,235, .4)), to(rgba(80,191,235, .4)));
 }
 
 .Music {
-  backgroud: rgba(178,102,222, .8);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(178,102,222, .8), rgba(219,192,235, .9));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(178,102,222, .9)), to(rgba(219,192,235, .9)));
+  backgroud: rgba(178,102,222, .4);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(178,102,222, .4), rgba(219,192,235, .4));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(178,102,222, .4)), to(rgba(219,192,235, .4)));
 }
 
 .Code {
-  backgroud: rgba(232,150,95, .8);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(232,150,95, .8), rgba(230,181,149, .9));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(232,150,95, .9)), to(rgba(230,181,149, .9)));
+  backgroud: rgba(232,150,95, .4);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(232,150,95, .4), rgba(230,181,149, .4));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(232,150,95, .4)), to(rgba(230,181,149, .4)));
 }
 
 .Other {
-  backgroud: rgba(125,96,103, .8);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(125,96,103, .8), rgba(184,163,168, .9));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(125,96,103, .9)), to(rgba(184,163,168, .9)));
+  backgroud: rgba(125,96,103, .4);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(125,96,103, .4), rgba(184,163,168, .4));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(125,96,103, .4)), to(rgba(184,163,168, .4)));
 }
 
 .Location {
-  backgroud: rgba(78,179,75, .8);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(78,179,75, .8), rgba(207,227,207, .9));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(78,179,75, .9)), to(rgba(207,227,207, .9)));
+  backgroud: rgba(78,179,75, .4);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(78,179,75, .4), rgba(207,227,207, .4));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(78,179,75, .4)), to(rgba(207,227,207, .4)));
 }
 
 .Blog {
-  backgroud: rgba(96,145,135, .8);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(96,145,135, .8), rgba(178,214,206, .9));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(96,145,135, .9)), to(rgba(178,214,206, .9)));
+  backgroud: rgba(96,145,135, .4);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(96,145,135, .4), rgba(178,214,206, .4));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(96,145,135, .4)), to(rgba(178,214,206, .4)));
 }
 
 .Tumblr {
-  backgroud: rgba(79,119,189, .8);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(79,119,189, .8), rgba(141,177,240, .9));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(79,119,189, .9)), to(rgba(141,177,240, .9)));
+  backgroud: rgba(79,119,189, .4);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(79,119,189, .4), rgba(141,177,240, .4));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(79,119,189, .4)), to(rgba(141,177,240, .4)));
 }
 
 #Currently {
-  background: rgba(255,255,255, .8);
+  background: rgba(255,255,255, .4);
   border-bottom: 1px solid #666;
 }
 
 
 #singleitem {
-  background: rgba(255,255,255, .8);
+  background: rgba(255,255,255, .4);
   border-bottom: 1px solid #666;
   width: 50em;
   margin-left: auto;
@@ -165,6 +184,15 @@ nav {
   
   color: white;
   font-weight: bold;
+  padding: 1em;
+  border-bottom: 1px solid #666;
+  border-top: 1px solid #EEE;
+  text-shadow: 1px 1px 1px rgba(0,0,0,.25);
+  min-height: 128;
+}
+
+.contentbox a, .contentbox a:visited {
+	color: #EEE;
 }
 
 .contentbox img {
@@ -179,14 +207,6 @@ nav {
   padding: 0 0 0 0;
   margin: 0 0 0 0;
   overflow: hidden;
-}
-
-.contentbox {
-  padding: 1em;
-  border-bottom: 1px solid #666;
-  border-top: 1px solid #EEE;
-  text-shadow: 1px 1px 1px rgba(0,0,0,.25);
-  min-height: 8em;
 }
 
 .contentbox h1, .chart .jqplot-title {
@@ -217,7 +237,7 @@ nav {
 }
 
 .contentbox .cite {
-  color: rgba(0,0,0,.3);
+  color: rgba(180,180,180,.7);
   font-size: 8pt;
   display: block;
   float: right;
@@ -225,8 +245,8 @@ nav {
 }
 
 .contentbox .cite a {
-  color: rgba(0,0,0,.3);
-  
+  color: rgba(180,180,180,.7);
+  text-shadow: none;
 }
 
 
@@ -258,6 +278,7 @@ h2#nav a {
 #tiles {
 	margin-left: auto;
 	margin-right: auto;
+	width: 900px;
 }
 
 hr {
@@ -267,6 +288,6 @@ hr {
 
 footer {
   text-align: center;
-  background: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.4);
   padding: 1em;
 }

@@ -40,7 +40,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
     $today = true;
   }
 
-  $annualink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
+  $annuallink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
 
 } elseif (isset($_GET['year']) && isset($_GET['month'])){
   $y = intval($_GET['year']);
@@ -66,7 +66,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   }
   
   $datetitle = date($dateformat, $from);
-  $annualink = "/[YEAR]/".date("m", $from);
+  $annuallink = "/[YEAR]/".date("m", $from);
   
 } elseif (isset($_GET['year'])){
   $y = intval($_GET['year']);
@@ -109,7 +109,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $backwards_title = date($dateformat_txt, $from-A_DAY);
   
   $today = $noforwards = true;
-  $annualink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
+  $annuallink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
 }
 
 
@@ -150,7 +150,7 @@ while ($row = mysql_fetch_assoc($results)){
       } else {
         $music[$artist] += 1;
       }
-      #continue 2;
+      continue 2;
       break;
       
     case "code":
@@ -198,7 +198,7 @@ while ($row = mysql_fetch_assoc($results)){
 }
 
 
-$q = sprintf("select post_title, ID, unix_timestamp(post_date) as epoch from aqcom_wp_posts where post_status = 'publish' and post_date between '%s' and '%s' order by post_date", date(DATE_ISO8601, $from), date(DATE_ISO8601, $to));
+$q = sprintf("select post_title, post_content, ID, unix_timestamp(post_date) as epoch from aqcom_wp_posts where post_status = 'publish' and post_date between '%s' and '%s' order by post_date", date(DATE_ISO8601, $from), date(DATE_ISO8601, $to));
 
 
 $results = mysql_query($q) or die(mysql_error());
@@ -207,7 +207,8 @@ while ($row = mysql_fetch_assoc($results)){
   
   $class = "Blog";
   
-  $row['content'] = $row['post_title'];
+  #$row['content'] = $row['post_title'];
+  $row['content'] = $row['post_title']." &mdash; ".substr($row['post_content'], 0,140).'[...]';
   $row['title'] = $row['post_title'];
   $row['url'] = "http://www.aquarionics.com/?p=".$row['ID'];
   $row['source'] = "Aquarionics";
@@ -307,7 +308,7 @@ function rearrange(){
 		
 	});
 
-	boxes.sort( function (a, b){
+	/*boxes.sort( function (a, b){
 		ah = $(a).height();
 		bh = $(b).height();
 
@@ -319,7 +320,7 @@ function rearrange(){
 			return 1;
 		}
 
-	} );
+	} ); */
 
 	t  = $('#tiles');
 	tl = $('#tilelist');
@@ -408,8 +409,8 @@ if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$fn) ) {
 
 <header>
 <h1 id="header">Nicholas Avenell</h1>
-<p>Bespoke Typing.</p>
-<nav>[ <a href="http://hol.istic.net/Aquarion">Who?</a> | <a href="http://www.github.com/aquarion">Works</a> | <a href="http://www.linkedin.com/in/webperson">Worker</a> | <a href="http://www.aquarionics.com">Weblog</a> | <a href="http://hol.istic.net/Walrus">Walrus</a> ]</nav>
+<!--p>Bespoke Typing.</p> -->
+<nav>[ <a href="http://hol.istic.net/Aquarion">About Me</a> | <a href="http://www.github.com/aquarion">Code</a> | <a href="http://www.linkedin.com/in/webperson">Employers</a> | <a href="http://www.aquarionics.com">Weblog</a> | <a href="http://hol.istic.net/Walrus">All my accounts everywhere</a> ]</nav>
 </header>
 <div id="datenav">
   <h2><a href="<?PHP echo $backwards ?>" title="<?PHP echo $backwards_title ?>">&#xff1c;</a>
@@ -424,14 +425,15 @@ if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$fn) ) {
 </h2>
 <?PHP 
 for($i=2000; $i <= date("Y"); $i++){
-	$link = str_replace("[YEAR]", $i, $annualink);
+	$link = str_replace("[YEAR]", $i, $annuallink);
 	print "| <a href=\"".$link."\">".$i."</a>";
 }
 
 ?> |
 
 </div>
-<br clear="both"/>
+
+
 
 <div id="tiles" >
 
@@ -502,7 +504,7 @@ foreach($order as $classname => $count){
 }?>
 
 
-<?PHP if(count($music) && false){?>
+<?PHP if(count($music) && true){?>
   <li id="musicChart" class="contentbox Music chart"></li>
 <?PHP } ?>
 
