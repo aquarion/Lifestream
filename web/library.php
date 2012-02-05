@@ -1,4 +1,7 @@
 <?PHP
+
+define("IMAGE_ROOT", 'http://art.istic.net/iconography/');
+
 function niceTime($from, $to = false, $shortform = false){
 
 	if (!$to){
@@ -81,33 +84,34 @@ function process_lifestream_item($row){
 	switch ($row['type']) {
 		
 	case "lastfm":
-		$icon = "http://art.istic.net/iconography/silk/music.png";
+		$icon = IMAGE_ROOT.'silk/music.png';
 		break;
 		
 	case "gaming":
-		$icon = "http://art.istic.net/iconography/silk/joystick.png";
+		$icon = IMAGE_ROOT.'silk/joystick.png';
 		if ($row['source'] == "Champions Online"){
-			$icon = "http://art.istic.net/iconography/games/ChampionsOnline.png";
+			$icon = IMAGE_ROOT.'games/ChampionsOnline.png';
 			$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
 		} elseif ($row['source'] == "HeroStats"){
 
-			$icon = "http://art.istic.net/iconography/games/cityofheroes.png";
+			$icon = IMAGE_ROOT.'games/city_of_heroes/Hero.png';
+			$row['small_icon'] = IMAGE_ROOT.'games/cityofheroes.png';
 			$row['url'] = "http://cit.cohtitan.com/profile/13610";
 
 		} elseif ($row['source'] == "Raptr" && preg_match('#Champions Online! #', $text)){
 			$row['content'] .= "#";
 		} elseif ($row['source'] == "XLN Live Integration"){
-			$icon = "http://art.istic.net/iconography/silk/controller.png";
+			$icon = IMAGE_ROOT.'silk/controller.png';
 			$row['url'] = "http://live.xbox.com/en-GB/profile/profile.aspx?pp=0&GamerTag=Jascain";
 		} elseif (preg_match('#\#wow#', $text)){
 			$row['source'] = "World of Warcraft";
-			$icon = "http://art.istic.net/iconography/games/world_of_warcraft.png";
+			$icon = IMAGE_ROOT.'games/world_of_warcraft.png';
 
 		}
 		break;
 
 	case "steam":
-		$icon = "http://art.istic.net/iconography/games/steam.png";
+		$icon = IMAGE_ROOT.'games/steam.png';
 		#$row['url'] = "http://steamcommunity.com/id/aquarion/";
 		$row['title'] = "Achieved: ".$row['title'];
 		break;
@@ -116,7 +120,7 @@ function process_lifestream_item($row){
 	case "location":
 	
 		if(preg_match("#^I\S* \w* a YouTube video#", $row['content'])){
-			$icon = "http://art.istic.net/iconography/silk/film_add.png";
+			$icon = IMAGE_ROOT.'silk/film_add.png';
 			$row['image'] = $icon;
 			$match = preg_match("#I\S* \w* a YouTube video -- (.*?) (http.*)#", $row['originaltext'], $matches);
 			
@@ -131,16 +135,16 @@ function process_lifestream_item($row){
 			$row['content'] = sprintf('%s <a href="%s">%s</a>', $matches[1], $matches[3], $matches[2]);
 			}
 
-			$icon = "http://art.istic.net/iconography/other/favicon.png";
+			$icon = IMAGE_ROOT.'other/favicon.png';
 			$row['source'] = "LOVEFiLM";
 		} elseif (
 		            strtolower($row['source']) == "foursquare" 
 		            or strtolower($row['source']) == "foursquare-mayor"
 		          ){
 		  if ($row['source'] == "Foursquare-Mayor"){
-		    $icon = "http://art.istic.net/iconography/foursquare%20icons/mayorCrown.png";
+		    $icon = IMAGE_ROOT.'foursquare%20icons/mayorCrown.png';
 		  } else {
-			  $icon = "http://art.istic.net/iconography/foursquare%20icons/foursquare%20256x256.png";
+			  $icon = IMAGE_ROOT.'foursquare%20icons/foursquare%20256x256.png';
 		  }
 		  
 			$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
@@ -168,12 +172,24 @@ function process_lifestream_item($row){
 			
 			#$row['url'] = "http://www.champions-online.com/character_profiles/user_characters/Jascain";
 		} elseif ($row['source'] == "Kindle"){
-			$icon = "http://art.istic.net/iconography/silk/book_open.png";
+			$icon = IMAGE_ROOT.'silk/book_open.png';
+
+
 		} elseif ($row['source'] == "Miso"){
-			$icon = "http://art.istic.net/iconography/silk/television.png";
+			$icon = IMAGE_ROOT.'silk/television.png';
 			preg_match("#(http://\S*)#", $row['originaltext'], $matches);
 			$row['url'] = $matches[1];
 			$row['content'] = preg_replace("# http://\S*#", "", $row['originaltext']);
+
+
+		} elseif($row['source'] == "Untappd"){
+			$icon = IMAGE_ROOT.'other/beer.png';
+			$row['small_icon'] = IMAGE_ROOT.'silk/drink.png';
+
+			preg_match("#(http://\S*)#", $row['originaltext'], $matches);
+			$row['url'] = $matches[1];
+			$row['content'] = preg_replace("# http://\S*#", "", $row['originaltext']);
+
 		}
 		break;
 
@@ -182,12 +198,12 @@ function process_lifestream_item($row){
 
 
 	case "twitter":
-		$icon = "http://art.istic.net/iconography/twitter/squared-shiny-16x16/twitter-02.png";
+		$icon = IMAGE_ROOT.'twitter/Twitter-64.png';
 
 		switch ($row['source']){
 
 			case "Steepster":
-				$icon = "http://art.istic.net/iconography/silk/cup.png";
+				$icon = IMAGE_ROOT.'silk/cup.png';
 				$row['content'] = preg_replace("/#\w*/", "", $row['originaltext']);
 				preg_match("#(http://\S*)#", $row['content'], $matches);
 				$row['url'] = $matches[1];
@@ -195,7 +211,7 @@ function process_lifestream_item($row){
 				break;
 
 			case "Goodreads":
-				$icon = 'http://art.istic.net/iconography/silk/book_open.png';
+				$icon = IMAGE_ROOT.'silk/book_open.png';
 				preg_match("#(http://\S*)#", $row['originaltext'], $matches);
 				$row['url'] = $matches[1];
 				$row['content'] = preg_replace("# http://\S*#", "", $row['originaltext']);
@@ -209,30 +225,37 @@ function process_lifestream_item($row){
 		break; 
 
 	case "flickr":
-		$icon = "http://art.istic.net/iconography/silk/picture.png";
+		$icon = IMAGE_ROOT.'silk/picture.png';
 		$row['content'] = sprintf('<a href="%s">%s</a>', $row['url'], $row['content']);
 		break;
 
   case "code":
-    $icon = "http://art.istic.net/iconography/silk/application_osx_terminal.png";
+    $icon = IMAGE_ROOT.'silk/application_osx_terminal.png';
     $row['content'] = $row['content'];
     break;
   
   case "oyster":
-    $icon = "http://art.istic.net/iconography/tfl.png";
+    $icon = IMAGE_ROOT.'tfl.png';
     break;
 
+
   default:
-		$icon = "http://art.istic.net/iconography/silk/asterisk_orange.png";
+		$icon = IMAGE_ROOT.'silk/asterisk_orange.png';
 
 	}
 
 	if($row['image']){
 		$icon = $row['image'];
-	} 
+	}
+
+	if(!isset($row['small_icon'])){
+		$row['small_icon'] = $icon;
+	}
 
 	$row['icon'] = $icon;
 	$row['nicetime'] = nicetime($row['epoch']);
+
+	#$row['content'] = $row['type'].$row['content'];
 
 	$row['id'] = md5($row['systemid']);
 
