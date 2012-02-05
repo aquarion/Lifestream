@@ -112,6 +112,7 @@ function process_lifestream_item($row){
 
 	case "steam":
 		$icon = IMAGE_ROOT.'games/steam.png';
+		$row['small_image'] = IMAGE_ROOT.'games/steam_small.png';
 		#$row['url'] = "http://steamcommunity.com/id/aquarion/";
 		$row['title'] = "Achieved: ".$row['title'];
 		break;
@@ -199,6 +200,7 @@ function process_lifestream_item($row){
 
 	case "twitter":
 		$icon = IMAGE_ROOT.'twitter/Twitter-64.png';
+		$row['small_icon'] = IMAGE_ROOT.'twitter/rounded-plain-16x16/twitter-02.png';
 
 		switch ($row['source']){
 

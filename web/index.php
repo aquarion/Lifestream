@@ -92,7 +92,7 @@ switch ($format){
 		foreach($out as $row){
 			$output .= "<div class=\"lifestream ".$row['type']."\" id=\"".$row['id']."\">
 			<a href=\"".$row['url']."\">
-				<img src='".$row['icon']."'/ height=\"16px\" alt=\"".$row['source']."\">
+				<img src='".$row['small_icon']."'/ height=\"16px\" alt=\"".$row['source']."\">
 			</a>
 			<span>".$row['content']."</span>
 			<span class=\"moreinfo\">".$row['source']."<br/><a class=\"nicetime\" href=\"".$row['url']."\">".$row['nicetime']." ago</a></span></div>\n";
