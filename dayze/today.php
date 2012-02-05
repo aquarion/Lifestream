@@ -124,7 +124,7 @@ $structure['things'] = array();
 $music = array();
 
 while ($row = mysql_fetch_assoc($results)){
-  
+
   $class = "Other";
   $row = process_lifestream_item($row);
   
@@ -159,12 +159,23 @@ while ($row = mysql_fetch_assoc($results)){
       
     case "twitter":
       $class = "Twitter";
+      if ($row['originaltext'][0] == "@"){
+	continue 2;
+      }
       break;
       
     case "tumblr":
+		$config = array(
+           		'indent'         => true,
+           		'output-xhtml'   => true,
+           		'wrap'           => 200);
+		$tidy = new tidy;
       $class = "Tumblr";
       $row['content'] = $row['title'];
-      continue 2;
+      $tidy->parseString($row['title'], $config, 'utf8');
+      $tidy->cleanRepair();
+      $row['content'] = $tidy;
+      #continue 2;
       break;
       
     case "location":
