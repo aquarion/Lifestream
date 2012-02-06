@@ -9,6 +9,7 @@ $dbcxn = getDatabase();
 $dateformat = "l j<\s\u\p>S</\s\u\p> F Y";
 $dateformat_txt = "l jS F Y";
 
+define("AN_HOUR", 60*60 );
 define("A_DAY", 60*60*24 );
 define("A_MONTH", 60*60*24*30 );
 define("A_YEAR", 60*60*24*364 );
@@ -41,6 +42,9 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   }
 
   $annuallink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
+
+  $from += 4*AN_HOUR;
+  $to   += 4*AN_HOUR;
 
 } elseif (isset($_GET['year']) && isset($_GET['month'])){
   $y = intval($_GET['year']);
@@ -110,6 +114,9 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   
   $today = $noforwards = true;
   $annuallink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
+
+  $from += 4*AN_HOUR;
+  $to   += 4*AN_HOUR;
 }
 
 
