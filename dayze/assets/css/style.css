@@ -141,13 +141,13 @@ nav {
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(79,119,189, .4)), to(rgba(141,177,240, .4)));
 }
 
-#Currently {
+#Currently, #smallprint {
   background: rgba(255,255,255, .4);
   border-bottom: 1px solid #666;
 }
 
 
-#singleitem {
+#singleitem, {
   background: rgba(255,255,255, .4);
   border-bottom: 1px solid #666;
   width: 50em;
@@ -168,7 +168,7 @@ nav {
   border-top-color: #CCC;
   border-left-color: #CCC;
   border-bottom: none;
-  width: 15em;
+  width: 256px;
   float: left;
   
   /*background-color: #666;

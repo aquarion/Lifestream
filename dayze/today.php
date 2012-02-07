@@ -105,6 +105,11 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
 } else {
   $from = mktime(0,0);
   $to = mktime(23,59,59);
+
+  if (date("H") < 4){
+	$from -= A_DAY;
+	$to -= A_DAY;
+  }
   
   $datetitle = date($dateformat, $from);
   
@@ -116,6 +121,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   
   $today = $noforwards = true;
   $annuallink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
+
 
   $from += 4*AN_HOUR;
   $to   += 4*AN_HOUR;
@@ -250,6 +256,15 @@ while ($row = mysql_fetch_assoc($results)){
   
   $structure[$class][md5($row['title'])] = $row;
   
+}
+
+function epochsort($a,$b){
+	if ($a['epoch'] > $b['epoch']){
+		return 1;
+	} elseif ($b['epoch'] > $a['epoch']) {
+		return -1;
+	}
+	return 0;
 }
 
 ?>
@@ -412,7 +427,6 @@ function rearrange(){
 		$(boxes[k]).css("position", "absolute");
 		}
 
-	$("#tiles").height((b+padding)*(grid.length));
 
 }
 
@@ -531,6 +545,7 @@ foreach($order as $classname => $count){
   
   $items = $structure[$classname];
   
+  usort($items, "epochsort");
   
   foreach($items as $row){
     echo "<li class=\"contentbox ".$row['class']."\" >";
@@ -562,23 +577,20 @@ foreach($order as $classname => $count){
 ?>
 
 
-<?PHP if($today){ ?>
-
-<li id="Currently" class="contentbox content">
-<!-- Google Public Location Badge -->
-<!-- Google Public Location Badge -->
-<iframe src="http://www.google.co.uk/latitude/apps/badge/api?user=-5055593116820320694&amp;type=iframe&amp;maptype=hybrid" width="180" height="300" frameborder="0"></iframe>
-<?PHP } ?>
-
 <?PHP if($from > time()){
 
-  print '<div id="singleitem" class="contentbox">
+  print '<li id="singleitem" class="contentbox">
     <a href="http://xkcd.com/338/"><img src="http://imgs.xkcd.com/comics/future.png" /></a><br/>
     <p>The future is a different country.<br/>
     We will do (willan on-do) thinks differently (willen differentian) there.</p>
-  </div>'; 
+  </li>'; 
   
 }?>
+
+<?PHP if($today){ ?>
+<li id="Currently" class="contentbox content">
+<iframe src="http://www.google.co.uk/latitude/apps/badge/api?user=-5055593116820320694&amp;type=iframe&amp;maptype=hybrid" width="180" height="300" frameborder="0"></iframe>
+<?PHP } ?>
 
 
 <?PHP if(count($music) && true){?>
