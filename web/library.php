@@ -69,6 +69,9 @@ function niceTime($from, $to = false, $shortform = false){
 
 function process_lifestream_item($row){
   
+	$row['title'] = str_replace("â€“","–", $row['title']);
+	$row['title'] = str_replace("â€”","–", $row['title']);
+
 	$text = $row['title'];
 	$row['originaltext'] = $row['title'];
 
@@ -240,6 +243,10 @@ function process_lifestream_item($row){
     $icon = IMAGE_ROOT.'tfl.png';
     break;
 
+  case "tumblr":
+	$icon = IMAGE_ROOT.'tumblr/tumblr_16.png';
+	$row['small_image'] = IMAGE_ROOT.'tumblr/tumblr_16.png';
+	break;
 
   default:
 		$icon = IMAGE_ROOT.'silk/asterisk_orange.png';
