@@ -29,10 +29,13 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $datetitle = date($dateformat, $from);
   
   $backwards       = "/".date("Y", $from-A_DAY)."/".date("m", $from-A_DAY)."/".date("d", $from-A_DAY);
+  $backwards_title = date($dateformat_txt, $from-A_DAY);
+
   $onwards         = "/".date("Y", $from+A_DAY)."/".date("m", $from+A_DAY)."/".date("d", $from+A_DAY);
   $onwards_title   = date($dateformat_txt, $from+A_DAY);
-  $backwards_title = date($dateformat_txt, $from-A_DAY);
   
+  $up              = "/".date("Y", $from+A_DAY)."/".date("m", $from+A_DAY);
+  $up_title        = date("F Y", $from+A_DAY);
     
   $noforwards = false;
   if ($to > time()){
@@ -118,6 +121,9 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   
   $onwards_title = date($dateformat_txt, $from+A_DAY);
   $backwards_title = date($dateformat_txt, $from-A_DAY);
+  
+  $up              = "/".date("Y", $from)."/".date("m", $from);
+  $up_title        = date("F Y", $from);
   
   $today = $noforwards = true;
   $annuallink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
@@ -510,11 +516,19 @@ if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$fn) ) {
 </header>
 <div id="datenav">
   <h2><a href="<?PHP echo $backwards ?>" title="<?PHP echo $backwards_title ?>">&#xff1c;</a>
-  <?PHP echo $datetitle ?>
-  <?PHP if(!$noforwards){?>
+  <?PHP 
+
+  if($up){
+	?><a href="<?PHP echo $up ?>"   title="<?PHP echo $up_title ?>">&#x2227;</a><?PHP
+  }
+
+  echo $datetitle;
+
+  if(!$noforwards){?>
   <a href="<?PHP echo $onwards ?>"   title="<?PHP echo $onwards_title ?>">&#xff1e;</a>
-  <?PHP } ?>
-  <?PHP if(!$today){?>
+  <?PHP } 
+
+  if(!$today){?>
    <a href="/"   title="Today">&#x226b;</a>
   <?PHP } ?>
   
