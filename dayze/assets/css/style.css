@@ -147,6 +147,10 @@ nav {
 }
 
 
+#smallprint {
+	width: 860px;	
+}
+
 #singleitem, {
   background: rgba(255,255,255, .4);
   border-bottom: 1px solid #666;
@@ -279,6 +283,11 @@ h2#nav a {
 	margin-left: auto;
 	margin-right: auto;
 	width: 900px;
+}
+
+#tilelist {
+	width: 900px;
+	padding-left: 0;
 }
 
 hr {

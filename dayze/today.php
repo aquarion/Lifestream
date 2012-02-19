@@ -421,6 +421,7 @@ function rearrange(){
 
 	} ); */
 
+
 	t  = $('#tiles');
 	tl = $('#tilelist');
 
