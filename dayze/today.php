@@ -241,7 +241,10 @@ while ($row = mysql_fetch_assoc($results)){
   $class = "Blog";
   
   #$row['content'] = $row['post_title'];
-  $row['content'] = $row['post_title']." &mdash; ".substr($row['post_content'], 0,256).'[...]';
+  #$row['content'] = $row['post_title']." &mdash; ".substr($row['post_content'], 0,256).'[...]';
+      $tidy->parseString($row['post_title']." &mdash; ".substr($row['post_content'], 0,256), $config, 'utf8');
+      $tidy->cleanRepair();
+      $row['content'] = $tidy;
   $row['title'] = $row['post_title'];
   $row['url'] = "http://www.aquarionics.com/?p=".$row['ID'];
   $row['source'] = "Aquarionics";
@@ -481,9 +484,11 @@ $(window).load(load);
 <style type="text/css">
 <?PHP
 
+
 $fn = date("Y/m/d", $from).".jpg";
 $mn = date("Y/m", $from).".jpg";
 $yn = date("Y", $from).".jpg";
+
 
 if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$fn) ) {
   ?>
