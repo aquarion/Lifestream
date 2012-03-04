@@ -5,7 +5,7 @@ mb_language('uni');
 mb_internal_encoding('UTF-8');
 
 $dbcxn = getDatabase();
-mysqli_set_charset('utf8',$dbcxn); 
+mysql_set_charset('utf8', $dbcxn); 
 mysql_query("SET NAMES 'utf8' COLLATE 'utf8_unicode_ci'", $dbcxn);
 
 $dateformat = "l j<\s\u\p>S</\s\u\p> F Y";
@@ -17,6 +17,12 @@ define("A_MONTH", 60*60*24*30 );
 define("A_YEAR", 60*60*24*364 );
 
 $today = false;
+
+$tidy_config = array(
+       	'indent'         => true,
+       	'output-xhtml'   => true,
+       	'wrap'           => 200);
+$tidy = new tidy;
 
 if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $y = intval($_GET['year']);
@@ -187,14 +193,10 @@ while ($row = mysql_fetch_assoc($results)){
       break;
       
     case "tumblr":
-		$config = array(
-           		'indent'         => true,
-           		'output-xhtml'   => true,
-           		'wrap'           => 200);
-		$tidy = new tidy;
       $class = "Tumblr";
       $row['content'] = $row['title'];
-      $tidy->parseString($row['title'], $config, 'utf8');
+      $tidy = new tidy;
+      $tidy->parseString($row['title'], $tidy_config, 'utf8');
       $tidy->cleanRepair();
       $row['content'] = $tidy;
       #continue 2;
@@ -242,7 +244,8 @@ while ($row = mysql_fetch_assoc($results)){
   
   #$row['content'] = $row['post_title'];
   #$row['content'] = $row['post_title']." &mdash; ".substr($row['post_content'], 0,256).'[...]';
-      $tidy->parseString($row['post_title']." &mdash; ".substr($row['post_content'], 0,256), $config, 'utf8');
+$tidy = new tidy;
+      $tidy->parseString($row['post_title']." &mdash; ".substr($row['post_content'], 0,256), $tidy_config, 'utf8');
       $tidy->cleanRepair();
       $row['content'] = $tidy;
   $row['title'] = $row['post_title'];
