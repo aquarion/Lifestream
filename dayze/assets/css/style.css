@@ -180,9 +180,11 @@ nav {
 }
 
 
-#smallprint {
-	width: 860px;	
+#smallprint, .future {
+	width: 600px;
 }
+
+
 
 #singleitem, {
   background: rgba(255,255,255, .4);
