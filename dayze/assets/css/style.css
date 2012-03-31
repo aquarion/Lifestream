@@ -100,6 +100,36 @@ nav {
 
 */
 
+.contentbox {
+  border: 1px solid #666;
+  border-top-color: #CCC;
+  border-left-color: #CCC;
+  border-bottom: none;
+  float: left;
+  
+  /*background-color: #666;
+  background: -moz-linear-gradient(100% 100% 90deg, #, #333);
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#EEE), to(#333));*/
+  margin: .2em;
+  padding: 0 0 0 0;
+  width: 128px;
+  
+  border-radius: 1em;
+  
+  max-height: 1000;
+  
+  overflow: hidden;
+  
+  color: white;
+  font-weight: bold;
+  padding: 1em;
+  border-bottom: 1px solid #666;
+  border-top: 1px solid #EEE;
+  text-shadow: 1px 1px 1px rgba(0,0,0,.25);
+  min-height: 128;
+}
+
+
 .Twitter {
   background-color: rgba(80,191,235, .4);
   background: -moz-linear-gradient(100% 100% 90deg, rgba(80,191,235, .4), rgba(80,191,235, .4));
@@ -134,12 +164,14 @@ nav {
   backgroud: rgba(96,145,135, .4);
   background: -moz-linear-gradient(100% 100% 90deg, rgba(96,145,135, .4), rgba(178,214,206, .4));
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(96,145,135, .4)), to(rgba(178,214,206, .4)));
+  width: 256px;
 }
 
 .Tumblr {
   backgroud: rgba(79,119,189, .4);
   background: -moz-linear-gradient(100% 100% 90deg, rgba(79,119,189, .4), rgba(141,177,240, .4));
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(79,119,189, .4)), to(rgba(141,177,240, .4)));
+  width: 256px;
 }
 
 #Currently, #smallprint {
@@ -155,7 +187,6 @@ nav {
 #singleitem, {
   background: rgba(255,255,255, .4);
   border-bottom: 1px solid #666;
-  width: 50em;
   margin-left: auto;
   margin-right: auto;
   text-align: center;
@@ -166,34 +197,6 @@ nav {
 #Currently iframe {
   
   padding: 1em;
-}
-
-.contentbox {
-  border: 1px solid #666;
-  border-top-color: #CCC;
-  border-left-color: #CCC;
-  border-bottom: none;
-  width: 256px;
-  float: left;
-  
-  /*background-color: #666;
-  background: -moz-linear-gradient(100% 100% 90deg, #, #333);
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#EEE), to(#333));*/
-  margin: .2em;
-  padding: 0 0 0 0;
-  
-  border-radius: 1em;
-  
-  max-height: 1000;
-  overflow: hidden;
-  
-  color: white;
-  font-weight: bold;
-  padding: 1em;
-  border-bottom: 1px solid #666;
-  border-top: 1px solid #EEE;
-  text-shadow: 1px 1px 1px rgba(0,0,0,.25);
-  min-height: 128;
 }
 
 .contentbox a, .contentbox a:visited {

@@ -67,6 +67,8 @@ load = function(){
 $(document).ready(init);
 $(window).load(load);
 
+$(document).load(TickyTacky.rearrange)
+
 </script>
 
 <style type="text/css">
