@@ -33,7 +33,7 @@ var music_data = [
 
 addMusicChart = function(){
 
-	if($('#musicChart')){
+	if($('#musicChart').length){
 		$('#musicChart').addClass(chartClass);
 
 		$.jqplot.config.enablePlugins = true;
@@ -195,7 +195,7 @@ foreach($order as $classname => $count){
 
 <?PHP if($from > time()){
 
-  print '<li id="singleitem" class="contentbox">
+  print '<li id="singleitem" class="contentbox future">
     <a href="http://xkcd.com/338/"><img src="http://imgs.xkcd.com/comics/future.png" /></a><br/>
     <p>The future is a different country.<br/>
     We will do (willan on-do) thinks differently (willen differentian) there.</p>
