@@ -31,6 +31,7 @@ var music_data = [
   }?>]
 
 init = function(){
+
   
 	if($('#musicChart')){
 		$('#musicChart').addClass(chartClass);
@@ -55,10 +56,12 @@ init = function(){
 		});
 	}
 	  
+	$('.contentbox').hide()
 }
 
 load = function(){
 	TickyTacky.rearrange();
+	$(window).resize(TickyTacky.rearrange);
 }
 
 $(document).ready(init);

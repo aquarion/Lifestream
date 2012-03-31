@@ -30,50 +30,69 @@ var Move =	{
 
 TickyTacky = {
 
-	grid        : [[0,0,0],[0,0,0]],
+	grid        : false,
 	currentline : 0,
 	b           : 200,
 	width       : false,
 	padding     : 10,
+	columns     : false,
+	animate     : false,
+	
+	linetemplate : false,
 
 	getBestPosition : function (box){
-		console.log(box);
+			
 		column = -1;
 		if (TickyTacky.width == false){
 			TickyTacky.width = box.outerWidth();
 		}
 
-		if (TickyTacky.currentline > 10){
-			TickyTacky.currentline -= 10;
+		if (TickyTacky.currentline > 5){
+			TickyTacky.currentline -= 5;
 		}
 
 		//TickyTacky.currentline = 0;
 
 		columns = Math.round(box.outerWidth() / TickyTacky.width);
 		height  = Math.round(box.height()     / TickyTacky.b);
-
+		
+		
 		n = 0;
-
+		//console.log(box);
 		while (column == -1){
 			n = n + 1;
 			if (n == 100){
-				console.log("Giving up");
+				////console.log(box);
+				//console.log("Giving Up");
 				return;
 			}
-			if (TickyTacky.grid[TickyTacky.currentline][0] == 0){
+			
+			for (i=0;  i< TickyTacky.columns;i++){
+				if (column == -1 && TickyTacky.grid[TickyTacky.currentline][i] == 0){
+					if ( TickyTacky.columns - (i + columns) >= 0 ){
+						column = i;
+						//console.log("found a fit at R"+TickyTacky.currentline+"/C"+column);
+					}
+				}
+			}
+			
+			/*if (TickyTacky.grid[TickyTacky.currentline][0] == 0){
 				column = 0;
 			} else if (TickyTacky.grid[TickyTacky.currentline][1] == 0 && columns < 3){
 				column = 1;
 			} else if (TickyTacky.grid[TickyTacky.currentline][2] == 0 && columns < 2){
 				column = 2;
-			}
+			}*/
+			
 			if (column != -1){
-				console.log("found a fit at R"+TickyTacky.currentline+"/C"+column);
+				
 				fit = true;
 				for (i=column; i < columns; i++){
 					if (TickyTacky.grid[TickyTacky.currentline][i] != 0){
-						console.log("But R"+TickyTacky.currentline+"/C"+i+" is filled. Moving on...");
 						fit = false;
+						//console.log(columns+" wide box failed a fit at R"+TickyTacky.currentline+"/C"+column);
+						//console.log("Due to "+TickyTacky.currentline+"/C"+i+" = "+TickyTacky.grid[TickyTacky.currentline][i]);
+						//console.log(TickyTacky.grid[TickyTacky.currentline]);
 					}
 				}
 				if (fit != true){
@@ -83,7 +102,7 @@ TickyTacky = {
 			if ( column == -1){
 				TickyTacky.currentline = TickyTacky.currentline+1;
 				if (TickyTacky.grid.length <= TickyTacky.currentline) {
-					TickyTacky.grid[TickyTacky.currentline] = [0,0,0]
+					TickyTacky.grid[TickyTacky.currentline] = TickyTacky.linetemplate.slice(0);
 				}
 				
 			}
@@ -100,7 +119,7 @@ TickyTacky = {
 		//if (height > 1){
 			for (i=0;i<height;i++){
 				while (TickyTacky.grid.length <= TickyTacky.currentline + i){
-					TickyTacky.grid[TickyTacky.grid.length] = [0,0,0];
+					TickyTacky.grid[TickyTacky.grid.length] = TickyTacky.linetemplate.slice(0);
 				}
 				TickyTacky.grid[TickyTacky.currentline+i][column] = height;
 				if (columns > 1){
@@ -116,50 +135,102 @@ TickyTacky = {
 	},
 
 	rearrange : function(){
-
-		boxes = new Array()
-
-		$('.contentbox').each(function(){
-			t = $(this)
-
-			if (t.height() % TickyTacky.b){
-				h = t.outerHeight();
-				d = h - t.height();
-				n = TickyTacky.b * (Math.floor(h/TickyTacky.b) +1);
-				t.height(n-d);
-			}
-			boxes.push(t);
-			
-		});
-
-		/*boxes.sort( function (a, b){
-			ah = $(a).height();
-			bh = $(b).height();
-
-			if (ah == bh){
-				return 0;
-			} else if(ah > bh) {
-				return -1;
-			} else {
-				return 1;
-			}
-
-		} ); */
-
+	
+		animate = true;
+	
+		boxwidth = $($('.contentbox')[0]).outerWidth();
+		
+		tileswidth = $(window).width();
+		n = Math.floor(tileswidth/boxwidth);
+		
+		if (n > $('.contentbox').length -1){
+			n = $('.contentbox').length -1;
+		}
+	
+		if (n == TickyTacky.columns){
+			return;
+		}
+		
+		//console.log("Rearranging for "+n);
+		
+		
+		TickyTacky.currentline = 0;
+		TickyTacky.width       = boxwidth;
+		TickyTacky.columns     = n;
+	
+		TickyTacky.linetemplate = []
+		for (i=0;  i< TickyTacky.columns;i++){
+			TickyTacky.linetemplate[i] = 0;
+		}
+		
+		TickyTacky.grid = [TickyTacky.linetemplate.slice(0)];
+		
 
 		t  = $('#tiles');
 		tl = $('#tilelist');
+		
+		if(TickyTacky.animate){
+			
+			$('#tiles').animate({
+				width : (TickyTacky.width + TickyTacky.padding) * TickyTacky.columns
+				}, 1500 );
+				
+		} else {
+			$('#tiles').css("width",(TickyTacky.width + TickyTacky.padding) * TickyTacky.columns);
+		}
+		
+		
+		boxes = new Array()
 
-		for(k in boxes){
+		$('.contentbox').each(function(){
+			box = $(this)
+			
+			box.show();
+						
+			if (box.height() % TickyTacky.b && !box.hasClass("boxresized")){
+				h = box.outerHeight();
+				d = h - box.height();
+				n = TickyTacky.b * (Math.floor(h/TickyTacky.b) +1);
+				box.height(n-d);
+				box.addClass("boxresized");
+			}
+			boxes.push(box);
+			
+		//});
+
+		//for(k in boxes){
+		
+			//box = $(boxes[k])
+		
 			//$(boxes[k]).appendTo(t);
 			//$(boxes[k]).appendTo(tl);
-			position = TickyTacky.getBestPosition($(boxes[k]))
-			$(boxes[k]).css("top", position[0]);
-			$(boxes[k]).css("left", position[1]);
-			$(boxes[k]).css("position", "absolute");
+									
+			if (box.outerWidth() > (TickyTacky.columns*TickyTacky.width)){
+				//console.log(box);
+				//box.css("overflow", "hidden");
+				box.css("width", TickyTacky.columns*TickyTacky.width);
+				//box.css("height", "auto");
 			}
+			
+			position = TickyTacky.getBestPosition(box)
+			
+			box.css("position", "absolute");
+			
+			if(TickyTacky.animate){
+				box.animate({
+					top: position[0],
+					left: position[1]
+				}, 1000);
+			} else {
+				box.css("top", position[0]);
+				box.css("left", position[1]);
+			}
+			
+		});//}
 
-
+		TickyTacky.animate = true;
 	}
+	
+	
 }
 

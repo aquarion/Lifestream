@@ -10,14 +10,15 @@ background-attachment: fixed;
 background-color: #EEE;
 background-image: url(http://cdn.aquarionics.com/wp-content/uploads/2012/01/londonkrt13.jpg);
 background-position: 50% 50%;
-background-repeat: no-repeat;
+background-repeat: repeat;
 }
 
 header {
   background: rgba(128,128,255,.3);
   text-align: center;
   color: white;
-  width: 960px;
+  max-width: 960px;
+  min-width: 300px;
   margin-left: auto;
   margin-right: auto;
   padding: .5em;
@@ -26,8 +27,8 @@ header {
 
 #datenav {
 	background: rgba(255,255,255,.3);
-  width: 900px;
   color: #DDD;
+  max-width: 900px;
   margin-left: auto;
   margin-right: auto;
   padding: .5em;
@@ -280,13 +281,14 @@ h2#nav a {
 }
 
 #tiles {
+	width: 960px;
 	margin-left: auto;
 	margin-right: auto;
-	width: 900px;
 }
 
+
 #tilelist {
-	width: 900px;
+	width: 960px;
 	padding-left: 0;
 }
 
