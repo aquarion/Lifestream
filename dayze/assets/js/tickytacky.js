@@ -33,7 +33,7 @@ TickyTacky = {
 	grid        : false,
 	currentline : 0,
 	b           : 200,
-	width       : 200,
+	width       : 230,
 	maxwidth    : 2,
 	padding     : 10,
 	margin      : 5,
@@ -227,13 +227,13 @@ TickyTacky = {
 				
 				width_in_boxes = (Math.ceil(h/TickyTacky.width) );
 				
-				n = TickyTacky.b * width_in_boxes;
+				n = TickyTacky.width * width_in_boxes;
 				
 				newwidth = n - (TickyTacky.padding* (TickyTacky.columns - width_in_boxes));
 				
 				box.width(newwidth);
 				
-				
+				box.attr("title", newwidth+" "+width_in_boxes);
 				
 				box.addClass("boxresized");
 				
