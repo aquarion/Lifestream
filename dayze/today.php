@@ -251,7 +251,7 @@ $tidy = new tidy;
   $row['title'] = $row['post_title'];
   $row['url'] = "http://www.aquarionics.com/?p=".$row['ID'];
   $row['source'] = "Aquarionics";
-  $row['icon'] = 'http://live.art.istic.net/iconography/aqcom/logo_64.png';
+  $row['icon'] = 'http://art.istic.net/iconography/aqcom/logo_64.png';
   
   if (!isset($structure[$class])){
     $structure[$class] = array();
@@ -343,6 +343,7 @@ var width = false;
 var padding = 10;
 
 function getBestPosition(box){
+	console.log(box);
 	column = -1;
 	if (width == false){
 		width = box.outerWidth();
@@ -352,27 +353,51 @@ function getBestPosition(box){
 		currentline -= 10;
 	}
 
+	//currentline = 0;
+
 	columns = Math.round(box.outerWidth()/width);
+	height = Math.round(box.height() / b);
+
+	n = 0;
 
 	while (column == -1){
+		n = n + 1;
+		if (n == 100){
+			console.log("Giving up");
+			return;
+		}
 		if (grid[currentline][0] == 0){
 			column = 0;
 		} else if (grid[currentline][1] == 0 && columns < 3){
 			column = 1;
 		} else if (grid[currentline][2] == 0 && columns < 2){
 			column = 2;
-		} else {
+		}
+		if (column != -1){
+			console.log("found a fit at R"+currentline+"/C"+column);
+			fit = true;
+			for (i=column; i < columns; i++){
+				if (grid[currentline][i] != 0){
+					console.log("But R"+currentline+"/C"+i+" is filled. Moving on...");
+					fit = false;
+				}
+			}
+			if (fit != true){
+				column = -1;
+			}
+		}
+		if ( column == -1){
 			currentline = currentline+1;
 			if (grid.length <= currentline) {
 				grid[currentline] = [0,0,0]
 			}
+			
 		}
 	}
 
 
 	left = column * (width+padding);
 	
-	height = Math.round(box.height() / b);
 
 	top_offset = currentline * (b+padding);
 
