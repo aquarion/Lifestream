@@ -125,7 +125,7 @@ nav {
   padding: 1em;
   border-bottom: 1px solid #666;
   border-top: 1px solid #EEE;
-  text-shadow: 1px 1px 1px rgba(0,0,0,.25);
+  text-shadow: 1px 1px 1px rgba(0,0,0,.45);
   min-height: 128;
 }
 
@@ -164,7 +164,7 @@ nav {
   backgroud: rgba(96,145,135, .4);
   background: -moz-linear-gradient(100% 100% 90deg, rgba(96,145,135, .4), rgba(178,214,206, .4));
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(96,145,135, .4)), to(rgba(178,214,206, .4)));
-  width: 256px;
+  width: 500px;
 }
 
 .Tumblr {

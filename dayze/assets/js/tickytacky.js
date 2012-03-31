@@ -119,9 +119,9 @@ TickyTacky = {
 		
 		
 
-		left = column * (TickyTacky.width+TickyTacky.padding);
+		left = column * TickyTacky.width;
 
-		top_offset = TickyTacky.currentline * (TickyTacky.b+TickyTacky.padding);
+		top_offset = TickyTacky.currentline * TickyTacky.b;
 	
 		while (TickyTacky.grid.length <= TickyTacky.currentline + height){
 			TickyTacky.grid[TickyTacky.grid.length] = TickyTacky.linetemplate.slice(0);
@@ -149,7 +149,7 @@ TickyTacky = {
 		}*/
 		
 			
-		//$(box).attr("title", debug);
+		$(box).attr("title", debug);
 		//$(box).html("<pre>"+debug+"</pre>");
 		
 		//console.log(debug);
@@ -157,14 +157,12 @@ TickyTacky = {
 		return [top_offset, left];
 	},
 
-	rearrange : function(){
-	
-		animate = true;
+	rearrange : function( callBackOnCompletion ){
 	
 		boxwidth = TickyTacky.width;//$($('.contentbox')[0]).outerWidth();
 		
 		tileswidth = $(window).width();
-		n = Math.floor(tileswidth/(boxwidth+TickyTacky.padding));
+		n = Math.floor(tileswidth/boxwidth);
 		
 		if (n > $('.contentbox').length -1){
 			n = $('.contentbox').length -1;
@@ -192,14 +190,16 @@ TickyTacky = {
 		t  = $('#tiles');
 		tl = $('#tilelist');
 		
+		newTilesWidth = TickyTacky.width * TickyTacky.columns;
+		
 		if(TickyTacky.animate){
 			
 			$('#tiles').animate({
-				width : (TickyTacky.width + TickyTacky.padding) * TickyTacky.columns
+				width : newTilesWidth
 				}, 1500 );
 				
 		} else {
-			$('#tiles').css("width",(TickyTacky.width + TickyTacky.padding) * TickyTacky.columns);
+			$('#tiles').css("width", newTilesWidth);
 		}
 		
 		console.log("Tiles Width: "+ $('#tiles').width());
@@ -212,31 +212,29 @@ TickyTacky = {
 			box.show();
 						
 			if (box.height() % TickyTacky.b && !box.hasClass("boxresized")){
-				h = box.outerHeight();
-				d = h - box.height();
-				height_in_boxes = (Math.ceil(h/TickyTacky.b) );
+			
+				h = box.innerHeight();
+				w = box.outerWidth();
 				
-				if (height_in_boxes == 0){
+				height_in_boxes    = (Math.round(h/TickyTacky.b) );
+				if(height_in_boxes == 0){
 					height_in_boxes = 1;
 				}
-				n = TickyTacky.b * height_in_boxes + ((height_in_boxes-1)*TickyTacky.padding);
-				box.height(n-d);
+				outer_height_in_px = TickyTacky.b * height_in_boxes;
+				inner_height_to_get_that = outer_height_in_px - (h - box.height());
+				box.height(inner_height_to_get_that - TickyTacky.padding);
 				
-				
-				h = box.width();
-				
-				width_in_boxes = (Math.ceil(h/TickyTacky.width) );
-				
-				n = TickyTacky.width * width_in_boxes;
-				
-				newwidth = n - (TickyTacky.padding* (TickyTacky.columns - width_in_boxes));
-				
-				box.width(newwidth);
-				
-				box.attr("title", newwidth+" "+width_in_boxes);
+				width_in_boxes          = (Math.round(w/TickyTacky.width) );
+				if(width_in_boxes == 0){
+					width_in_boxes = 1;
+				}				
+				outer_width_in_px       = TickyTacky.width * width_in_boxes;
+				inner_width_to_get_that = outer_width_in_px - (w - box.width());
+				box.width(inner_width_to_get_that - TickyTacky.padding);
 				
 				box.addClass("boxresized");
 				
+				//box.html((h/TickyTacky.b) + " " + height_in_boxes);
 				
 			}
 			boxes.push(box);
@@ -262,6 +260,11 @@ TickyTacky = {
 		})
 
 		TickyTacky.animate = true;
+		
+		if(callBackOnCompletion){
+			console.log("Hello Callback");
+			callBackOnCompletion();
+		}
 	}
 	
 	

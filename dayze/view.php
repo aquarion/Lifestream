@@ -29,11 +29,14 @@ var music_data = [
 <?PHP foreach($music as $artist => $count){
     printf("\t['%s', %d],\n", addslashes($artist), $count);
   }?>]
-
-init = function(){
-
   
+
+addMusicChart = function(){
+
+		console.log("Hello Music Chart");
 	if($('#musicChart')){
+	
+	
 		$('#musicChart').addClass(chartClass);
 
 		$.jqplot.config.enablePlugins = true;
@@ -55,12 +58,18 @@ init = function(){
 			  
 		});
 	}
-	  
+	
+}
+init = function(){
+
+	$('#musicChart').addClass(chartClass);
 	$('.contentbox').hide()
+  
+	  
 }
 
 load = function(){
-	TickyTacky.rearrange();
+	TickyTacky.rearrange(addMusicChart);
 	$(window).resize(TickyTacky.rearrange);
 }
 
