@@ -33,10 +33,7 @@ var music_data = [
 
 addMusicChart = function(){
 
-		console.log("Hello Music Chart");
 	if($('#musicChart')){
-	
-	
 		$('#musicChart').addClass(chartClass);
 
 		$.jqplot.config.enablePlugins = true;

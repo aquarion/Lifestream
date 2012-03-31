@@ -1,47 +1,33 @@
-
-var Move =	{
-
-  copy	:   function(e, target)	{
-	    var eId      = $(e);
-	    var copyE    = eId.cloneNode(true);
-	    var cLength  = copyE.childNodes.length -1;
-	    copyE.id     = e+'-copy';
-
-	    for(var i = 0; cLength >= i;  i++)	{
-	    if(copyE.childNodes[i].id) {
-	    var cNode   = copyE.childNodes[i];
-	    var firstId = cNode.id;
-	    cNode.id    = firstId+'-copy'; }
-	    }
-	    $(target).append(copyE);
-	    },
-  element:  function(e, target, type)	{
-	    var eId =  $(e);
-	    if(type == 'move') {
-	       $(target).append(eId);
-	    }
-
-	    else if(type == 'copy')	{
-	       this.copy(e, target);
-	    }
-	    }
-}
-
+/*   -------------------------------------------------------------------------
+	 * @Name:        TickyTacky.js
+	 * @Description: Javascript for making a mosaic of lots of divs, fitting neatly together.
+	 *
+	 * Currently designed mostly to work with my own LifeStream project, I intend
+	 * make it more generic soon.
+	 * 
+	 *       
+	 * @Author:    Nicholas Avenell <nicholas@aquarionics.com>
+	 * @Year:      2011 -> 2012
+	 * @Copyright: TickyTacky by Istic.Networks is licensed under a Creative Commons Attribution 3.0 Unported License.
+	 * @Licence:   http://creativecommons.org/licenses/by/3.0/
+	 * @url:       https://github.com/aquarion/Lifestream/blob/master/dayze/assets/js/tickytacky.js
+	 *
+	 * DEPENDENCIES
+	 *  - jQuery.js
+	 *-------------------------------------------------------------------------*/
 
 TickyTacky = {
 
 	grid        : false,
 	currentline : 0,
-	b           : 200,
-	width       : 230,
-	maxwidth    : 2,
+	box_height  : 200,
+	box_width   : 230,
 	padding     : 10,
 	margin      : 5,
+	
 	columns     : false,
 	animate     : false,
-	
 	linetemplate : false,
-	
 	boxcount     : 0,
 
 	getBestPosition : function (box){
@@ -49,151 +35,126 @@ TickyTacky = {
 		TickyTacky.boxcount = TickyTacky.boxcount + 1;
 			
 		column = -1;
-		if (TickyTacky.width == false){
-			TickyTacky.width = box.outerWidth();
-		}
-
+		
+		// Start looking from the top if we've got less than ten rows,
+		// or a maximum of 5 rows back
 		if (TickyTacky.currentline > 5){
 			TickyTacky.currentline -= 5;
 		} else {
 			TickyTacky.currentline = 0;
 		}
-		columns = Math.round(box.outerWidth() / TickyTacky.width);
-		height  = Math.round(box.height()     / TickyTacky.b);
 		
-		debug = "";
-		debug = debug + "\nInfo:" + TickyTacky.boxcount + ": "+ columns+"x"+height+"\n";
+		columns = Math.round(box.outerWidth() / TickyTacky.box_width);
+		rows    = Math.round(box.height()     / TickyTacky.box_height);
 		
 		n = 0;
-		//console.log(box);
 		while (column == -1){
 			n = n + 1;
+			// If we've tried a hundred rows? We give up.
 			if (n == 100){
-				////console.log(box);
-				//console.log("Giving Up");
 				return;
 			}
 			
+			// Check the current row to see if we can find a fit.
 			for (i=0;  i< TickyTacky.columns;i++){
 				if (column == -1 && TickyTacky.grid[TickyTacky.currentline][i] == 0){
 					if ( TickyTacky.columns - (i + columns) >= 0 ){
 						column = i;
-						debug += "found a fit at R"+TickyTacky.currentline+"/C"+column+"\n";
 					}
 				}
 			}
-						
+			
+			// If we found one ...
 			if (column != -1){
-				//debug = debug + "Width Check: "+TickyTacky.grid[TickyTacky.currentline].join(",")+"\n";
-				fit = true;
+				fit = true; // Assumes it fits
 				
-				for (x=0; x < height; x++){
-					if (TickyTacky.grid[TickyTacky.currentline+x]){
-						//debug = debug + "Checking "+x+"\n";
-						for (y=0; y < columns; y++){
-							debug = debug + "Checking "+x+"/"+y+"\n";
+				for (x=0; x < rows; x++){ // Iterate down the grid from our current position for the Height of the block
+					if (TickyTacky.grid[TickyTacky.currentline+x]){ // If there *is* a row here
+						
+						for (y=0; y < columns; y++){ // Check
+						
+							// Check the line to make sure there's enough room.
 							if (TickyTacky.grid[TickyTacky.currentline+x][column+y] != 0){
-								fit = false;
-								//console.log(columns+" wide box failed a fit at R"+TickyTacky.currentline+"/C"+column);
-								//console.log("Due to "+TickyTacky.currentline+"/C"+y+" = "+TickyTacky.grid[TickyTacky.currentline][i]);
-								//console.log(TickyTacky.grid[TickyTacky.currentline]);
+								fit = false; // It didn't fit.
 							}
 						}
 					}
 				}
+				// Ah well, try another row...
 				if (fit != true){
 					column = -1;
 				}
 			}	
 			
 			
-			if ( column == -1){
+			if ( column == -1){ // If we didn't find a home...
+				// Go down one row.
 				TickyTacky.currentline = TickyTacky.currentline+1;
-				debug = debug + "increase current line\n";
 				if (TickyTacky.grid.length <= TickyTacky.currentline) {
 					TickyTacky.grid[TickyTacky.currentline] = TickyTacky.linetemplate.slice(0);
 				}
 				
 			}
-		}
+			
+		} // While column == -1
 		
 		
 
-		left = column * TickyTacky.width;
-
-		top_offset = TickyTacky.currentline * TickyTacky.b;
+		// We have a place to put it! Time to work out the exact co-ordinates.
+		
+		
+		left_offset = column * TickyTacky.box_width;
+		top_offset  = TickyTacky.currentline * TickyTacky.box_height;
 	
-		while (TickyTacky.grid.length <= TickyTacky.currentline + height){
+		// Pad out the grid to for the space/s we've just filled.
+		while (TickyTacky.grid.length <= TickyTacky.currentline + rows){
 			TickyTacky.grid[TickyTacky.grid.length] = TickyTacky.linetemplate.slice(0);
 		}		
 		
-		debug = debug + "Starting at "+(TickyTacky.currentline)+"/"+column+" to "+columns+"\n";
-		
-		for (i=0;i<height;i++){			
+		// Now fill numbers in the grid where we've just put a thing.
+		for (i=0;i<rows;i++){			
 			for (j=0; j < columns; j++){
-				debug = debug + (TickyTacky.currentline+i) + "/" + (column+j) +" = "+height+"\n";
-				TickyTacky.grid[TickyTacky.currentline+i][column+j] = height;
+				TickyTacky.grid[TickyTacky.currentline+i][column+j] = rows;
 			}
 			
 		}
 		
-		for ( i=TickyTacky.currentline;i<TickyTacky.grid.length;i++ ){
-			line = TickyTacky.grid[i]
-			debug = debug + line.join(",") + "\n";
-		}
-		
-		/*debug = debug + "\n Current: " + TickyTacky.grid[TickyTacky.currentline].join(",");
-			
-		if(TickyTacky.grid[TickyTacky.currentline+1]){
-			debug = debug + "\n Next:" + TickyTacky.grid[TickyTacky.currentline+1].join(",");
-		}*/
-		
-			
-		$(box).attr("title", debug);
-		//$(box).html("<pre>"+debug+"</pre>");
-		
-		//console.log(debug);
-	
-		return [top_offset, left];
+		// Send back the new position.
+		return [top_offset, left_offset];
 	},
 
 	rearrange : function( callBackOnCompletion ){
 	
-		boxwidth = TickyTacky.width;//$($('.contentbox')[0]).outerWidth();
-		
-		tileswidth = $(window).width();
-		n = Math.floor(tileswidth/boxwidth);
-		
-		if (n > $('.contentbox').length -1){
-			n = $('.contentbox').length -1;
+		playground_width          = $(window).width(); // Width of the play area.
+		playground_width_in_boxes = Math.floor(playground_width/TickyTacky.box_width); 
+														// How many boxes we can fit in that.
+														
+		if (playground_width_in_boxes > $('.contentbox').length -1){
+			playground_width_in_boxes = $('.contentbox').length -1;
 		}
 	
-		if (n == TickyTacky.columns){
+		if (playground_width_in_boxes == TickyTacky.columns){
+			// If we've already rendered for this number of columns, go home.
 			return;
 		}
 		
-		console.log("Rearranging for "+n);
-		
-		
-		TickyTacky.currentline = 0;
-		TickyTacky.width       = boxwidth;
-		TickyTacky.columns     = n;
+		TickyTacky.currentline = 0; // From the top, gentlemen
+		TickyTacky.columns     = playground_width_in_boxes;
 	
+		// Set up a template for new grid rows
 		TickyTacky.linetemplate = []
 		for (i=0;  i< TickyTacky.columns;i++){
 			TickyTacky.linetemplate[i] = 0;
 		}
-		
 		TickyTacky.grid = [TickyTacky.linetemplate.slice(0)];
+		// </>
+				
+				
+		// Resize the playground to fit the columns perfectly.
+		newTilesWidth = TickyTacky.box_width * TickyTacky.columns;
 		
-
-		t  = $('#tiles');
-		tl = $('#tilelist');
-		
-		newTilesWidth = TickyTacky.width * TickyTacky.columns;
-		
+		// Animate that, if we want to
 		if(TickyTacky.animate){
-			
 			$('#tiles').animate({
 				width : newTilesWidth
 				}, 1500 );
@@ -202,51 +163,55 @@ TickyTacky = {
 			$('#tiles').css("width", newTilesWidth);
 		}
 		
-		console.log("Tiles Width: "+ $('#tiles').width());
 		
-		boxes = new Array()
+		// Little boxes, little boxes, little boxes in Array.
+		
+		boxes = new Array() // Array of boxes to be positioned.
 
+		// And they're all made out of TickyTacky...
 		$('.contentbox').each(function(){
 			box = $(this)
 			
 			box.show();
-						
-			if (box.height() % TickyTacky.b && !box.hasClass("boxresized")){
+			
+			// ... And they all look just the same.
+			// Normalise the heights and widths of the boxes to a muliplyer of box_height/box_width
+			if (box.height() % TickyTacky.box_height && !box.hasClass("boxresized")){
 			
 				h = box.innerHeight();
 				w = box.outerWidth();
 				
-				height_in_boxes    = (Math.round(h/TickyTacky.b) );
+				height_in_boxes    = (Math.round(h/TickyTacky.box_height) );
 				if(height_in_boxes == 0){
 					height_in_boxes = 1;
 				}
-				outer_height_in_px = TickyTacky.b * height_in_boxes;
+				outer_height_in_px       = TickyTacky.box_height * height_in_boxes;
 				inner_height_to_get_that = outer_height_in_px - (h - box.height());
 				box.height(inner_height_to_get_that - TickyTacky.padding);
 				
-				width_in_boxes          = (Math.round(w/TickyTacky.width) );
+				width_in_boxes          = (Math.round(w/TickyTacky.box_width) );
 				if(width_in_boxes == 0){
 					width_in_boxes = 1;
 				}				
-				outer_width_in_px       = TickyTacky.width * width_in_boxes;
+				outer_width_in_px       = TickyTacky.box_width * width_in_boxes;
 				inner_width_to_get_that = outer_width_in_px - (w - box.width());
 				box.width(inner_width_to_get_that - TickyTacky.padding);
 				
-				box.addClass("boxresized");
-				
-				//box.html((h/TickyTacky.b) + " " + height_in_boxes);
+				box.addClass("boxresized"); // We do this, only once.
 				
 			}
-			boxes.push(box);
-									
-			if (box.outerWidth() > (TickyTacky.columns*TickyTacky.width)){
-				box.css("width", TickyTacky.columns*TickyTacky.width);
+			boxes.push(box); // Add the box to the set of boxes to be positioned.
+			
+			// If the box is too big, shrink it to a saner size. Bit hacky.
+			if (box.outerWidth() > (TickyTacky.columns*TickyTacky.box_width)){
+				box.css("width", TickyTacky.columns*TickyTacky.box_width);
 			}
 			
+			// Get the new position
+			box.css("position", "absolute");
 			position = TickyTacky.getBestPosition(box)
 			
-			box.css("position", "absolute");
-			
+			// Move it into place, in a pretty fashion if we want to.
 			if(TickyTacky.animate){
 				box.animate({
 					top: position[0],
@@ -259,12 +224,17 @@ TickyTacky = {
 			
 		})
 
+		// Animate the future ones.
+		// Initial render isn't animated because it makes the browser cry.
 		TickyTacky.animate = true;
 		
+		// Operator, get me information.
 		if(callBackOnCompletion){
-			console.log("Hello Callback");
 			callBackOnCompletion();
 		}
+		
+		// And that's us gone for the night.
+		return;
 	}
 	
 	
