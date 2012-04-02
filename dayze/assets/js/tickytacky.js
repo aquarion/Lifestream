@@ -223,8 +223,9 @@ TickyTacky = {
 
 		// Animate the future ones.
 		// Initial render isn't animated because it makes the browser cry.
-		TickyTacky.animate = true;
-		
+		//if (! $.browser.msie ){
+			TickyTacky.animate = true;
+		//}
 		// Operator, get me information.
 		if(callBackOnCompletion){
 			callBackOnCompletion();

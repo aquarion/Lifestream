@@ -1,9 +1,10 @@
+<!DOCTYPE html>
 <html>
 <head>
 <title>Nicholas Avenell - Web Developer</title>
 
 <link rel="stylesheet" href="/assets/css/style.css"/> 
-
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <!--[if IE]><script language="javascript" type="text/javascript" src="/assets/js/jqplot/src/excanvas.js"></script><![endif]-->
 <script type="text/javascript" src="/assets/js/jqplot/src/jquery-1.5.1.min.js"></script>
 <script type="text/javascript" src="/assets/js/jqplot/src/jquery.jqplot.js"></script>
