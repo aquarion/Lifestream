@@ -147,23 +147,15 @@ TickyTacky = {
 		// </>
 				
 				
-		// Resize the playground to fit the columns perfectly.
-		newTilesWidth = TickyTacky.box_width * TickyTacky.columns;
-		
-		// Animate that, if we want to
-		if(TickyTacky.animate){
-			$('#tiles').animate({
-				width : newTilesWidth
-				}, 1500 );
-				
-		} else {
-			$('#tiles').css("width", newTilesWidth);
-		}
-		
-		
 		// Little boxes, little boxes, little boxes in Array.
 		
 		boxes = new Array() // Array of boxes to be positioned.
+		
+		$(".dwarfed").each(function(){
+			box = $(this)
+			box.removeClass("dwarfed")
+			box.width(box.attr("originalwidth"));
+		});
 
 		// And they're all made out of TickyTacky...
 		$('.contentbox').each(function(){
@@ -199,8 +191,11 @@ TickyTacky = {
 			}
 			boxes.push(box); // Add the box to the set of boxes to be positioned.
 			
+			
 			// If the box is too big, shrink it to a saner size. Bit hacky.
 			if (box.outerWidth() > (TickyTacky.columns*TickyTacky.box_width)){
+				box.attr("originalwidth", box.outerWidth());
+				box.addClass("dwarfed");
 				box.css("width", TickyTacky.columns*TickyTacky.box_width);
 			}
 			
@@ -220,14 +215,43 @@ TickyTacky = {
 			}
 			
 		})
+		
+		max_columns = 0;
+		
+		for (i=0;  i < TickyTacky.grid.length;i++){
+			row = TickyTacky.grid[i];
+			for (k=0;  k< TickyTacky.columns;k++){
+				if (row[k] && k > max_columns){
+					max_columns = k
+				}
+			}
+		}
+		
+		max_columns += 1;
+		
+		// Resize the playground to fit the columns perfectly.
+		newTilesWidth = TickyTacky.box_width * max_columns;
+		
+		if (newTilesWidth != $('#tiles').width()){		
+		
+			// Animate that, if we want to
+			if(TickyTacky.animate){
+				$('#tiles').animate({
+					width : newTilesWidth
+					}, 500 );
+					
+			} else {
+				$('#tiles').css("width", newTilesWidth);
+			}
+		}
+		
 
 		// Animate the future ones.
 		// Initial render isn't animated because it makes the browser cry.
-		//if (! $.browser.msie ){
-			TickyTacky.animate = true;
-		//}
+		TickyTacky.animate = true;
+		
 		// Operator, get me information.
-		if(callBackOnCompletion){
+		if(jQuery.isFunction( callBackOnCompletion )){
 			callBackOnCompletion();
 		}
 		
