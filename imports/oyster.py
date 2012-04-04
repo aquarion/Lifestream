@@ -6,7 +6,6 @@ from BeautifulSoup import BeautifulSoup
 import pytz
 import re
 import hashlib
-import time
 import csv
 import StringIO
 
@@ -30,7 +29,6 @@ PASSWORD      = lifestream.config.get("oyster", "password")
 
 londontime    = pytz.timezone("Europe/London")
 
-`2`
 br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
 
@@ -55,8 +53,6 @@ link=br.find_link(text="Journey history")
 br.follow_link(link)
 
 ############### Journey History HTML
-
-time.sleep(5)
 
 html = br.response().read()
 
