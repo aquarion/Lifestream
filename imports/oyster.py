@@ -2,11 +2,16 @@
 
 import lifestream
 import sys
-import mechanize
 from BeautifulSoup import BeautifulSoup
 import pytz
-
+import re
 import hashlib
+import time
+import csv
+import StringIO
+
+from mechanize import Browser, RobustFactory
+
 
 from datetime import datetime
 
@@ -26,7 +31,7 @@ PASSWORD      = lifestream.config.get("oyster", "password")
 londontime    = pytz.timezone("Europe/London")
 
 `2`
-br = mechanize.Browser()
+br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
 
 ################ Login
@@ -49,92 +54,55 @@ br.submit()
 link=br.find_link(text="Journey history")
 br.follow_link(link)
 
-link=br.find_link(text="Switch to the previous version")
-br.follow_link(link)
+############### Journey History HTML
 
-############### Journey History
+time.sleep(5)
 
 html = br.response().read()
-soup = BeautifulSoup(html)
 
-page = 1
+codes = re.findall("/oyster\/journeyDetailsPrint\.do\?_qv=(.*?)\"", html)
+
+br.open("/oyster/journeyDetailsPrint.do?_qv=%s" % codes[1])
+
+#br.open("/oyster/journeyDetailsPrint.do?_qv=fc1ee4cf11fc09bd332ba3cebada1fc468c89f5d");
+
+############### Journey History CSV
+
+data = br.response().read()
+
+#Date,Start Time,End Time,Journey/Action,Charge,Credit,Balance,Note
 
 s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
 
-while page < 9:
-    
-  history = soup.findAll(attrs={"class":"journeyhistory"})[0]
-  rows = history.findAll("tr")[1:]
-  
-  #<tr>
-  #<th>Date</th>
-  #<th>Time</th>
-  #<th>Location</th>
-  #<th>Action</th>
-  #<th>Fare</th>
-  #<th>Price cap</th>
-  #<th>Balance</th>
-  #</tr>
-  
-  date = False
-  
-  events = []
-  
-  for row in rows:
-    cells = row.findAll("td")
-    
-    if len(cells) < 4:
-        continue;
-    
-    if cells[0] and not cells[0].string.strip() == "&nbsp;":
-      date = cells[0].string.strip()
+headers = False
 
-      
-    time = cells[1].string.strip()
-    location = cells[2].string.strip()
-    action = cells[3].string.strip()
-    #fare = cells[4].string.strip()
-    #price_cap = cells[5].string.strip()
-    #balance = cells[6].string.strip()
-    
-    py_date  = datetime.strptime(date+" "+time, "%d/%m/%y %H:%M")
-    loc_date = londontime.localize(py_date)
-    utcdate  = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-    
-    
-    events.append({"date":utcdate, 'location':location, 'action':action})
-    
-    if action == "Entry":
-      action = "Entered"
-    else:
-      action = "Exited"
-      
-    id = hashlib.md5()
-    id.update(utcdate)
-    id.update(location)
-        
-    message = "%s %s" % (action, location)
-
-    cursor.execute(s_sql, ("oyster", id.hexdigest(), message, utcdate, "#", "oyster"))
-    
-  page += 1
-  #link=br.find_link(text="%s" % page)
-  #br.follow_link(link)
-  #html = br.response().read()
-  #soup = BeautifulSoup(html)
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+dataReader = csv.reader(StringIO.StringIO(data))
+for row in dataReader:
+	if not headers:
+		headers = row
+	else:
+		date = row[0]
+		time_from = row[1]
+		time_to   = row[2]
+		action    = row[3]
+		charge    = row[4]
+		credit    = row[5]
+		balance   = row[6]
+		note      = row[7]
+		
+		if not time_from and time_to:
+			time_from = time_to
+		elif not time_from:
+			time_from = "00:00"
+		
+		#print row
+		timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
+		loc_date  = londontime.localize(timestamp)
+		utcdate   = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
+		
+		id = hashlib.md5()
+		id.update(utcdate)
+		id.update(action)
+		
+		#print action, utcdate
+		cursor.execute(s_sql, ("oyster", id.hexdigest(), action, utcdate, "#", "oyster"))
