@@ -69,8 +69,8 @@ def main(min_time = False, max_time = False):
   #print service.currentLocation().insert(body=body).execute()
   
   if(min_time and max_time):
-	  latitude_vague = service.location().list(granularity="city", max_results=1000, min_time=min_time, max_time=max_time).execute()
-	  latitude_best  = service.location().list(granularity="best", max_results=1000, min_time=min_time, max_time=max_time).execute()
+	  latitude_vague = service.location().list(granularity="city", max_results=1000, min_time=int(min_time), max_time=int(max_time)).execute()
+	  latitude_best  = service.location().list(granularity="best", max_results=1000, min_time=int(min_time), max_time=int(max_time)).execute()
   else:
 	  latitude_vague = service.location().list(granularity="city", max_results=1000).execute()
 	  latitude_best  = service.location().list(granularity="best", max_results=1000).execute()
@@ -122,8 +122,21 @@ def main(min_time = False, max_time = False):
 			previous = best
 			n = n+1
 	
-  #rint n," items added"
+  #print n," items added"
   
+def import_old_items():
+  may = datetime(2010,5,1,0,0) # Earliest date to start from
+  may_microseconds = time.mktime(may.timetuple()) * 1000
+  two_weeks = 60*60*24*14*1000
+  now = time.mktime(datetime.now().timetuple()) * 1000
+  print may_microseconds
+  startime = may_microseconds
+  endtime = startime + two_weeks
+  while startime < now:
+    print datetime.fromtimestamp(startime/1000), datetime.fromtimestamp(endtime/1000)
+    startime = startime + two_weeks
+    endtime  = endtime  + two_weeks
+    main(startime, endtime);
 
 if __name__ == '__main__':
   main();
