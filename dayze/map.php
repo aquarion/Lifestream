@@ -19,8 +19,17 @@ while ($row = mysql_fetch_assoc($results)){
 	
 	$key = $row['lat_vague']."/".$row['long_vague'];
 	
+    if($row['title']){
+        $title = $row['title'];
+    } else {
+        $title = $row['timestamp'];
+    }
+    
 	if($key !== $previous){
-		$newentry = array("lat" => $row['lat_vague'], "long" => $row['long_vague'], 'title' => $row['timestamp']." (".$row['accuracy'].")");
+		$newentry = array("lat" => $row['lat_vague'], "long" => $row['long_vague'], 'title' => $title);
+        if($row['icon']){
+            $newentry['icon'] = $row['icon'];
+        }
 		$locations[] = $newentry;
 	}
 	
@@ -65,13 +74,28 @@ initialize_google_map = function() {
 		
 	for(i=0;i < locations.length; i++){
 		markerpos = new google.maps.LatLng(locations[i]['lat'], locations[i]['long']);
-		  marker = new google.maps.Marker({
-			map:map,
-			draggable:false,
-			animation: google.maps.Animation.DROP,
-			position: markerpos,
-			title: locations[i]['title']
-		  });
+        
+        if (locations[i]['icon']){
+            image = locations[i]['icon'];
+              marker = new google.maps.Marker({
+                map:map,
+                draggable:false,
+                position: markerpos,
+                icon: image,
+                title: locations[i]['title']
+              });
+        } else {
+              marker = new google.maps.Marker({
+                map:map,
+                draggable:false,
+                animation: google.maps.Animation.DROP,
+                position: markerpos,
+                title: locations[i]['title']
+              });
+
+        }
+        
+
 		
 	}
 	
