@@ -7,22 +7,24 @@ Lifestream is an AJAX-based box that updates this on a web page in real time.
 
 Lifestream is a wordpress plugin to make that work, too.
 
+Dayze is a website using all this data.
 
 h2. How to make it go:
+
+* Initialise the submodules (git submodule init)
+* Install the Google Python API
 
 * Use the schema to create a database
 * copy dbconfig.ini.example to lose the example bit
 * edit it to contain real live database and API details
-* install "Python Twitter Tools":http://mike.verdone.ca/twitter/
-  * (Either globally, or put a symlink to it's /twitter directory inside imports)
-* do the same with "py-github":https://github.com/dustin/py-github if you want to use the github library
 * Each import script accepts a username as a parameter
    pipe the output of the script to the database
 * eg:  twitter.py [Lifestream "Type"] [Twitter Username]
 * You should run each twitter script in the terminal once to generate the OAuth tokens
+* Same for Foursquare and the Google Latitude APIs, if you're using them.
 * Cron this, because typing it every so often is dull.
 * The example_twitter.sh includes wrappers to make sure it never runs before the last one finishes, duplicate that.
 
-* Install the web dir somewhere accessible, edit the conn.php file with database stuff
+* Install the web dir somewhere accessible
 * Edit the wordpress plugin to be able to find it.
 * Complain when it doesn't work.

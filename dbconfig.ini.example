@@ -1,8 +1,8 @@
 [database]
 
-database = DATABASENAME
-username = DATABASEUSER
-password = DATABASEPASSWORD
+database = [DB_Name]
+username = [Username]
+password = [Password]
 hostname = localhost
 
 ; Uncomment and fill out these if you have memcache installed and want to use it
@@ -11,9 +11,36 @@ hostname = localhost
 ;
 ;port = 11211
 ;host = localhost
+;prefix = lifestream_
 
 ; twitter oauth values. Register your lifestream as an app at http://www.twitter.com/oauth
 [twitter]
+consumer_key = [Consumer_key]
+consumer_secret = [Consumer_Secret]
 
-consumer_key = 
-consumer_secret =
+[github]
+
+key = [Github_key]
+username = [github_api_username]
+
+[foursquare]
+client_id = [Foursquare Oauth ID]
+secret = [Foursquare Oauth Secret]
+
+[oyster]
+username = [Oyster Username]
+password = [Oyster Password]
+
+[bioware]
+username = [EA Username]
+password = [EA Password]
+
+[googleapi]
+
+consumer_key = [Domain]
+consumer_secret = [Secret]
+domain = [Domain]
+apikey = [API Key]
+
+[latitude]
+credentials_file = [DATA Files Path]/latitude.dat
