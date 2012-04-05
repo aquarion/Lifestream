@@ -45,6 +45,9 @@ oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
 
 s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, %s, %s, %s, %s);'
 
+l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, "foursquare", %s, %s, %s, %s, %s, 1, %s, %s);'
+  
+
 URL_BASE = "https://api.foursquare.com/v2/%%s?oauth_token=%s" % oauth_token
 web = httplib2.Http()
 
@@ -55,7 +58,6 @@ data = json.loads(content)
 checkins = data['response']['checkins']['items']
 
 for location in checkins:
-    
     source = "Foursquare";
     if "isMayor" in location.keys() and location['isMayor']:
         source = "Foursquare-Mayor"
@@ -72,6 +74,7 @@ for location in checkins:
                     image = category['icon']
     else:
         message = location['location']['name']
+
         
     epoch = location['createdAt']
     localzone = pytz.timezone(location['timeZone'])
@@ -81,6 +84,11 @@ for location in checkins:
     id = location['id']
 
     cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
+
+    coordinates = location['venue']['location']
+
+    #                     (`id`,  `lat`,            `long`, `lat_vague`, `long_vague`, `timestamp`, `title`, `icon`)
+    cursor.execute(l_sql, (epoch, coordinates['lat'], coordinates['lng'], coordinates['lat'], coordinates['lng'], utcdate, location['venue']['name'], image))
 
 response, content = web.request(URL_BASE% "users/self/badges")
 data = json.loads(content)
