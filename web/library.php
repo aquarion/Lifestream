@@ -303,3 +303,9 @@ function getDatabase(){
   return $dbcxn;
 }
 
+
+function lifestream_config($area, $item){
+  $config = parse_ini_file("../dbconfig.ini", true);
+  return $config[$area][$item];
+}
+

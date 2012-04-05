@@ -2,3 +2,5 @@ twitter*sh
 dbconfig.ini
 *.pyc
 shell/bioware.sh
+keys
+latitude.dat

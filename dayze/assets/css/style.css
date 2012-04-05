@@ -192,6 +192,15 @@ border: none;
   width: 256px;
 }
 
+
+#map_canvas {
+  color: #111;
+  background: rgba(255,255,255, .4);
+  border-bottom: 1px solid #666;
+  width: 500px;
+  height: 300px;
+}
+
 #Currently, #smallprint {
   color: #111;
   background: rgba(255,255,255, .4);
