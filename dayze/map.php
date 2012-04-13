@@ -52,8 +52,14 @@ var locations = <?PHP print json_encode($locations) ?>;
 var markers = []
 
 initialize_google_map = function() {
+
+	if (locations.length == 0){
+		return;
+	}
   
 	var bounds = new google.maps.LatLngBounds();
+  
+	
   
 	for(i=0;i < locations.length; i++){
 		markerpos = new google.maps.LatLng(locations[i]['lat'], locations[i]['long']);
@@ -61,7 +67,7 @@ initialize_google_map = function() {
 	}
 	
 	var myOptions = {
-	  center: new google.maps.LatLng(locations[0]['lat'], locations[0]['long']),
+	  center: new google.maps.LatLng(0, 0),
 	  zoom: 1,
 	 disableDefaultUI: true,
 			scrollwheel: false,
