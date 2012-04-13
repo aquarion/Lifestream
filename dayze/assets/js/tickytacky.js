@@ -165,15 +165,21 @@ TickyTacky = {
 			
 			// ... And they all look just the same.
 			// Normalise the heights and widths of the boxes to a muliplyer of box_height/box_width
-			if (box.height() % TickyTacky.box_height && !box.hasClass("boxresized")){
+			if (!box.hasClass("boxresized")){
 			
+				border = parseInt(box.css("border-left-width"));
+				
 				h = box.innerHeight();
+				if(border){
+					h += (border *2);
+				}
 				w = box.outerWidth();
 				
 				height_in_boxes    = (Math.round(h/TickyTacky.box_height) );
 				if(height_in_boxes == 0){
 					height_in_boxes = 1;
 				}
+								
 				outer_height_in_px       = TickyTacky.box_height * height_in_boxes;
 				inner_height_to_get_that = outer_height_in_px - (h - box.height());
 				box.height(inner_height_to_get_that - TickyTacky.padding);
@@ -186,7 +192,7 @@ TickyTacky = {
 				inner_width_to_get_that = outer_width_in_px - (w - box.width());
 				box.width(inner_width_to_get_that - TickyTacky.padding);
 				
-				box.addClass("boxresized"); // We do this, only once.
+				//box.addClass("boxresized"); // We do this, only once.
 				
 			}
 			boxes.push(box); // Add the box to the set of boxes to be positioned.
