@@ -177,15 +177,15 @@ foreach($order as $classname => $count){
   usort($items, "epochsort");
   
   foreach($items as $row){
-    echo "<li class=\"contentbox ".$row['class']."\" >";
+    echo "<li class=\"contentbox ".$row['class']." source".$row['type']."\" >";
     
     if ($row['icon']){
-      echo "<a href=\"".$row['url']."\" >";
+      echo "<a href=\"".$row['url']."\" class=\"iconlink\"/>";
       echo "<img src='".$row['icon']."' class=\"icon\"/>";
       echo "</a>";
     }
     
-    $content = $row['content'];
+    $content = '<span class="description">'.$row['content'].'</span>';
     
     if (isset($row['subitems'])){
       $content .= " (+ ".count($row['subitems'])." more)";

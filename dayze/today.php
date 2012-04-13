@@ -191,6 +191,10 @@ while ($row = mysql_fetch_assoc($results)){
 	continue 2;
       }
       break;
+	  
+	case "flickr":
+		$class = "Photo";
+		break;
       
     case "tumblr":
       $class = "Tumblr";
