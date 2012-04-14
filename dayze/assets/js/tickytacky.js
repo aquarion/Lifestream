@@ -22,8 +22,8 @@ TickyTacky = {
 	currentline : 0,
 	box_height  : 200,
 	box_width   : 230,
-	padding     : 10,
-	margin      : 5,
+	padding     : 2,
+	margin      : 1,
 	
 	columns     : false,
 	animate     : false,
