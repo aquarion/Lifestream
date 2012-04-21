@@ -20,7 +20,8 @@ $today = false;
 
 $tidy_config = array(
        	'indent'         => true,
-       	'output-xhtml'   => true,
+       	'output-html'   => true,
+		'show-body-only' => true,
        	'wrap'           => 200);
 $tidy = new tidy;
 
@@ -149,6 +150,7 @@ $structure = array();
 $structure['things'] = array();
 
 $music = array();
+$musictotal = 0;
 
 while ($row = mysql_fetch_assoc($results)){
 
@@ -178,6 +180,9 @@ while ($row = mysql_fetch_assoc($results)){
       } else {
         $music[$artist] += 1;
       }
+	  
+	  $musictotal ++;
+	  
       continue 2;
       break;
       
@@ -188,7 +193,7 @@ while ($row = mysql_fetch_assoc($results)){
     case "twitter":
       $class = "Twitter";
       if ($row['originaltext'][0] == "@"){
-	continue 2;
+			//continue 2;
       }
       break;
 	  
@@ -237,7 +242,7 @@ while ($row = mysql_fetch_assoc($results)){
 }
 
 
-$q = sprintf("select post_title, post_content, ID, unix_timestamp(post_date) as epoch from aqcom_wp_posts where post_status = 'publish' and post_date between '%s' and '%s' order by post_date", date(DATE_ISO8601, $from), date(DATE_ISO8601, $to));
+$q = sprintf("select post_title, post_content, ID, unix_timestamp(post_date) as epoch, guid from aqcom_wp_posts where post_status = 'publish' and post_date between '%s' and '%s' order by post_date", date(DATE_ISO8601, $from), date(DATE_ISO8601, $to));
 
 
 $results = mysql_query($q) or die(mysql_error());
@@ -246,13 +251,31 @@ while ($row = mysql_fetch_assoc($results)){
   
   $class = "Blog";
   
+  $blogpost = $row['post_content'];
+    
+  $regex = "/\[caption .*?\](.*)\[\/caption\]/m";
+  
+  preg_match($regex, $blogpost, $matches);
+  
+  $blogpost = preg_replace($regex, '', $blogpost);
+  
+  $continue = sprintf(' [<a href="%s">More...</a>]', $row['guid']);
+  
+  if(count($matches)){
+	$image = $matches[1];
+	$content = sprintf("<h2>%s</h2> <div style=\"float: right\">%s</div> %s",$row['post_title'], $image, substr($blogpost, 0,500));
+  } else {
+	 $content = sprintf("<h2>%s</h2> %s",$row['post_title'], substr($blogpost, 0,500));
+  }
+  
+  
   #$row['content'] = $row['post_title'];
   #$row['content'] = $row['post_title']." &mdash; ".substr($row['post_content'], 0,256).'[...]';
-$tidy = new tidy;
-      $tidy->parseString($row['post_title']." &mdash; ".substr($row['post_content'], 0,256), $tidy_config, 'utf8');
+	$tidy = new tidy;
+      $tidy->parseString($content, $tidy_config, 'utf8');
       $tidy->cleanRepair();
-      $row['content'] = $tidy;
-  $row['title'] = $row['post_title'];
+      $row['content'] = $tidy.$continue;
+  $row['title'] = sprintf("<h2>%s</h2>",$row['post_title']);
   $row['url'] = "http://www.aquarionics.com/?p=".$row['ID'];
   $row['source'] = "Aquarionics";
   $row['icon'] = 'http://art.istic.net/iconography/aqcom/logo_64.png';
