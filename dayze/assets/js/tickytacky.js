@@ -129,6 +129,11 @@ TickyTacky = {
 		playground_width_in_boxes = Math.floor(playground_width/TickyTacky.box_width); 
 														// How many boxes we can fit in that.
 
+		if((($(".contentbox").length / playground_width_in_boxes) < 2) && playground_width_in_boxes >= 4 ){
+			playground_width_in_boxes = 4;
+		} else if((($(".contentbox").length / playground_width_in_boxes) < 3) && playground_width_in_boxes >= 6) {
+			playground_width_in_boxes = 6;
+		}
 	
 		if (playground_width_in_boxes == TickyTacky.columns){
 			// If we've already rendered for this number of columns, go home.
