@@ -34,9 +34,27 @@ printf('var chartClass = "%s"', $chartClass);
 ?>
 
 var music_data = [
-<?PHP foreach($music as $artist => $count){
-    printf("\t['%s', %d],\n", addslashes($artist), $count);
-  }?>]
+<?PHP 
+
+$other = 0;
+$otherartists = array();
+
+arsort($music);
+
+foreach($music as $artist => $count){
+	if ($count/$musictotal > 0.01){
+		printf("\t['%s - %d%%', %d],\n", addslashes($artist), ($count/$musictotal) * 100, $count);
+	} else {
+		$other += $count;
+		$otherartists[] = $artist;
+	}
+	
+  }
+  
+  if($musictotal){
+	printf("\t['(%s - %d%%)', %d],\n", "Other", ($other/$musictotal) * 100, $other);
+  }
+  ?>]
   
 
 addMusicChart = function(){
@@ -224,7 +242,16 @@ foreach($order as $classname => $count){
 
 
 <?PHP if(count($music) && true){?>
-  <li id="musicChart" class="contentbox Music chart"></li>
+  <li id="musicChart" class="contentbox Music chart">
+  
+  <?PHP if(count($otherartists)){?>
+	 <li class="contentbox Music chart scaleup" style="width: 100%">Other Artists include <?PHP 
+		sort($otherartists);
+		$last = array_pop($otherartists);
+		echo implode(", ",$otherartists)." &amp; ".$last;
+	 ?></li>
+  <?PHP } ?>
+  </li>
 <?PHP } ?>
 
 <?PHP if(count($locations)){ ?>
