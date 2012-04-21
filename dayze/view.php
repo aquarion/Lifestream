@@ -134,7 +134,7 @@ if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$fn) ) {
   <h2><a href="<?PHP echo $backwards ?>" title="<?PHP echo $backwards_title ?>">&#xff1c;</a>
   <?PHP 
 
-  if($up){
+  if(isset($up)){
 	?><a href="<?PHP echo $up ?>"   title="<?PHP echo $up_title ?>">&#x2227;</a><?PHP
   }
 
@@ -178,7 +178,7 @@ foreach($order as $classname => $count){
   usort($items, "epochsort");
   
   foreach($items as $row){
-    echo "<li class=\"contentbox ".$row['class']." source".$row['type']."\" >";
+    echo "<li class=\"contentbox ".$row['class']." source".(isset($row['type']) ? $row['type'] : '')."\" >";
     
     if ($row['icon']){
       echo "<a href=\"".$row['url']."\" class=\"iconlink\"/>";
