@@ -15,7 +15,15 @@ background-repeat: repeat;
 
 header {
   font-family: "Trebuchet MS";
-  background: rgba(128,128,255,.3);
+  /* background: rgba(128,128,255,.3) url("http://art.istic.net/coa/avenell_small.png") 2% center no-repeat;
+
+  */
+  background-color: rgba(128,128,255,.3);
+  background-image: url("http://art.istic.net/coa/avenell_small.png"), url("http://art.istic.net/coa/avenell_small.png");
+  background-position: 2% center, 98% center;
+  background-repeat: no-repeat, no-repeat;
+
+
   text-align: center;
   color: white;
   max-width: 960px;
@@ -67,7 +75,7 @@ a:visited {
 h1#header {
   font-size: 400%;
   text-align: center;
-  margin: 0 0 0 0;
+  margin: 0 100px 0 100px;
   text-shadow: 2px 2px 2px rgba(0,0,0,.25);
 }
 
@@ -131,11 +139,10 @@ border: none;
   font-weight: normal;
   /*border-radius: .4em;*/
   text-shadow: 1px 1px 1px rgba(0,0,0,.2);
-  min-height: 128;
   background: rgba(125,96,103, .4);
   background: -moz-linear-gradient(100% 100% 90deg, rgba(125,96,103, .8), rgba(184,163,168, .8));
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(125,96,103, .8)), to(rgba(184,163,168, .8)));
-
+  list-style: none;
   }
 
 
@@ -380,7 +387,6 @@ h2#nav a {
 
 
 #tilelist {
-	width: 960px;
 	padding-left: 0;
 }
 
