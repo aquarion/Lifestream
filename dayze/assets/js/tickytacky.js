@@ -45,8 +45,8 @@ TickyTacky = {
 		}
 		
 		columns = Math.round(box.outerWidth() / TickyTacky.box_width);
-		rows    = Math.round(box.height()     / TickyTacky.box_height);
-		
+		rows    = Math.round(box.outerHeight()     / TickyTacky.box_height);
+	
 		n = 0;
 		while (column == -1){
 			n = n + 1;
@@ -167,24 +167,24 @@ TickyTacky = {
 			box = $(this)
 			
 			box.show();
-			
 			// ... And they all look just the same.
 			// Normalise the heights and widths of the boxes to a muliplyer of box_height/box_width
 			if (!box.hasClass("boxresized")){
 			
-				border = parseInt(box.css("border-left-width"));
+				border = parseInt(box.css("border-top-width")) + parseInt(box.css("border-bottom-width"));
 				
 				h = box.innerHeight();
 				if(border){
-					h += (border *2);
+					h += border;
 				}
 				w = box.outerWidth();
 				
-				height_in_boxes    = (Math.round(h/TickyTacky.box_height) );
+				height_in_boxes    = (Math.ceil(h/TickyTacky.box_height) );
+				
 				if(height_in_boxes == 0){
 					height_in_boxes = 1;
 				}
-								
+												
 				outer_height_in_px       = TickyTacky.box_height * height_in_boxes;
 				inner_height_to_get_that = outer_height_in_px - (h - box.height());
 				box.height(inner_height_to_get_that - TickyTacky.padding);
