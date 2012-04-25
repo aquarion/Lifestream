@@ -196,9 +196,7 @@ TickyTacky = {
 				outer_width_in_px       = TickyTacky.box_width * width_in_boxes;
 				inner_width_to_get_that = outer_width_in_px - (w - box.width());
 				box.width(inner_width_to_get_that - TickyTacky.padding);
-				
-				//box.addClass("boxresized"); // We do this, only once.
-				
+								
 			}
 			boxes.push(box); // Add the box to the set of boxes to be positioned.
 			
