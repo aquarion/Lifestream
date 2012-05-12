@@ -33,6 +33,7 @@ $dateformat_txt = "l jS F Y";
 
 define("AN_HOUR", 60*60 );
 define("A_DAY", 60*60*24 );
+define("A_WEEK", 60*60*24*7 );
 define("A_MONTH", 60*60*24*30 );
 define("A_YEAR", 60*60*24*364 );
 
@@ -61,8 +62,8 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $onwards         = "/".date("Y", $from+A_DAY)."/".date("m", $from+A_DAY)."/".date("d", $from+A_DAY);
   $onwards_title   = date($dateformat_txt, $from+A_DAY);
   
-  $up              = "/".date("Y", $from+A_DAY)."/".date("m", $from+A_DAY);
-  $up_title        = date("F Y", $from+A_DAY);
+  $up              = "/".date("Y", $from+A_DAY)."/wk".date("W", $from+A_DAY);
+  $up_title        = "Week ".date("W Y", $from+A_DAY);
     
   $noforwards = false;
   if ($to > time()){
@@ -82,7 +83,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $y = intval($_GET['year']);
   $m = intval($_GET['month']);  
   $from = mktime(0,0,0,$m,1,$y);
-  $to = mktime(23,59,59,$m,date("t", $from),$y);
+  $to   = mktime(23,59,59,$m,date("t", $from),$y);
   
   $next = mktime(0,0,0,$m+1,1,$y);
   $prev = mktime(0,0,0,$m-1,1,$y);
@@ -103,6 +104,38 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   
   $datetitle = date($dateformat, $from);
   $annuallink = "/[YEAR]/".date("m", $from);
+  
+  
+} elseif (isset($_GET['year']) && isset($_GET['week'])){
+  $y = intval($_GET['year']);
+  $w = intval($_GET['week']);
+  
+  list($from, $to) = get_start_and_end_date_from_week($w, $y);
+    
+  $next = $from + A_WEEK;
+  $prev = $from - A_WEEK;
+  
+  $backwards       = date('/Y/\w\kW', $prev);
+  $onwards         = date('/Y/\w\kW', $next);
+  
+  $onwards_title   = sprintf("%d week %d", date("Y", $next), date("W", $next));
+  $backwards_title = sprintf("%d week %d", date("Y", $prev), date("W", $prev));
+  
+  $up              = "/".date("Y", $from+A_DAY)."/".date("m", $from+A_DAY);
+  $up_title        = date("F Y", $from+A_DAY);
+  
+  #$datetitle = date($dateformat, $from)." to ".date($dateformat, $to);
+  
+  $dateformat = 'j\<\s\u\p\>S\<\/\s\u\p\> M';
+  $datetitle = sprintf("%d week %d (%s to %s)", date("Y", $from), date("W", $from), date($dateformat, $from), date($dateformat, $to));
+  
+  $annuallink="/[YEAR]/";
+    
+  $noforwards = false;
+  if (date("Y W", $next) > date("Y W")){
+    $noforwards = true;
+  }
+
   
 } elseif (isset($_GET['year'])){
   $y = intval($_GET['year']);
@@ -130,7 +163,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   if (date("Y", $next) > date("Y")){
     $noforwards = true;
   }
-
+  
   
 } else {
   $from = mktime(0,0);
@@ -149,8 +182,8 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $onwards_title = date($dateformat_txt, $from+A_DAY);
   $backwards_title = date($dateformat_txt, $from-A_DAY);
   
-  $up              = "/".date("Y", $from)."/".date("m", $from);
-  $up_title        = date("F Y", $from);
+  $up              = "/".date("Y", $from+A_DAY)."/wk".date("W", $from+A_DAY);
+  $up_title        = "Week ".date("W Y", $from+A_DAY);
   
   $today = $noforwards = true;
   $annuallink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  

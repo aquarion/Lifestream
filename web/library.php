@@ -2,6 +2,29 @@
 
 define("IMAGE_ROOT", 'http://art.istic.net/iconography/');
 
+function get_start_and_end_date_from_week ($w, $y) 
+{ 
+    $o = 7; // week starts from sunday by default 
+
+    $days = ($w - 1) * 7 + $o; 
+
+    $firstdayofyear = getdate(mktime(0,0,0,1,1,$y)); 
+    if ($firstdayofyear["wday"] == 0) $firstdayofyear["wday"] += 7; 
+    $firstmonday = getdate(mktime(0,0,0,1,1-$firstdayofyear["wday"]+1,$y)); 
+    $calcdate = getdate(mktime(0,0,0,$firstmonday["mon"], $firstmonday["mday"]+$days,$firstmonday["year"])); 
+
+    $sday = $calcdate["mday"]; 
+    $smonth = $calcdate["mon"]; 
+    $syear = $calcdate["year"]; 
+    
+	$from = mktime(0, 0, 0, $smonth, $sday, $syear);
+	$to   = $from + (60*60*24*7);
+        
+    return array($from, $to);
+
+
+}    # function datefromweek 
+
 function niceTime($from, $to = false, $shortform = false){
 
 	if (!$to){
@@ -255,11 +278,12 @@ function process_lifestream_item($row){
 
 	if($row['image']){
 		$icon = $row['image'];
+			
+		if(!isset($row['small_icon'])){
+			$row['small_icon'] = $icon;
+		}
 	}
 
-	if(!isset($row['small_icon'])){
-		$row['small_icon'] = $icon;
-	}
 
 	$row['icon'] = $icon;
 	$row['nicetime'] = nicetime($row['epoch']);
