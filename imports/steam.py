@@ -33,7 +33,7 @@ if DEBUG:
 try:
 	gameslist_xml = urllib.urlopen("http://steamcommunity.com/id/%s/games?tab=recent&xml=1" % user)
 except IOError:
-	print >> sys.stderr, "Got socket error fetching games list"
+	#print >> sys.stderr, "Got socket error fetching games list"
 	os._exit(5)
 
 games = minidom.parse(gameslist_xml);
