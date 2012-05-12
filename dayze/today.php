@@ -1,8 +1,28 @@
 <?PHP
-require("../web/library.php");
 header("Content-type: text/html; charset=utf-8");
 mb_language('uni');
 mb_internal_encoding('UTF-8');
+
+require("../web/library.php");
+
+if ($_SERVER['REQUEST_URI']){
+	define("CACHEFILE", "/tmp/lifestream.dayze.".md5($_SERVER['REQUEST_URI']));
+	$age = 60*15;
+} else {
+	define("CACHEFILE", "/tmp/lifestream.dayze.index");
+	$age = 60*60*24;
+}
+
+if (file_exists(CACHEFILE)){
+	$delta = time() - filemtime(CACHEFILE);
+	if($delta > $age){
+		readfile(CACHEFILE);
+		exit;
+	}
+}
+
+ob_start();
+
 
 $dbcxn = getDatabase();
 mysql_set_charset('utf8', $dbcxn); 
@@ -306,6 +326,10 @@ function epochsort($a,$b){
 	return 0;
 }
 
+
 include("view.php");
 
-?>
+$output = ob_get_contents();
+ob_get_flush();
+
+file_put_contents(CACHEFILE, $output);
