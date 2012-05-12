@@ -11,6 +11,7 @@ import StringIO
 
 from mechanize import Browser, RobustFactory
 
+from time import sleep
 
 from datetime import datetime
 
@@ -53,6 +54,9 @@ link=br.find_link(text="Journey history")
 br.follow_link(link)
 
 ############### Journey History HTML
+
+
+sleep(10)
 
 html = br.response().read()
 

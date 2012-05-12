@@ -38,8 +38,11 @@ TickyTacky = {
 		
 		// Start looking from the top if we've got less than ten rows,
 		// or a maximum of 5 rows back
-		if (TickyTacky.currentline > 5){
-			TickyTacky.currentline -= 5;
+		
+		backfill = 20
+		
+		if (TickyTacky.currentline > backfill){
+			TickyTacky.currentline -= backfill;
 		} else {
 			TickyTacky.currentline = 0;
 		}
