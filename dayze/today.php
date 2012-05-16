@@ -6,11 +6,11 @@ mb_internal_encoding('UTF-8');
 require("../web/library.php");
 
 if ($_SERVER['REQUEST_URI']){
-	define("CACHEFILE", "/tmp/lifestream.dayze.".md5($_SERVER['REQUEST_URI']));
-	$age = 60*15;
-} else {
-	define("CACHEFILE", "/tmp/lifestream.dayze.index");
+	define("CACHEFILE", "../cache/lifestream.dayze.".md5($_SERVER['REQUEST_URI']));
 	$age = 60*60*24;
+} else {
+	define("CACHEFILE", "../cache/lifestream.dayze.index");
+	$age = 60*15;
 }
 
 if (file_exists(CACHEFILE)){
