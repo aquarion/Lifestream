@@ -5,6 +5,8 @@ mb_internal_encoding('UTF-8');
 
 require("../web/library.php");
 
+define("CACHING", false);
+
 if ($_SERVER['REQUEST_URI']){
 	define("CACHEFILE", "../cache/lifestream.dayze.".md5($_SERVER['REQUEST_URI']));
 	$age = 60*60*24;
@@ -13,7 +15,7 @@ if ($_SERVER['REQUEST_URI']){
 	$age = 60*15;
 }
 
-if (file_exists(CACHEFILE)){
+if (file_exists(CACHEFILE) && CACHING){
 	$delta = time() - filemtime(CACHEFILE);
 	if($delta > $age){
 		readfile(CACHEFILE);
@@ -129,7 +131,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $dateformat = 'j\<\s\u\p\>S\<\/\s\u\p\> M';
   $datetitle = sprintf("%d week %d (%s to %s)", date("Y", $from), date("W", $from), date($dateformat, $from), date($dateformat, $to));
   
-  $annuallink="/[YEAR]/";
+  $annuallink="/[YEAR]/wk".date("W", $from);
     
   $noforwards = false;
   if (date("Y W", $next) > date("Y W")){
