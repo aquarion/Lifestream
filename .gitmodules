@@ -7,3 +7,6 @@
 [submodule "lib/twitter"]
 	path = lib/twitter
 	url = http://github.com/sixohsix/twitter.git
+[submodule "lib/github"]
+	path = lib/github
+	url = https://github.com/csphere/GithubApiWrapper-Python
