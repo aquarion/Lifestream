@@ -11,18 +11,18 @@ current location.
 
 __author__ = 'jcgregorio@google.com (Joe Gregorio)'
 
-
-from apiclient.discovery import build
-
+import gflags
 import httplib2
-import pickle
-
-import time, datetime
+import logging
+import os
+import pprint
+import sys
 
 from apiclient.discovery import build
-from apiclient.oauth import FlowThreeLegged
-from apiclient.ext.authtools import run
-from apiclient.ext.file import Storage
+from oauth2client.file import Storage
+from oauth2client.client import AccessTokenRefreshError
+from oauth2client.client import flow_from_clientsecrets
+from oauth2client.tools import run
 
 
 import lifestream
@@ -31,35 +31,44 @@ from datetime import datetime
 dbcxn  = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
-KEY         = lifestream.config.get("googleapi", "consumer_key")
-SECRET      = lifestream.config.get("googleapi", "consumer_secret")
-DOMAIN      = lifestream.config.get("googleapi", "domain")
+SECRETS_FILE= lifestream.config.get("googleapi", "secrets_file")
 CREDENTIALS = lifestream.config.get("latitude", "credentials_file")
 
-# Uncomment to get detailed logging
-# httplib2.debuglevel = 4
+FLAGS = gflags.FLAGS
+
+# is missing.
+MISSING_CLIENT_SECRETS_MESSAGE = """
+WARNING: Please configure OAuth 2.0
+
+To make this sample run you will need to populate the client_secrets.json file
+found at:
+
+   %s
+
+with information from the APIs Console <https://code.google.com/apis/console>.
+
+""" % os.path.join(os.path.dirname(__file__), SECRETS_FILE)
+
+
+# Set up a Flow object to be used if we need to authenticate.
+FLOW = flow_from_clientsecrets(SECRETS_FILE,
+    scope='https://www.googleapis.com/auth/latitude.all.best',
+    message=MISSING_CLIENT_SECRETS_MESSAGE)
 
 def main(min_time = False, max_time = False):
+
+  argv = sys.argv
+  # Let the gflags module process the command-line arguments
+  try:
+    argv = FLAGS(argv)
+  except gflags.FlagsError, e:
+    print '%s\\nUsage: %s ARGS\\n%s' % (e, argv[0], FLAGS)
+    sys.exit(1)
+
   storage = Storage(CREDENTIALS)
   credentials = storage.get()
   if credentials is None or credentials.invalid == True:
-    auth_discovery = build("latitude", "v1").auth_discovery()
-    flow = FlowThreeLegged(auth_discovery,
-                           # You MUST have a consumer key and secret tied to a
-                           # registered domain to use the latitude API.
-                           #
-                           # https://www.google.com/accounts/ManageDomains
-                           consumer_key=KEY,
-                           consumer_secret=SECRET,
-                           user_agent='google-api-client-python-latitude/1.0',
-                           domain=DOMAIN,
-                           scope='https://www.googleapis.com/auth/latitude',
-                           xoauth_displayname='Google API Latitude Example',
-                           location='all',
-                           granularity='best'
-                           )
-
-    credentials = run(flow, storage)
+    credentials = run(FLOW, storage)
 
   http = httplib2.Http()
   http = credentials.authorize(http)

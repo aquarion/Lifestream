@@ -4,3 +4,5 @@ dbconfig.ini
 shell/bioware.sh
 keys
 latitude.dat
+cache
+googleapi_client_secrets.json
