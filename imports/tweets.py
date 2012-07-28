@@ -66,9 +66,7 @@ except Exception, e:
 
 s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
 
-for i in range(len(tweets)):
-	tweet = tweets[i]
-	
+for tweet in tweets:
 	id = tweet['id']
 	#message = tweet['text'].replace('"', '\\"');
 	message = tweet['text'].encode("utf_8")
@@ -77,8 +75,7 @@ for i in range(len(tweets)):
 	source = re.sub(r'<[^>]*?>', '', source) 
 	
 	url = "http://twitter.com/%s/status/%d" % (username, id)
-	
+
 	localdate = dateutil.parser.parse(tweet['created_at'])
         utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-	#print message
 	cursor.execute(s_sql, (type, id, message, utcdate, url, source))
