@@ -25,7 +25,7 @@ if (len(sys.argv) < 2):
 
 USERNAME     = sys.argv[1]
 
-londontime    = pytz.timezone("Europe/London")
+utctime    = pytz.utc
 steamtime     = pytz.timezone('US/Pacific')
 
 br = br = Browser(factory=RobustFactory())
@@ -55,13 +55,11 @@ for badge in badges:
 	
 	parseddate = datetime.strptime(date, "%b %d, %Y %I:%M%p")
 	localdate  = steamtime.localize(parseddate)
-	londondate = localdate.astimezone(londontime)
-	
-	print text
+	utcdate    = localdate.astimezone(utc)
 	
 	id = hashlib.md5()
 	id.update(text)
 	
-	cursor.execute(s_sql, ("gaming", id.hexdigest(), text, londondate, URL, "steambadge", src))
+	cursor.execute(s_sql, ("gaming", id.hexdigest(), text, utcdate, URL, "steambadge", src))
 	
 	
