@@ -57,38 +57,39 @@ response, content = web.request(URL_BASE% "users/self/checkins")
 data = json.loads(content)
 checkins = data['response']['checkins']['items']
 
-for location in checkins:
-    source = "Foursquare";
-    if "isMayor" in location.keys() and location['isMayor']:
-        source = "Foursquare-Mayor"
-        
-    image = ""
+if 'checkins' in data['response'].keys():
+	for location in checkins:
+	    source = "Foursquare";
+	    if "isMayor" in location.keys() and location['isMayor']:
+		source = "Foursquare-Mayor"
+		
+	    image = ""
 
-    source = re.sub(r'<[^>]*?>', '', source) 
+	    source = re.sub(r'<[^>]*?>', '', source) 
 
-    if "venue" in location.keys():
-        message = location['venue']['name']
-        if len(location['venue']['categories']):
-            for category in location['venue']['categories']:
-                if "primary" in category.keys():
-                    image = category['icon']
-    else:
-        message = location['location']['name']
+	    if "venue" in location.keys():
+		message = location['venue']['name']
+		if len(location['venue']['categories']):
+		    for category in location['venue']['categories']:
+			if "primary" in category.keys():
+			    image = category['icon']
+	    else:
+		message = location['location']['name']
 
-        
-    epoch = location['createdAt']
-    localzone = pytz.timezone(location['timeZone'])
-    localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
-    utcdate = localtime.strftime("%Y-%m-%d %H:%M")
-    
-    id = location['id']
+		
+	    epoch = location['createdAt']
+	    localzone = pytz.timezone(location['timeZone'])
+	    localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
+	    utcdate = localtime.strftime("%Y-%m-%d %H:%M")
+	    
+	    id = location['id']
 
-    cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
+	    cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
 
-    coordinates = location['venue']['location']
+	    coordinates = location['venue']['location']
 
-    #                     (`id`,  `lat`,            `long`, `lat_vague`, `long_vague`, `timestamp`, `title`, `icon`)
-    cursor.execute(l_sql, (epoch, coordinates['lat'], coordinates['lng'], coordinates['lat'], coordinates['lng'], utcdate, location['venue']['name'], image))
+	    #                     (`id`,  `lat`,            `long`, `lat_vague`, `long_vague`, `timestamp`, `title`, `icon`)
+	    cursor.execute(l_sql, (epoch, coordinates['lat'], coordinates['lng'], coordinates['lat'], coordinates['lng'], utcdate, location['venue']['name'], image))
 
 response, content = web.request(URL_BASE% "users/self/badges")
 data = json.loads(content)
