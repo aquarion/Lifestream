@@ -3,29 +3,20 @@
 import lifestream
 import sys
 from BeautifulSoup import BeautifulSoup
-import pytz
-import re
 import hashlib
-import csv
-import StringIO
 
 from mechanize import Browser, RobustFactory
-
-from time import sleep
 
 from datetime import datetime
 
 dbcxn  = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
-
 if (len(sys.argv) < 2):
 	print "Usage: %s charactername " % sys.argv[0]
 	sys.exit(5)
 
 CHARACTER     = sys.argv[1]
-
-londontime    = pytz.timezone("Europe/London")
 
 br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
