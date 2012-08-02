@@ -25,7 +25,6 @@ if (len(sys.argv) < 2):
 
 USERNAME     = sys.argv[1]
 
-utctime    = pytz.utc
 steamtime     = pytz.timezone('US/Pacific')
 
 br = br = Browser(factory=RobustFactory())
@@ -55,7 +54,7 @@ for badge in badges:
 	
 	parseddate = datetime.strptime(date, "%b %d, %Y %I:%M%p")
 	localdate  = steamtime.localize(parseddate)
-	utcdate    = localdate.astimezone(utc)
+	utcdate    = localdate.astimezone(pytz.utc)
 	
 	id = hashlib.md5()
 	id.update(text)
