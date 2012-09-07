@@ -41,8 +41,8 @@ def github_call(path, username, password, page = 1, perpage = 100):
 repos = github_call("user/repos", USERNAME, PASSWORD)
 
 for repo in repos:
-	if repo['private']:
-		continue;
+	#if repo['private']:
+	#	continue;
 		
 	commits = github_call("repos/%s/commits" % repo['full_name'], USERNAME, PASSWORD)
 	for commit in commits:
