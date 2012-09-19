@@ -140,6 +140,8 @@ if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$fn) ) {
 ?>
 </style>
 
+<?PHP include("google_analytics.html"); ?>
+
 </head>
 <body>
 
