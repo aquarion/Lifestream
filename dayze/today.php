@@ -9,7 +9,7 @@ define("CACHING", true);
 
 if ($_SERVER['REQUEST_URI']){
 	define("CACHEFILE", "../cache/lifestream.dayze.".md5($_SERVER['REQUEST_URI']));
-	$age = 60*60*24;
+	$age = 60*60*6;
 } else {
 	define("CACHEFILE", "../cache/lifestream.dayze.index");
 	$age = 60*15;
@@ -17,10 +17,11 @@ if ($_SERVER['REQUEST_URI']){
 
 if (file_exists(CACHEFILE) && CACHING){
 	$delta = time() - filemtime(CACHEFILE);
-	if($delta > $age){
+	if($delta < $age){
 		readfile(CACHEFILE);
 		exit;
 	}
+
 }
 
 ob_start();
