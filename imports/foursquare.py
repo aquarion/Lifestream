@@ -9,8 +9,7 @@ from datetime import datetime
 
 import oauth2
 from twitter.oauth import write_token_file, read_token_file
-import json
-import httplib2
+import requests
 
 from pprint import pprint
 
@@ -49,12 +48,13 @@ l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat
   
 
 URL_BASE = "https://api.foursquare.com/v2/%%s?oauth_token=%s" % oauth_token
-web = httplib2.Http()
 
 # Get the data 
 
-response, content = web.request(URL_BASE% "users/self/checkins")
-data = json.loads(content)
+r = requests.get(URL_BASE% "users/self/checkins")
+
+data = r.json
+
 checkins = data['response']['checkins']['items']
 
 if 'checkins' in data['response'].keys():
@@ -91,8 +91,11 @@ if 'checkins' in data['response'].keys():
 	    #                     (`id`,  `lat`,            `long`, `lat_vague`, `long_vague`, `timestamp`, `title`, `icon`)
 	    cursor.execute(l_sql, (epoch, coordinates['lat'], coordinates['lng'], coordinates['lat'], coordinates['lng'], utcdate, location['venue']['name'], image))
 
-response, content = web.request(URL_BASE% "users/self/badges")
-data = json.loads(content)
+
+r = requests.get(URL_BASE% "users/self/badges")
+
+data = r.json
+
 badges = data['response']['badges']
 
 for badgeid, badge in badges.items():
