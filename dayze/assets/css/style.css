@@ -11,6 +11,7 @@ background-color: #EEE;
 background-image: url(http://cdn.aquarionics.com/wp-content/uploads/2012/01/londonkrt13.jpg);
 background-position: 50% 50%;
 background-repeat: repeat;
+background-size: cover;
 }
   
 header {
@@ -263,7 +264,7 @@ li.Photo .cite {
 
 #Currently, #smallprint {
   color: #111;
-  background: rgba(255,255,255, .4);
+  background: rgba(255,255,255, .7);
   border-bottom: 1px solid #666;
 }
 
@@ -403,6 +404,6 @@ hr {
 
 footer {
   text-align: center;
-  background: rgba(255,255,255,.4);
+  background: rgba(255,255,255,.7);
   padding: 1em;
 }
