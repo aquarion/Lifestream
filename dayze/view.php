@@ -94,12 +94,17 @@ init = function(){
 
 	$('#musicChart').addClass(chartClass);
 	$('.contentbox').hide()
+	$('.contentbox').addClass("unpositionedBox");
  
 }
 
 load = function(){
 	TickyTacky.rearrange(afterinit);
-	$(window).resize(TickyTacky.rearrange);
+	$(window).resize(function(){
+		TickyTacky.resetVars();
+		TickyTacky.rearrange()
+		
+	});
 }
 
 $(document).ready(init);

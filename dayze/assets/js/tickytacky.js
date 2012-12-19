@@ -29,6 +29,21 @@ TickyTacky = {
 	animate     : false,
 	linetemplate : false,
 	boxcount     : 0,
+	firstrun     : 1,
+	
+	resetVars : function(){
+		TickyTacky.grid        = false,
+		TickyTacky.currentline = 0;
+		TickyTacky.box_height  = 100;
+		TickyTacky.box_width   = 230;
+		TickyTacky.padding     = 2;
+		TickyTacky.margin      = 1;
+		
+		TickyTacky.columns     = false;
+		TickyTacky.linetemplate = false;
+		TickyTacky.boxcount     = 0;
+		TickyTacky.firstrun     = 1;
+	},
 
 	getBestPosition : function (box){
 	
@@ -126,8 +141,10 @@ TickyTacky = {
 		return [top_offset, left_offset];
 	},
 
-	rearrange : function( callBackOnCompletion ){
+	rearrange : function( callBackOnCompletion, rearranging ){
 	
+		var rearrange_again     = false;
+		
 		playground_width          = $(window).width(); // Width of the play area.
 		playground_width_in_boxes = Math.floor(playground_width/TickyTacky.box_width); 
 														// How many boxes we can fit in that.
@@ -138,7 +155,7 @@ TickyTacky = {
 			playground_width_in_boxes = 6;
 		}
 	
-		if (playground_width_in_boxes == TickyTacky.columns){
+		if (playground_width_in_boxes == TickyTacky.columns && !rearranging){
 			// If we've already rendered for this number of columns, go home.
 			return;
 		}
@@ -164,9 +181,24 @@ TickyTacky = {
 			box.removeClass("dwarfed")
 			box.width(box.attr("originalwidth"));
 		});
-
+		
+		//.addClass("unpositionedBox");
+		if(TickyTacky.firstrun){
+			//TickyTacky.firstrun = 0;
+			boxlist = $('.unpositionedBox');
+			if(boxlist.length > 30){
+				boxlist = $('.unpositionedBox').slice(1,30);
+				rearrange_again = true;
+			}
+			boxlist.removeClass('unpositionedBox');
+		} else {
+			boxlist = $('.contentbox');
+		}
+		
+		boxlist = $('.contentbox');
+		
 		// And they're all made out of TickyTacky...
-		$('.contentbox').each(function(){
+		boxlist.each(function(){
 			box = $(this)
 			
 			box.show();
@@ -226,7 +258,7 @@ TickyTacky = {
 				box.css("left", position[1]);
 			}
 			
-		})
+		});
 		
 		max_columns = 0;
 		
@@ -256,15 +288,18 @@ TickyTacky = {
 				$('#tiles').css("width", newTilesWidth);
 			}
 		}
-		
-
+	
 		// Animate the future ones.
 		// Initial render isn't animated because it makes the browser cry.
 		TickyTacky.animate = true;
-		
-		// Operator, get me information.
-		if(jQuery.isFunction( callBackOnCompletion )){
-			callBackOnCompletion();
+				
+		if(rearrange_again){
+			window.setTimeout(function(){ TickyTacky.rearrange(callBackOnCompletion, true) }, 1000);
+		} else {
+			// Operator, get me information.
+			if(jQuery.isFunction( callBackOnCompletion )){
+				callBackOnCompletion();
+			}
 		}
 		
 		// And that's us gone for the night.
