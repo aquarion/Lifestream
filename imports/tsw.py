@@ -13,40 +13,42 @@ dbcxn  = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
 if (len(sys.argv) < 2):
-	print "Usage: %s charactername " % sys.argv[0]
+	print "Usage: %s charactername[,charactername] " % sys.argv[0]
 	sys.exit(5)
 
-CHARACTER     = sys.argv[1]
+CHARACTERS     = sys.argv[1]
 
 br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
 
 ################ Login
 
-URL = "http://chronicle.thesecretworld.com/character/%s" % CHARACTER
+for character in CHARACTERS.split(","):
 
-response = br.open(URL)
+	url = "http://chronicle.thesecretworld.com/character/%s" % character
 
-html = br.response().read();
+	response = br.open(url)
 
-s_sql = u'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, NOW(), %s, %s, %s);'
+	html = br.response().read();
 
-soup = BeautifulSoup(html)
+	s_sql = u'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, NOW(), %s, %s, %s);'
 
-rank = soup.findAll("div", {"class":"x6"})
+	soup = BeautifulSoup(html)
 
-rank = rank[0]
+	rank = soup.findAll("div", {"class":"x6"})
 
-img = rank.findAll("img")[0]
+	rank = rank[0]
 
-src = img.attrs[0][1]
+	img = rank.findAll("img")[0]
 
-rank_n = rank.findAll("div", {"class":"rank wf"})[0]
-rank_t = rank.findAll("div", {"class":"title wf"})[0]
+	src = img.attrs[0][1]
 
-text = "%s achieved %s&ndash;%s" % (CHARACTER, rank_n.string, rank_t.string)
+	rank_n = rank.findAll("div", {"class":"rank wf"})[0]
+	rank_t = rank.findAll("div", {"class":"title wf"})[0]
 
-id = hashlib.md5()
-id.update(text)
+	text = "%s achieved %s&ndash;%s" % (character, rank_n.string, rank_t.string)
 
-cursor.execute(s_sql, ("gaming", id.hexdigest(), text, URL, "thesecretworld", src))
+	id = hashlib.md5()
+	id.update(text)
+	print text
+	cursor.execute(s_sql, ("gaming", id.hexdigest(), text, url, "thesecretworld", src))
