@@ -6,3 +6,4 @@ keys
 latitude.dat
 cache
 googleapi_client_secrets.json
+.dropbox_session
