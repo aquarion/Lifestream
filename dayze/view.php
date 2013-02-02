@@ -107,10 +107,34 @@ load = function(){
 	});
 }
 
+hideSomeBoxes = function(item){
+	var hideClass = $(this).attr("rel");
+	$(".source"+hideClass).addClass("hideThis");
+	TickyTacky.rearrange(false, true);
+
+	$("#hiddenTiles").append('<li class="hide'+hideClass+'"><a href="#" class="showType" rel="'+hideClass+'">Unhide '+hideClass+'</a></li>');
+	$(".showType").click(showSomeBoxes);
+	return false;
+}
+
+showSomeBoxes = function(item){
+	var hideClass = $(this).attr("rel");
+	$(".source"+hideClass).removeClass("hideThis");
+	TickyTacky.rearrange(false, true);
+
+	$("#hiddenTiles .hide"+hideClass).remove();
+	return false;
+}
+
+
 $(document).ready(init);
 $(window).load(load);
 
 $(document).load(TickyTacky.rearrange)
+
+$(document).ready(function(){
+	$(".hideType").click(hideSomeBoxes);
+});
 
 </script>
 
@@ -154,6 +178,10 @@ for($i=2000; $i <= date("Y"); $i++){
 
 </div>
 
+<ul id="hiddenTiles">
+
+</ul>
+
 <div id="tiles">
 
 <ul id="tilelist" style="position: absolute;">
@@ -196,6 +224,7 @@ foreach($order as $classname => $count){
     }
     if(isset($row['url'])){   
     	echo "<a href=\"".$row['url']."\" >".$row['source']."</a></span>";
+    	echo sprintf('<a href="#" rel="%1$s" class="hideType" title="Hide all %1$s tiles">x</a>', (isset($row['type']) ? $row['type'] : ''));
     }
     echo "</li>\n";
   }

@@ -407,3 +407,27 @@ footer {
   background: rgba(255,255,255,.7);
   padding: 1em;
 }
+
+#hiddenTiles {
+	position: fixed;
+	top: 5px;
+	left: 5px;
+	padding: 0;
+	margin: 0;
+	background: rgba(255,255,255,.8);
+	width: 9em;
+	color: blue;
+}
+
+#hiddenTiles a {
+	display: block;
+	padding: .5em;
+	text-decoration: none;
+	color: #333;
+}
+
+a.hideType {
+	position: absolute;
+	top: 2px;
+	right: 2px;
+}

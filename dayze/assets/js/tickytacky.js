@@ -39,7 +39,7 @@ TickyTacky = {
 		TickyTacky.padding     = 2;
 		TickyTacky.margin      = 1;
 		
-		TickyTacky.columns     = false;
+		//TickyTacky.columns     = false;
 		TickyTacky.linetemplate = false;
 		TickyTacky.boxcount     = 0;
 		TickyTacky.firstrun     = 1;
@@ -154,7 +154,7 @@ TickyTacky = {
 		} else if((($(".contentbox").length / playground_width_in_boxes) < 3) && playground_width_in_boxes >= 6) {
 			playground_width_in_boxes = 6;
 		}
-	
+
 		if (playground_width_in_boxes == TickyTacky.columns && !rearranging){
 			// If we've already rendered for this number of columns, go home.
 			return;
@@ -200,7 +200,10 @@ TickyTacky = {
 		// And they're all made out of TickyTacky...
 		boxlist.each(function(){
 			box = $(this)
-			
+			if (box.hasClass("hideThis")){
+				box.fadeOut("slow");
+				return true;
+			}
 			box.show();
 			// ... And they all look just the same.
 			// Normalise the heights and widths of the boxes to a muliplyer of box_height/box_width
@@ -234,7 +237,6 @@ TickyTacky = {
 								
 			}
 			boxes.push(box); // Add the box to the set of boxes to be positioned.
-			
 			
 			// If the box is too big, shrink it to a saner size. Bit hacky.
 			if (box.outerWidth() > (TickyTacky.columns*TickyTacky.box_width)){
@@ -301,7 +303,7 @@ TickyTacky = {
 				callBackOnCompletion();
 			}
 		}
-		
+
 		// And that's us gone for the night.
 		return;
 	}
