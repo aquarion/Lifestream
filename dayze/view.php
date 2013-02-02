@@ -114,37 +114,7 @@ $(document).load(TickyTacky.rearrange)
 
 </script>
 
-<style type="text/css">
-<?PHP
-
-
-$fn = date("Y/m/d", $from).".jpg";
-$mn = date("Y/m", $from).".jpg";
-$yn = date("Y", $from).".jpg";
-
-
-if (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$fn) ) {
-  ?>
-  body {
-    background-image: url("http://dailyphoto.aquarionics.com/<?PHP echo $fn; ?>");
-  }
-  <?PHP
-} elseif (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$mn) ) {
-  ?>
-  body {
-    background-image: url("http://dailyphoto.aquarionics.com/<?PHP echo $mn; ?>");
-  }
-  <?PHP
-} elseif (file_exists("/var/www/hosts/dailyphoto.aquarionics.com/htdocs/".$yn) ) {
-  ?>
-  body {
-    background-image: url("http://dailyphoto.aquarionics.com/<?PHP echo $yn; ?>");
-  }
-  <?PHP
-}//endif
-?>
-</style>
-
+<link rel="stylesheet" href="http://dailyphoto.aquarionics.com/background.css.php?from=<?PHP echo date("Y-m-d", $from) ?>"/> 
 <?PHP include("google_analytics.html"); ?>
 
 </head>
@@ -221,9 +191,12 @@ foreach($order as $classname => $count){
         
     echo "<br/>";
     
-    
-    echo "<span class=\"cite\">".date("d/M/Y H:i", $row['epoch'])." &mdash; ";
-    echo "<a href=\"".$row['url']."\" >".$row['source']."</a></span>";
+    if(isset($row['epoch'])){   
+    	echo "<span class=\"cite\">".date("d/M/Y H:i", $row['epoch'])." &mdash; ";
+    }
+    if(isset($row['url'])){   
+    	echo "<a href=\"".$row['url']."\" >".$row['source']."</a></span>";
+    }
     echo "</li>\n";
   }
   

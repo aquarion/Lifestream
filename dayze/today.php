@@ -5,7 +5,7 @@ mb_internal_encoding('UTF-8');
 
 require("../web/library.php");
 
-define("CACHING", true);
+define("CACHING", false);
 
 if ($_SERVER['REQUEST_URI']){
 	define("CACHEFILE", "../cache/lifestream.dayze.".md5($_SERVER['REQUEST_URI']));
@@ -19,6 +19,7 @@ if (file_exists(CACHEFILE) && CACHING){
 	$delta = time() - filemtime(CACHEFILE);
 	if($delta < $age){
 		readfile(CACHEFILE);
+		echo "<!-- ".CACHEFILE."-->";
 		exit;
 	}
 
@@ -50,6 +51,7 @@ $tidy_config = array(
 $tidy = new tidy;
 
 if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
+  define("VIEWTYPE", "Day");
   $y = intval($_GET['year']);
   $m = intval($_GET['month']);  
   $d = intval($_GET['day']);  
@@ -83,6 +85,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $to   += 4*AN_HOUR;
 
 } elseif (isset($_GET['year']) && isset($_GET['month'])){
+  define("VIEWTYPE", "Month");
   $y = intval($_GET['year']);
   $m = intval($_GET['month']);  
   $from = mktime(0,0,0,$m,1,$y);
@@ -110,9 +113,10 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   
   
 } elseif (isset($_GET['year']) && isset($_GET['week'])){
+  define("VIEWTYPE", "Week");
   $y = intval($_GET['year']);
   $w = intval($_GET['week']);
-  
+
   list($from, $to) = get_start_and_end_date_from_week($w, $y);
     
   $next = $from + A_WEEK;
@@ -141,6 +145,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
 
   
 } elseif (isset($_GET['year'])){
+  define("VIEWTYPE", "Year");
   $y = intval($_GET['year']);
   
   $from = mktime(0,0,0,1,1,$y);
@@ -169,6 +174,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   
   
 } else {
+  define("VIEWTYPE", "Today");
   $from = mktime(0,0);
   $to = mktime(23,59,59);
 
@@ -201,9 +207,19 @@ $q = sprintf("select *, unix_timestamp(date_created) as epoch from lifestream wh
 
 $results = mysql_query($q) or die(mysql_error());
 
+
 $structure = array();
 
 $structure['things'] = array();
+
+if(mysql_num_rows($results) == 0 and VIEWTYPE == "Today"){
+	$q = "select *, unix_timestamp(date_created) as epoch from lifestream order by date_created desc limit 100";
+	$results = mysql_query($q) or die(mysql_error());
+	$structure['things']['intro'] = array(
+		'content' => "Nothing today yet, so here's the last 100 things :)",
+		#'epoch'   => strtotime("1981-01-26"),		
+	);
+}
 
 $music = array();
 $musictotal = 0;
