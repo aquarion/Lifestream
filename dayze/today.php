@@ -5,7 +5,7 @@ mb_internal_encoding('UTF-8');
 
 require("../web/library.php");
 
-define("CACHING", false);
+define("CACHING", true);
 
 if ($_SERVER['REQUEST_URI']){
 	define("CACHEFILE", "../cache/lifestream.dayze.".md5($_SERVER['REQUEST_URI']));
