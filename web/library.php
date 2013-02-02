@@ -4,22 +4,18 @@ define("IMAGE_ROOT", 'http://art.istic.net/iconography/');
 
 function get_start_and_end_date_from_week ($w, $y) 
 { 
-    $o = 7; // week starts from sunday by default 
 
-    $days = ($w - 1) * 7 + $o; 
+    $date = mktime(0,0,0,1,4,$y); // 4th Jan is always week 1
 
-    $firstdayofyear = getdate(mktime(0,0,0,1,1,$y)); 
-    if ($firstdayofyear["wday"] == 0) $firstdayofyear["wday"] += 7; 
-    $firstmonday = getdate(mktime(0,0,0,1,1-$firstdayofyear["wday"]+1,$y)); 
-    $calcdate = getdate(mktime(0,0,0,$firstmonday["mon"], $firstmonday["mday"]+$days,$firstmonday["year"])); 
+    $days = ($w-1)*7;
 
-    $sday = $calcdate["mday"]; 
-    $smonth = $calcdate["mon"]; 
-    $syear = $calcdate["year"]; 
-    
-	$from = mktime(0, 0, 0, $smonth, $sday, $syear);
-	$to   = $from + (60*60*24*7);
-        
+    $date += $days*(24*60*60);
+
+    $d = date("N", $date) - 1;
+
+    $from = $date - (($d) * A_DAY);
+    $to   = $date + ((7-$d) * A_DAY) -1;
+
     return array($from, $to);
 
 
