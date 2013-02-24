@@ -50,5 +50,4 @@ for character in CHARACTERS.split(","):
 
 	id = hashlib.md5()
 	id.update(text)
-	print text
-	cursor.execute(s_sql, ("gaming", id.hexdigest(), text, url, "thesecretworld", src))
+	cursor.execute(s_sql, ("gaming", id.hexdigest(), text, url, "The Secret World", src))
