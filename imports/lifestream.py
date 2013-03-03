@@ -34,4 +34,59 @@ def cursor(dbcxn):
   dbc.execute('SET character_set_connection=utf8;')
   
   return dbc
-  
+
+
+def niceTimeDelta(timedelta, format="decimal"):
+
+	years = int(timedelta / (60*60*24*365));
+	remainder = timedelta % (60*60*24*365);
+	days = int(remainder / (60*60*24));
+	remainder = timedelta % (60*60*24);
+	hours = remainder / (60*60)
+	remainder = timedelta % (60*60);
+	minutes = remainder / 60
+
+
+	if int(years) == 1:
+		years_message = "1 year, "
+	elif years > 1:
+		years_message = "%s years, " % convertNiceTime(years, format)
+	else:
+		years_message = ''
+
+	if (days < 7 and years == 0):
+		hours = hours + (24*days)
+		days = 0;
+	
+	#if (hours < 48 and years == 0 and days < 3):
+	#	minutes = minutes + (60*hours)
+	#	hours = 0;
+
+	if int(days) == 1:
+		days_message = "1 day, "
+	elif days > 1:
+		days_message = "%s days, " % days
+	else:
+		days_message = ''
+
+	if int(hours) == 1:
+		hours_message = "1 hour, "
+	elif hours > 1:
+		hours_message = "%s hours, " % hours
+	else:
+		hours_message = ''
+
+
+	if int(minutes) == 1:
+		minutes_message = "1 minute"
+	elif minutes > 1:
+		minutes_message = "%s minutes" % minutes
+	else:
+		minutes_message = ''
+		
+	string = years_message+days_message+hours_message+minutes_message
+
+	if string == "":
+		return "seconds"
+	else:
+		return string
