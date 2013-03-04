@@ -3,6 +3,8 @@ h1. Lifestream
 Lifestream is a series of scripts to grab data from places and dump it into a
 database.
 
+Lifestream currently runs http://NicholasAvenell.com
+
 Lifestream is an AJAX-based box that updates this on a web page in real time.
 
 Lifestream is a wordpress plugin to make that work, too.
