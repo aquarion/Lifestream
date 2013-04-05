@@ -6,9 +6,9 @@
 <link rel="stylesheet" href="/assets/css/style.css"/> 
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <!--[if IE]><script language="javascript" type="text/javascript" src="/assets/js/jqplot/src/excanvas.js"></script><![endif]-->
-<script type="text/javascript" src="/assets/js/jqplot/src/jquery-1.5.1.min.js"></script>
-<script type="text/javascript" src="/assets/js/jqplot/src/jquery.jqplot.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script type="text/javascript" src="/assets/js/tickytacky.js"></script>
+<script type="text/javascript" src="/assets/js/jqplot/src/jquery.jqplot.js"></script>
 <script type="text/javascript" src="/assets/js/jqplot/src/plugins/jqplot.pieRenderer.js"></script>
 <link rel="stylesheet" type="text/css" href="/assets/js/jqplot/src/jquery.jqplot.css" />
 <link href='http://fonts.googleapis.com/css?family=Goudy+Bookletter+1911' rel='stylesheet' type='text/css'>
