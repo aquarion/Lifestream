@@ -61,7 +61,7 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 	
 	if len(statspage) == 0:
 		if DEBUG:
-			print "       + Skipping %s" % gamename	
+			print "       + Skipping %s (No stats page)" % gamename	
 		continue;
 	else:
 		if DEBUG:
@@ -90,21 +90,23 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 
 	for achivement in game.getElementsByTagName("achievement"):
 		closed =  achivement.getAttribute("closed")
+		name = achivement.getElementsByTagName('name')[0].firstChild.data
 		if closed == u'0':
+				#if DEBUG:
+				#	print "         + %s (Not Achieved)" % name	
 				continue
 	
 		m = hashlib.md5()
 		
-		name = achivement.getElementsByTagName('name')[0].firstChild.data
 		image = achivement.getElementsByTagName('iconClosed')[0].firstChild.data
 
 		if DEBUG:
-			print "         + %s" % name	
+			print "         + %s (Achieved)" % name	
 
 		message = "%s &ndash; %s" % (gamename, name)
 	
 		m.update(gamename.encode('utf-8'));
-		m.update(name); 
+		m.update(name.encode('utf-8')); 
 		id = image
 	
 		#print "   %s %s " % (name, image)
@@ -112,4 +114,3 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 		#print s_sql % (type, id, message, image, statspage)
 		cursor.execute(s_sql, (type, id, message, image, statspage))
 
-	time.sleep(5)
