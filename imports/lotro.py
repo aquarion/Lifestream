@@ -20,9 +20,13 @@ s_sql = u'REPLACE INTO lifestream (`type`, `systemid`, `title`, `date_created`, 
 # [lotro]
 # berlique = http://my.lotro.com/home/character/2776943/150307637564818156/activitylog
 
+DEBUG = False
 
 for item in lifestream.config.items("lotro"):
 	URL = item[1]
+
+	if DEBUG:
+		print item
 	
 	response = br.open(URL)
 	html = br.response().read();
@@ -35,6 +39,12 @@ for item in lifestream.config.items("lotro"):
 	title = True;
 
 	lines = table[0].findAll("tr")
+
+	if len(lines) < 3:
+		if DEBUG:
+			print "... Nothing there."
+		continue
+
 	for line in lines:
 		if title:
 			title = False
@@ -45,8 +55,18 @@ for item in lifestream.config.items("lotro"):
 		icon = line.find("td", {"class" : "details"}).findAll("img")[0].attrs[0][1]
 		desc = line.find("td", {"class" : "details"}).findChildren(text=True)[1]
 		
+		if DEBUG:
+			print "  Found %s" % desc
+		
+		if icon == "http://content.turbine.com/sites/playerportal/modules/lotro-base/images/icons/log/icon_quest.png":
+			if DEBUG:
+				print "   ... That's a quest. Nah."
+			continue;
+
 		text = "%s %s" % (char, desc)
 		
+		if DEBUG:
+			print text
 		parseddate = datetime.strptime(date+" 18:00", "%Y/%m/%d %H:%M")
 		
 		id = hashlib.md5()
