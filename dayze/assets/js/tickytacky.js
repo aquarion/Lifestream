@@ -30,6 +30,8 @@ TickyTacky = {
 	linetemplate : false,
 	boxcount     : 0,
 	firstrun     : 1,
+
+	max_columns : 5,
 	
 	resetVars : function(){
 		TickyTacky.grid        = false,
@@ -64,7 +66,9 @@ TickyTacky = {
 		
 		columns = Math.round(box.outerWidth() / TickyTacky.box_width);
 		rows    = Math.round(box.outerHeight()     / TickyTacky.box_height);
-	
+
+
+
 		n = 0;
 		while (column == -1){
 			n = n + 1;
@@ -159,6 +163,10 @@ TickyTacky = {
 			// If we've already rendered for this number of columns, go home.
 			return;
 		}
+
+		if (TickyTacky.max_columns && playground_width_in_boxes > TickyTacky.max_columns){
+			playground_width_in_boxes = TickyTacky.max_columns
+		}	
 		
 		TickyTacky.currentline = 0; // From the top, gentlemen
 		TickyTacky.columns     = playground_width_in_boxes;
