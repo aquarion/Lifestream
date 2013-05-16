@@ -7,3 +7,6 @@ latitude.dat
 cache
 googleapi_client_secrets.json
 .dropbox_session
+dayze.new
+dayze.old
+dayze/lib
