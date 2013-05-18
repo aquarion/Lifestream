@@ -20,7 +20,7 @@ end
 require "rubygems"
 require "ini"
 require File.dirname(__FILE__)+"/../lib/jdbcmysql"
-ini = Ini.load(File.dirname(__FILE__)+"/../dbconfig.ini")
+ini = Ini.load(File.dirname(__FILE__)+"/../config.ini")
 cnf = ini['database']
 db = JdbcMysql.new(cnf['hostname'], cnf['username'],cnf['password'], cnf['database'])
 

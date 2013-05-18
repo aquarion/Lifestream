@@ -17,7 +17,7 @@ h2. How to make it go:
 * Install the Google Python API
 
 * Use the schema to create a database
-* copy dbconfig.ini.example to lose the example bit
+* copy config.ini.example to lose the example bit
 * edit it to contain real live database and API details
 * Each import script accepts a username as a parameter
    pipe the output of the script to the database

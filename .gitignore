@@ -1,5 +1,5 @@
 twitter*sh
-dbconfig.ini
+config.ini
 *.pyc
 shell/bioware.sh
 keys

@@ -1,7 +1,7 @@
 <?PHP
 require("library.php");
 
-$config = parse_ini_file("../dbconfig.ini", true);
+$config = parse_ini_file("../config.ini", true);
 
 
 $dbcxn = getDatabase();

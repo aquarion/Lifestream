@@ -316,7 +316,7 @@ function twitterFormat($text){
 
 
 function getDatabase(){
-  $config = parse_ini_file("../dbconfig.ini", true);
+  $config = parse_ini_file("../config.ini", true);
   $dbcxn = mysql_connect($config['database']['hostname'], $config['database']['username'], $config['database']['password']);
   mysql_select_db($config['database']['database'], $dbcxn);
   mysql_query("SET NAMES 'utf8' COLLATE 'utf8_unicode_ci'");
@@ -325,7 +325,7 @@ function getDatabase(){
 
 
 function lifestream_config($area, $item){
-  $config = parse_ini_file("../dbconfig.ini", true);
+  $config = parse_ini_file("../config.ini", true);
   return $config[$area][$item];
 }
 

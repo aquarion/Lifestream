@@ -13,9 +13,9 @@ sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 config  = ConfigParser.ConfigParser()
 try:
-    config.readfp(open(basedir+'/../dbconfig.ini'))
+    config.readfp(open(basedir+'/../config.ini'))
 except IOError:
-    config.readfp(open(os.getcwd()+'/../dbconfig.ini'))
+    config.readfp(open(os.getcwd()+'/../config.ini'))
 
 def getDatabaseConnection():
   

@@ -25,7 +25,7 @@ if len(sys.argv) == 3:
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 config = ConfigParser.ConfigParser()
-config.readfp(open(basedir+'/../dbconfig.ini'))
+config.readfp(open(basedir+'/../config.ini'))
 
 OAUTH_FILENAME = os.environ.get('HOME', '') + os.sep + '.foursquare_oauth_'+username
 CLIENT_ID = config.get("foursquare", "client_id")
