@@ -12,7 +12,7 @@ dbcxn  = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
 USERNAME   = lifestream.config.get("github", "username")
-PASSWORD   = lifestream.config.get("github", "password")
+TOKEN      = lifestream.config.get("github", "auth_token")
 MAX_PAGES  = 2
 URL_PREFIX = "https://github.com"
 
@@ -27,9 +27,10 @@ import requests
 import simplejson as json
 
 
-def github_call(path, username, password, page = 1, perpage = 100):
+def github_call(path, token, page = 1, perpage = 100):
 	gh_url = 'https://api.github.com/%s?page=%d&perpage=%d' % (path, page, perpage)
-	r = requests.get(gh_url, auth=(username, password))
+	headers = { "Authorization" : "token %s" % token }
+	r = requests.get(gh_url, headers=headers)
 	if not r.status_code == 200:
 		print r.status_code
 		print r.url
@@ -38,13 +39,13 @@ def github_call(path, username, password, page = 1, perpage = 100):
 	else:
 		return json.loads(r.text)
 
-repos = github_call("user/repos", USERNAME, PASSWORD)
+repos = github_call("user/repos", TOKEN)
 
 for repo in repos:
 	#if repo['private']:
 	#	continue;
 		
-	commits = github_call("repos/%s/commits" % repo['full_name'], USERNAME, PASSWORD)
+	commits = github_call("repos/%s/commits" % repo['full_name'], TOKEN)
 	for commit in commits:
 		
 		if commit['author'] == None:
