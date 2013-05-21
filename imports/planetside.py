@@ -1,12 +1,19 @@
 #!/usr/bin/python
 
 import lifestream
-import requests, hashlib
+import requests, hashlib, ConfigParser
 
 IMG = "http://art.istic.net/iconography/games/planetside2.png"
 
-characters = ['jascain', 'aquarion']
+characters  = lifestream.config.get("planetside", "characters")
+characters = characters.split(",");
 
+try:
+	api_key = "/s:%s" % lifestream.config.get("planetside", "service_key")
+except ConfigParser.NoOptionError:
+	api_key = '';
+
+api_base = "http://census.soe.com%s/get/ps2-beta" % api_key
 
 dbcxn  = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
@@ -14,7 +21,7 @@ cursor = lifestream.cursor(dbcxn)
 s_sql = u'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, NOW(), %s, %s, %s);'
 
 for character in characters:
-	charac  = requests.get("http://census.soe.com/get/ps2-beta/character/?name.first_lower=%s" % character)
+	charac  = requests.get("%s/character/?name.first_lower=%s" % (api_base, character) )
 	
 	profile = charac.json['character_list'][0]
 	xp      = profile['experience'][0]
@@ -22,7 +29,7 @@ for character in characters:
 	name    = profile['name']['first']
 	
 	## 
-	ranki   = requests.get("http://census.soe.com/get/ps2-beta/rank/%s" % xp['rank'])
+	ranki   = requests.get("%s/rank/%s" % (api_base, xp['rank']) )
 	rank    = ranki.json['rank_list'][0][faction]['en']
 	text    = "In Planetside 2, %s achieved the rank %s" % (name, rank)
 	url     = "https://players.planetside2.com/#!/%s" % charac.json['character_list'][0]['id']

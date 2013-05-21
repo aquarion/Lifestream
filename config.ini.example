@@ -68,3 +68,9 @@ api_key    =
 api_secret =
 account    = xxxxxxx@N00
 account_name = profile-name
+
+[planetside]
+; Comma seperated list of planetside character names
+characters = bob,jill
+; OPTIONAL: SOE Census API service ID
+; service_key = 
