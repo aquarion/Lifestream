@@ -31,11 +31,12 @@ flickr = flickrapi.FlickrAPI(API_KEY)
 photos_xml = flickr.photos_search(user_id=FLICKRID, per_page=per_page, page=1, min_taken_date=since)
 #sets = flickr.photosets_getList(user_id='73509078@N00')
 
-print "Since %s" % since
 
 pages = int(photos_xml.find('photos').attrib['pages'])
 
-print pages
+if DEBUG:
+	print "Since %s" % since
+	print pages
 
 if pages == 0:
 	if DEBUG:
