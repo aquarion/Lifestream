@@ -184,13 +184,16 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
 	$to -= A_DAY;
   }
   
-  $datetitle = date($dateformat, $from);
+  #$datetitle = date($dateformat, $from);
+  $datetitle = "Last 100 things";
   
-  $backwards   = "/".date("Y", $from-A_DAY)."/".date("m", $from-A_DAY)."/".date("d", $from-A_DAY);
-  $onwards     = "/".date("Y", $from+A_DAY)."/".date("m", $from+A_DAY)."/".date("d", $from+A_DAY);
+  //$backwards   = "/".date("Y", $from-A_DAY)."/".date("m", $from-A_DAY)."/".date("d", $from-A_DAY);
+  //$onwards     = "/".date("Y", $from+A_DAY)."/".date("m", $from+A_DAY)."/".date("d", $from+A_DAY);
+  //$onwards_title = date($dateformat_txt, $from+A_DAY);
+  //$backwards_title = date($dateformat_txt, $from-A_DAY);
   
-  $onwards_title = date($dateformat_txt, $from+A_DAY);
-  $backwards_title = date($dateformat_txt, $from-A_DAY);
+  $backwards       = "/".date("Y", $from)."/".date("m", $from)."/".date("d", $from);
+  $backwards_title = date($dateformat_txt, $from);
   
   $up              = "/".date("Y", $from+A_DAY)."/wk".date("W", $from+A_DAY);
   $up_title        = "Week ".date("W Y", $from+A_DAY);
@@ -198,29 +201,31 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $today = $noforwards = true;
   $annuallink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
 
+  $q = "select *, unix_timestamp(date_created) as epoch from lifestream order by date_created desc limit 100";
+  $results = mysql_query($q) or die(mysql_error());
 
   $from += 4*AN_HOUR;
   $to   += 4*AN_HOUR;
 }
 
 
-$q = sprintf("select *, unix_timestamp(date_created) as epoch from lifestream where date_created between '%s' and '%s' order by date_created", date(DATE_ISO8601, $from), date(DATE_ISO8601, $to));
-
-$results = mysql_query($q) or die(mysql_error());
-
+if(!isset($results)){
+	$q = sprintf("select *, unix_timestamp(date_created) as epoch from lifestream where date_created between '%s' and '%s' order by date_created", date(DATE_ISO8601, $from), date(DATE_ISO8601, $to));
+	$results = mysql_query($q) or die(mysql_error());
+}
 
 $structure = array();
 
 $structure['things'] = array();
 
-if(mysql_num_rows($results) == 0 and VIEWTYPE == "Today"){
+/*if(mysql_num_rows($results) == 0 and VIEWTYPE == "Today"){
 	$q = "select *, unix_timestamp(date_created) as epoch from lifestream order by date_created desc limit 100";
 	$results = mysql_query($q) or die(mysql_error());
 	$structure['things']['intro'] = array(
 		'content' => "Nothing today yet, so here's the last 100 things :)",
 		#'epoch'   => strtotime("1981-01-26"),		
 	);
-}
+}*/
 
 $music = array();
 $musictotal = 0;

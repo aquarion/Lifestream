@@ -20,8 +20,8 @@ TickyTacky = {
 
 	grid        : false,
 	currentline : 0,
-	box_height  : 100,
-	box_width   : 230,
+	box_height  : 50,
+	box_width   : 130,
 	padding     : 2,
 	margin      : 1,
 	
@@ -31,12 +31,12 @@ TickyTacky = {
 	boxcount     : 0,
 	firstrun     : 1,
 
-	max_columns : 5,
+	max_columns : 8,
 	
 	resetVars : function(){
 		TickyTacky.grid        = false,
 		TickyTacky.currentline = 0;
-		TickyTacky.box_height  = 100;
+		TickyTacky.box_height  = 50;
 		TickyTacky.box_width   = 230;
 		TickyTacky.padding     = 2;
 		TickyTacky.margin      = 1;
@@ -56,7 +56,7 @@ TickyTacky = {
 		// Start looking from the top if we've got less than ten rows,
 		// or a maximum of 5 rows back
 		
-		backfill = 20
+		backfill = 80
 		
 		if (TickyTacky.currentline > backfill){
 			TickyTacky.currentline -= backfill;
