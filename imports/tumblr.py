@@ -28,7 +28,7 @@ for i in range(len(fp['entries'])):
 	dt       = datetime.fromtimestamp(mktime(o_item['updated_parsed']))
 	updated  = dt.strftime("%Y-%m-%d %H:%M")
 	if "summary" in o_item.keys():
-		words = (o_item['summary'][:253] + '..') if len(o_item['summary']) > 255 else o_item['summary']
+		words = (o_item['summary'][:512] + '..') if len(o_item['summary']) > 512 else o_item['summary']
 	else:
 		words = o_item['title']
 	cursor.execute(s_sql, (type, id, words, o_item['links'][0]['href'],  updated))
