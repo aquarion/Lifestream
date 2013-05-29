@@ -16,6 +16,7 @@ if (len(sys.argv) < 2):
 STATISTIC = sys.argv[1]
 FILENAME  = sys.argv[2]
 
+DEBUG = False
 
 dbcxn  = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
@@ -28,8 +29,9 @@ datekeys = []
 length = len(inbox)
 count  = 0.0
 
-print FILENAME
-print "0%"
+if DEBUG:
+	print FILENAME
+	print "0%"
 
 for key in inbox.iterkeys():
 	count += 1
@@ -53,11 +55,13 @@ for key in inbox.iterkeys():
 	else:
 		dates[iso] = {'total': 1 }
 		datekeys.append(iso)
-	#print "%d / %d = %f" % ( length, count, length/count ) 
-	sys.stdout.write('%3.2f%% - %s\r' % ((count/length) * 100,  ""))
-	sys.stdout.flush()
+	if DEBUG:
+		sys.stdout.write('%3.2f%% - %s\r' % ((count/length) * 100,  ""))
+		sys.stdout.flush()
 
-print "100%"
-print "Databasing...."
+if DEBUG:
+	print "100%"
+	print "Databasing...."
+
 for date in dates.keys():
 	lifestreamutils.newstat(date, STATISTIC, dates[date]['total'])
