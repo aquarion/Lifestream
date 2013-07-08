@@ -31,7 +31,7 @@ TickyTacky = {
 	boxcount     : 0,
 	firstrun     : 1,
 
-	max_columns : 8,
+	max_columns : 15,
 	
 	resetVars : function(){
 		TickyTacky.grid        = false,
@@ -73,7 +73,8 @@ TickyTacky = {
 		while (column == -1){
 			n = n + 1;
 			// If we've tried a hundred rows? We give up.
-			if (n == 100){
+			if (n == 501){	
+				console.log("100 row limit");
 				return;
 			}
 			
@@ -156,7 +157,7 @@ TickyTacky = {
 		if((($(".contentbox").length / playground_width_in_boxes) < 2) && playground_width_in_boxes >= 4 ){
 			playground_width_in_boxes = 4;
 		} else if((($(".contentbox").length / playground_width_in_boxes) < 3) && playground_width_in_boxes >= 6) {
-			playground_width_in_boxes = 6;
+			//playground_width_in_boxes = 6;
 		}
 
 		if (playground_width_in_boxes == TickyTacky.columns && !rearranging){
@@ -167,6 +168,7 @@ TickyTacky = {
 		if (TickyTacky.max_columns && playground_width_in_boxes > TickyTacky.max_columns){
 			playground_width_in_boxes = TickyTacky.max_columns
 		}	
+			console.log("Set max_columns to "+playground_width_in_boxes);
 		
 		TickyTacky.currentline = 0; // From the top, gentlemen
 		TickyTacky.columns     = playground_width_in_boxes;
@@ -263,7 +265,7 @@ TickyTacky = {
 					top: position[0],
 					left: position[1]
 				}, 1000);
-			} else {
+			} else if (position) {
 				box.css("top", position[0]);
 				box.css("left", position[1]);
 			}

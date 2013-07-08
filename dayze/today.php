@@ -201,7 +201,7 @@ if (isset($_GET['year']) && isset($_GET['month']) && isset($_GET['day'])){
   $today = $noforwards = true;
   $annuallink = "/[YEAR]/".date("m", $from)."/".date("d", $from);  
 
-  $q = "select *, unix_timestamp(date_created) as epoch from lifestream order by date_created desc limit 100";
+  $q = "select *, unix_timestamp(date_created) as epoch from lifestream where type != 'tumblr' order by date_created desc limit 100";
   $results = mysql_query($q) or die(mysql_error());
 
   $from += 4*AN_HOUR;
