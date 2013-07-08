@@ -20,7 +20,7 @@ touch $LOCKFILE
 source /usr/local/bin/virtualenvwrapper.sh
 workon lifestream
 
-echo `dirname $0`/tweets.py twitter twitterusername
+python `dirname $0`/../imports/oyster.py oyster 051902676580
 
 
 # IMPORTANT: Run this first in a terminal or ssh session to go though the oauth keys

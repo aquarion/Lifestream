@@ -2,7 +2,7 @@ import site
 import ConfigParser
 import os
 import sys
-import MySQLdb
+import cymysql as MySQLdb
 import codecs
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -23,8 +23,8 @@ def getDatabaseConnection():
   for item in config.items("database"):
   	db[item[0]] = item[1]
   
-  dbcxn = MySQLdb.connect(user = db['username'], passwd = db['password'], db = db['database'], host = db['hostname'])
-  dbcxn.set_character_set('utf8')
+  dbcxn = MySQLdb.connect(user = db['username'], passwd = db['password'], db = db['database'], host = db['hostname'], charset='utf8')
+  #dbcxn.set_character_set('utf8')
   return dbcxn
   
 def cursor(dbcxn):

@@ -53,9 +53,10 @@ URL_BASE = "https://api.foursquare.com/v2/%%s?oauth_token=%s" % oauth_token
 
 r = requests.get(URL_BASE% "users/self/checkins")
 
-data = r.json
+data = r.json()
 
 checkins = data['response']['checkins']['items']
+
 
 if 'checkins' in data['response'].keys():
 	for location in checkins:
@@ -94,7 +95,7 @@ if 'checkins' in data['response'].keys():
 
 r = requests.get(URL_BASE% "users/self/badges")
 
-data = r.json
+data = r.json()
 
 badges = data['response']['badges']
 

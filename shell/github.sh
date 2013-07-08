@@ -1,4 +1,4 @@
-#bin/bash
+#!/bin/bash
 
 # directories
 LOCKDIR=/tmp
@@ -17,4 +17,7 @@ trap "{ rm -f $LOCKFILE; exit 255; }" 15
 trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
-/home/aquarion/projects/lifestream/imports/github_commits.py
+source /usr/local/bin/virtualenvwrapper.sh
+workon lifestream
+
+python /home/aquarion/projects/lifestream/imports/github_commits.py

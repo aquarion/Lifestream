@@ -20,7 +20,7 @@ touch $LOCKFILE
 source /usr/local/bin/virtualenvwrapper.sh
 workon lifestream
 
-echo `dirname $0`/tweets.py twitter twitterusername
+python `dirname $0`/../imports/tsw.py Salique,Delique
 
 
 # IMPORTANT: Run this first in a terminal or ssh session to go though the oauth keys

@@ -25,8 +25,7 @@ s_sql = u'replace into lifestream (`id`, `type`, `systemid`, `title`, `date_crea
 for i in range(1,len(fp['entries'])):
   o_item = fp['entries'][i]
   id = o_item['guid']
-  title = o_item.title.encode("utf_8")
+  title = o_item.title#.encode("utf_8")
   localdate = dateutil.parser.parse(o_item.updated)
   updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-  
   cursor.execute(s_sql, (type, id, title, updated, o_item['link']))
