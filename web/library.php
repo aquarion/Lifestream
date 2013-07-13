@@ -1,5 +1,7 @@
 <?PHP
 
+include("idiorm.php");
+
 define("IMAGE_ROOT", 'http://art.istic.net/iconography/');
 
 function get_start_and_end_date_from_week ($w, $y) 
@@ -317,10 +319,13 @@ function twitterFormat($text){
 
 function getDatabase(){
   $config = parse_ini_file("../config.ini", true);
-  $dbcxn = mysql_connect($config['database']['hostname'], $config['database']['username'], $config['database']['password']);
-  mysql_select_db($config['database']['database'], $dbcxn);
-  mysql_query("SET NAMES 'utf8' COLLATE 'utf8_unicode_ci'");
-  return $dbcxn;
+
+	ORM::configure(array(
+	    'connection_string' => sprintf('mysql:host=%s;dbname=%s', $config['database']['hostname'], $config['database']['database']),
+	    'username' => $config['database']['username'],
+	    'password' => $config['database']['password']
+	));
+
 }
 
 
