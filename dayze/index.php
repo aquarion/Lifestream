@@ -290,7 +290,7 @@ var NicAve = {
 				return;
 			}
 
-			if (data.direction = "append"){
+			if (data.direction == "append"){
 				$(container).append( item );
 				packeryInstance.appended( item );
 

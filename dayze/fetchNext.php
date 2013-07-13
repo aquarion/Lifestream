@@ -8,15 +8,15 @@ $query = ORM::for_table('lifestream');
 
 $blocksize = 100;
 $next = 30;
+$max = false;
+$append = "append";
 
 $message = "";
 
 if(isset($_POST['after'])){
 	$query->where_gt("date_created", $_POST['after']);
+	$append = "prepend";
 }
-
-$max = false;
-$append = "append";
 
 define("AN_HOUR", 60*60 );
 define("A_DAY", 60*60*24 );
@@ -29,7 +29,7 @@ array_shift($split);
 
 if ($_POST['path'] == "/"){
 	$max = 400;
-	$append = "prepend";
+	#$append = "prepend";
 	$message = "This is the last $max things various services have seen me do.";
 } elseif (count($split) == 1){
 	$from = mktime(0,0,0, 1, 1, $split[0]);
@@ -71,7 +71,7 @@ if ($_POST['path'] == "/"){
 
 
 $countQuery = clone $query;
-$count = $countQuery->count();
+$count = $max ? $max : $countQuery->count();
 
 $query->limit($blocksize);
 
