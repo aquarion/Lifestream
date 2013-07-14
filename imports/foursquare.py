@@ -85,6 +85,8 @@ if 'checkins' in data['response'].keys():
 	    
 	    id = location['id']
 
+	    url = "http://www.foursquare.com/%s/checkin/%s" % (username, id);
+
 	    cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
 
 	    coordinates = location['venue']['location']
