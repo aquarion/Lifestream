@@ -71,7 +71,7 @@ if ($_POST['path'] == "/"){
 
 
 $countQuery = clone $query;
-$count = $max ? $max : $countQuery->count();
+$count = $countQuery->count();
 
 $query->limit($blocksize);
 
@@ -88,7 +88,7 @@ if ($count > ($offset + $blocksize)){
 	$next_offset = $offset + $blocksize;
 	$next = 2;
 
-	$percent = ($next_offset/$count)*100;
+	$percent = ($next_offset/($max ? $max : $count))*100;
 	$message .= sprintf(" (%d%% Loaded)", $percent);
 } else {
 	$next_offset = 0;

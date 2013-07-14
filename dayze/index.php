@@ -25,6 +25,7 @@ color: white;
 #tiles {
 	margin-left: auto;
 	margin-right: auto;
+	margin: 0 3em;
 }
 
 header {
@@ -57,12 +58,16 @@ header .buttons {
 	text-align: center;
 }
 
+#message {
+	text-align: center;
+}
+
 	.item {
-	width:  178px;
-	height:  78px;
+	width:  188px;
+	height:  88px;
 		overflow: hidden;
 		background: #eee;
-		padding: 10px;
+		padding: 5px;
   background: rgba(125,96,103, .4);
   background: -moz-linear-gradient(100% 100% 30deg, rgba(125,96,103, .9), rgba(184,163,168, .9));
   background: -webkit-gradient(linear, 0% 0%, 50% 100%, from(rgba(125,96,103, .9)), to(rgba(184,163,168, .9)));
@@ -82,8 +87,8 @@ header .buttons {
 
 .tumblr_quote {
 	quotes:"\201C""\201D""\2018""\2019";
-	width:  378px;
-	height:  178px;
+	width:  388px;
+	height:  138px;
 }
 
 .tumblr {
@@ -94,9 +99,8 @@ header .buttons {
 }
 
 .twitter {
-	width:  228px;
 	quotes:"\201C""\201D""\2018""\2019";
-	width:  278px;
+	width:  288px;
 
   background: rgba(125,96,103, .4);
   background: -moz-linear-gradient(100% 100% 30deg, rgba(27,80,224, .8), rgba(27,126,224, .8));
@@ -105,6 +109,7 @@ header .buttons {
 }
 
 .location {
+	height:  38px;
   background: rgba(224,109,27, .4);
   background: -moz-linear-gradient(100% 100% 30deg, rgba(224,109,27, .8), rgba(224,162,27, .8));
   background: -webkit-gradient(linear, 0% 0%, 50% 100%, from(rgba(224,109,27, .8)), to(rgba(224,162,27, .8)));
@@ -122,18 +127,18 @@ header .buttons {
 .github {
 	background: rgba(0,0,0,.8);
 	color: limegreen;
-	width:  178px;
+	width:  188px;
 	font-family: monospace;
 }
 
 .oyster_oyster {
-	width: 78px;
+	width: 88px;
   background: -moz-linear-gradient(100% 100% 30deg, rgba(27,80,224, .8), rgba(27,126,224, .8));
   background: -webkit-gradient(linear, 0% 0%, 50% 100%, from(rgba(27,80,224, .8)), to(rgba(27,126,224, .8)));
 	background-image: url('http://liveart.istic.net/iconography/tfl_grad.png');
 	background-size: cover;
 	background-position: center center;
-	background-repeat: none;
+	background-repeat: no-repeat;
 	color: white;
 }
 
@@ -141,10 +146,10 @@ header .buttons {
 	width: 460px;
 	height: 360px;
 	padding: 0;
-	background-size: cover;
+	background-size: contain;
 	background-color: rgba(0,0,0,.8);
 	background-position: center center;
-	background-repeat: none;
+	background-repeat: no-repeat;
 
 
 	border-width: 20px 20px 20px 20px;
@@ -156,11 +161,37 @@ header .buttons {
 	position: relative;
 }
 
+.tumblr_photo {
+	border-style: solid;
+border-width: 20px 20px 20px 20px;
+	width: 460px;
+	height: 360px;
+-moz-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 repeat;
+-webkit-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 repeat;
+-o-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 repeat;
+border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 fill repeat;
+}
 
 .gaming {
   background-color: rgba(26,130,247, .4);
   background: -moz-linear-gradient(100% 100% 90deg, rgba(100, 168, 245, .5), rgba(26,130,247, .4));
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(100, 168, 245, .4)), to(rgba(26,130,247, .4)));
+}
+
+.item cite {
+	font-size: 8pt;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	padding: 1px;
+	background: rgba(0,0,0,.3);
+	color: white;
+	display: none;
+}
+
+.item:hover cite {
+	display: block;
 }
 
 </style>
@@ -262,10 +293,11 @@ var NicAve = {
 
 			item.data("object", this);
 
-			/*item.click(function(){
+			item.click(function(){
 				console.log($(this).data("object"));
-				return false;
-			})*/
+				//return false;
+			})
+
 
 			if(this.image && this.image != 0){
 				img = $('<img/>');
@@ -289,6 +321,11 @@ var NicAve = {
 			if(!item){
 				return;
 			}
+
+			cite = $("<cite/>")
+			cite.html(this['source']+"@"+this['date_created']);
+			item.append(cite);
+
 
 			if (data.direction == "append"){
 				$(container).append( item );
