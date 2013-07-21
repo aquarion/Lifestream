@@ -3,11 +3,11 @@
 <head>
 	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
 	<script src="/assets/js/packery.pkgd.min.js"></script>
-<link href='http://fonts.googleapis.com/css?family=Goudy+Bookletter+1911' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
 
 <style type="text/css">
 body {
-  font-family: 'Goudy Bookletter 1911', "Georgia", serif;
+  font-family: 'Raleway', sans-serif;
   color: #000040;
   padding: 0 0 0 0;
   margin: 0 0 0 0;
@@ -23,6 +23,7 @@ color: white;
 }
 
 #tiles {
+	font-size: 10pt;
 	margin-left: auto;
 	margin-right: auto;
 	margin: 0 3em;
@@ -52,6 +53,7 @@ header h1 {
 	text-align: center;
 	padding: 0em 1em 0 1em;
 	margin-bottom: 0em ;
+  	font-family: 'Comfortaa', sans-serif;
 }
  
 header .buttons {
@@ -64,7 +66,6 @@ header .buttons {
 
 	.item {
 	width:  188px;
-	height:  88px;
 		overflow: hidden;
 		background: #eee;
 		padding: 5px;
@@ -88,7 +89,6 @@ header .buttons {
 .tumblr_quote {
 	quotes:"\201C""\201D""\2018""\2019";
 	width:  388px;
-	height:  138px;
 }
 
 .tumblr {
@@ -109,7 +109,6 @@ header .buttons {
 }
 
 .location {
-	height:  38px;
   background: rgba(224,109,27, .4);
   background: -moz-linear-gradient(100% 100% 30deg, rgba(224,109,27, .8), rgba(224,162,27, .8));
   background: -webkit-gradient(linear, 0% 0%, 50% 100%, from(rgba(224,109,27, .8)), to(rgba(224,162,27, .8)));
@@ -128,7 +127,7 @@ header .buttons {
 	background: rgba(0,0,0,.8);
 	color: limegreen;
 	width:  188px;
-	font-family: monospace;
+  	font-family: 'PT Mono', monospace;
 }
 
 .oyster_oyster {
@@ -162,10 +161,10 @@ header .buttons {
 }
 
 .tumblr_photo {
+	width: 360px;
+	height: 260px;
 	border-style: solid;
 border-width: 20px 20px 20px 20px;
-	width: 460px;
-	height: 360px;
 -moz-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 repeat;
 -webkit-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 repeat;
 -o-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 repeat;
@@ -287,14 +286,16 @@ var NicAve = {
 			item.addClass(this['type'])
 			item.addClass(this['source']+'_'+this['type']);
 
-
+			if(!this['title'] && !this['image']){
+				return;
+			}
 
 			item.html(this['title'])
 
 			item.data("object", this);
 
 			item.click(function(){
-				console.log($(this).data("object"));
+				//console.log($(this).data("object"));
 				//return false;
 			})
 
@@ -330,11 +331,11 @@ var NicAve = {
 			if (data.direction == "append"){
 				$(container).append( item );
 				packeryInstance.appended( item );
-
 			} else {
 				$(container).prepend( item );
 				packeryInstance.prepended( item );
 			}
+
 
 			if(this['epoch'] > mostRecent){
 				mostRecent = this['epoch'];
@@ -345,13 +346,26 @@ var NicAve = {
 			}
 		})
 
+		$(".item").each(function(){
+			item = $(this);
+			if(!item.hasClass("photo")){
+				height = $(item).height()+12;
+				if($("img", item).length){
+					imgheight = $("img", item).height();
+					if(imgheight > height){
+						height = imgheight;
+					}
+				}
+				nearest50 = Math.ceil( height / 50) * 50;
+				item.height(nearest50-12);
+			}
+		});
+		packeryInstance.layout();
+
 		if (data.offset){
-			console.log("Going in "+data.next+" seconds with an offset of "+data.offset)
 			setTimeout(function(){NicAve.fetchNext(data.offset)}, data.next * 1000);
 		} else {
-			console.log("Finished this block");
-			console.log("Going in "+data.next+" seconds with after of "+nextDate.toISOString())
-			setTimeout(function(){NicAve.fetchUpdate(nextDate.toISOString())}, data.next * 1000);
+			//setTimeout(function(){NicAve.fetchUpdate(nextDate.toISOString())}, data.next * 1000);
 		}
 	},
 

@@ -18,6 +18,10 @@ if(isset($_POST['after'])){
 	$append = "prepend";
 }
 
+
+$query->where_not_null("title");
+$query->where_not_equal("source", "tumblr");
+
 define("AN_HOUR", 60*60 );
 define("A_DAY", 60*60*24 );
 define("A_WEEK", 60*60*24*7 );
@@ -27,13 +31,24 @@ define("A_YEAR", 60*60*24*364 );
 $split = explode("/", $_POST['path']);
 array_shift($split);
 
+$last = end($split);
+reset($split);
+
+if($last == ""){
+	array_pop($split);
+}
+
+$ordered = false;
+
 if ($_POST['path'] == "/"){
-	$max = 400;
+	$max = 200;
 	#$append = "prepend";
+	$query->order_by_desc("date_created");
 	$message = "This is the last $max things various services have seen me do.";
+	$ordered = true;
 } elseif (count($split) == 1){
 	$from = mktime(0,0,0, 1, 1, $split[0]);
-	$to   = strtotime("+1 year", $from);
+	$to   = strtotime("+1 year", $from) -1;
 	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 00:00", $to));
 
@@ -51,23 +66,25 @@ if ($_POST['path'] == "/"){
 
 } elseif(count($split) == 2 && is_numeric($split[1])){
 	$from = mktime (0, 0, 0, intval($split[1]), 1, intval($split[0]));
-	$to   = mktime (0, 0, 0, intval($split[1] + 1), 1, intval($split[0]));
+	$to   = mktime (0, 0, 0, intval($split[1] + 1), 1, intval($split[0])) -1;
 	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 00:00", $to));
 	$message = sprintf("Month from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
 } elseif(count($split) == 3 && is_numeric($split[1])){
 	// mktime ($hour, $minute, $second, $month, $day, $year)
 	$from = mktime (0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
-	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
-	$query->where_lt("date_created", date("Y-m-d 23:59", $from));
-	$message = sprintf("Day from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
-	$message = print_r($split, 1);#sprintf("Month from %s to %s", date("Y-m-d 00:00", $from), date("Y-m-d 00:00", $to));
+	$query->where_gt("date_created", date("Y-m-d 03:00", $from));
+	$query->where_lt("date_created", date("Y-m-d 03:00", $from + A_DAY));
+	$message = sprintf("Day from %s to %s", date("Y-m-d 03:00", $from), date("Y-m-d 03:00", $from + A_DAY));
+	//$message = print_r($split, 1);#sprintf("Month from %s to %s", date("Y-m-d 00:00", $from), date("Y-m-d 00:00", $to));
 } else {
 	var_dump($split);
 	die("What?");
 }
 
-
+if(!$ordered){
+	$query->order_by_asc("date_created");
+}
 
 
 $countQuery = clone $query;
@@ -81,7 +98,6 @@ if(isset($_POST['offset'])){
 } else {
 	$offset = 0;
 }
-$query->order_by_desc("date_created");
 $items = $query->find_array();
 
 if ($count > ($offset + $blocksize)){
