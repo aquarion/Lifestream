@@ -42,17 +42,18 @@ s_sql = u'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_crea
 
 soup = BeautifulSoup(html)
 
-badges = soup.findAll("div", {"class":"badge"})
+badges = soup.findAll("div", {"class":"badge_row_inner"})
 
 for badge in badges:
-	src = badge.findAll("div", {"class" : "badge_logo"} )[0].findAll("img")[0].attrs[0][1]
-	name = badge.findAll("div", {"class" : "badge_name"} )[0].string
-	desc = badge.findAll("div", {"class" : "badge_description"} )[0].string
-	date = badge.findAll("div", {"class" : "badge_unlocked"} )[0].string[10:]
+	src = badge.findAll("div", {"class" : "badge_info_image"} )[0].findAll("img")[0].attrs[0][1]
+	name = badge.findAll("div", {"class" : "badge_info_title"} )[0].string.strip()
+	#desc = badge.findAll("div", {"class" : "badge_description"} )[0].string
+	date = badge.findAll("div", {"class" : "badge_info_unlocked"} )[0].string.strip()[10:]
 	
-	text = "%s &mdash; %s" % (name, desc)
-	
-	parseddate = datetime.strptime(date, "%b %d, %Y %I:%M%p")
+	#text = "%s &mdash; %s" % (name, desc)
+	text = name
+
+	parseddate = datetime.strptime(date, "%b %d, %Y @ %I:%M%p")
 	localdate  = steamtime.localize(parseddate)
 	utcdate    = localdate.astimezone(pytz.utc)
 	
