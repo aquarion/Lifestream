@@ -110,6 +110,6 @@ for blog in blogs:
 		if type == "photo":
 			image = post['photos'][0]['original_size']['url']
 
-		#cursor.execute(s_sql, (type, id, title, url,  post['date'], image))
+		cursor.execute(s_sql, (type, id, title, url,  post['date'], image))
 
 		print url, title
