@@ -8,8 +8,7 @@ import codecs
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(basedir+"/../lib")
 
-
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+#sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 config  = ConfigParser.ConfigParser()
 try:
@@ -35,6 +34,28 @@ def cursor(dbcxn):
   
   return dbc
 
+
+def convertNiceTime(number,format):
+	if format == "decimal" or format == "dec":
+		return int(number);
+
+	if format == "binary" or format == "bin":
+		return Denary2Binary(number);
+
+	if format == "hex" or format == "hexadecimal":
+		print "Converting %s to hex" % number
+		return hex(int(number))
+	
+
+	if format == "oct" or format == "octal":
+		print "Converting %s to oct" % number
+		return oct(int(number))
+	
+	if format == "roman" or format == "roman":
+		print "Converting %s to roman" % number
+		return int_to_roman(int(number))
+
+	return False;
 
 def niceTimeDelta(timedelta, format="decimal"):
 
