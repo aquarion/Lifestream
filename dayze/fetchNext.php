@@ -1,9 +1,10 @@
 <?PHP
-
+header('content-type: text/html; charset: utf-8');
 require("../web/library.php");
 
 getDatabase();
 ORM::configure('logging', true);
+ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'));
 $query = ORM::for_table('lifestream');
 
 $blocksize = 100;
@@ -78,8 +79,11 @@ if ($_POST['path'] == "/"){
 	$message = sprintf("Day from %s to %s", date("Y-m-d 03:00", $from), date("Y-m-d 03:00", $from + A_DAY));
 	//$message = print_r($split, 1);#sprintf("Month from %s to %s", date("Y-m-d 00:00", $from), date("Y-m-d 00:00", $to));
 } else {
-	var_dump($split);
-	die("What?");
+	$max = 200;
+	#$append = "prepend";
+	$query->order_by_desc("date_created");
+	$message = "This is the last $max things various services have seen me do.";
+	$ordered = true;
 }
 
 if(!$ordered){

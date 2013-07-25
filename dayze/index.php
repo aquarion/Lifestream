@@ -3,6 +3,8 @@
 <head>
 	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
 	<script src="/assets/js/packery.pkgd.min.js"></script>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
 <link href='http://fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
 
 <style type="text/css">
@@ -98,6 +100,11 @@ header .buttons {
   color: white;
 }
 
+.tumblr blockquote {
+	padding-left: 0;
+	margin-left: 0;
+}
+
 .twitter {
 	quotes:"\201C""\201D""\2018""\2019";
 	width:  288px;
@@ -161,14 +168,14 @@ header .buttons {
 }
 
 .tumblr_photo {
-	width: 360px;
-	height: 260px;
+	width: 160px;
+	height: 160px;
 	border-style: solid;
-border-width: 20px 20px 20px 20px;
--moz-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 repeat;
--webkit-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 repeat;
--o-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 repeat;
-border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 fill repeat;
+border-width: 20;
+-moz-border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 repeat;
+-webkit-border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 repeat;
+-o-border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 repeat;
+border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fill repeat;
 }
 
 .gaming {
@@ -187,24 +194,91 @@ border-image: url(http://liveart.istic.net/images/blue-frame.png) 32 35 34 33 fi
 	background: rgba(0,0,0,.3);
 	color: white;
 	display: none;
+	text-align: left;
 }
 
 .item:hover cite {
 	display: block;
 }
 
+.centered {
+	text-align: center;
+}
+
+.achivement {
+	border: 0;
+	height: 100;
+	width: 100;
+	margin: 0;
+	padding: 0;
+	position: relative;
+
+	background-color: rgba(0,0,0,.8);
+	background-position: center center;
+	background-repeat: no-repeat;
+}
+
+#music_chart, #music_others {
+	width:  388px;
+	background: rgba(255,255,255,.6);
+	color: #333;
+}
+
 </style>
 
 <script type="text/javascript">
+      	google.load("visualization", "1", {packages:["corechart"]});
 
 var packeryInstance = false;
 var mostRecent      = 0;
 var nextDate = new Date(0);
 
+function decodeEntities(s){
+    var str, temp= document.createElement('p');
+    temp.innerHTML= s;
+    str= temp.textContent || temp.innerText;
+    temp=null;
+    return str;
+}
+
 var Formatting = {
 
+	'achivement' : function(object, element){
+
+		element.css("background-image", "url('"+object.image+"')");
+		element.addClass("achivement");
+		element.html("");
+
+		element.attr("title", decodeEntities(object.title))
+
+		element.height(100);
+		element.width(100);
+
+		return element;
+	},
+
+	'oyster' : function(object, element){
+
+		var journey = element.html();
+
+		journey = journey.replace(/\[.*?\]/, '');
+
+		element.addClass("centered");
+		element.html(journey);
+		return element;
+
+	},
+
 	'lastfm' : function(object, element){
-		return false;
+		split = object.title.split(' \u2013 ');
+		artist = split[0]
+
+		if(NicAve.lastfm[artist]){
+			NicAve.lastfm[artist] += 1;
+		} else {
+			NicAve.lastfm[artist] = 1;
+		}
+		return false
 	},
 
 	'tumblr_photo' : function(object, element){
@@ -228,7 +302,7 @@ var Formatting = {
 
 	'Foursquare-Badge' : function(object, element){
 
-		element.addClass("photo");
+		element.addClass("achivement");
 		element.css("background-image", "url('"+object.image+"')");
 		element.css("width", "160");
 		element.css("height", "160");
@@ -240,8 +314,24 @@ var Formatting = {
 
 };
 
+
+Formatting.fitbit_badge = Formatting.achivement;
+Formatting.steambadge = Formatting.achivement;
+Formatting.steam_steam = Formatting.achivement;
+
+
 var NicAve = {
+
+	lastfm : {},
+
+	music_chart : false,
+
 	init : function(){
+      	google.setOnLoadCallback(NicAve.loadTiles);
+	},
+
+	loadTiles : function(){
+
 		var container = document.querySelector('#tiles');
 		packeryInstance = new Packery( container, { 'gutter' : 0} );
 
@@ -273,6 +363,89 @@ var NicAve = {
 		  error:  NicAve.error,
 		  dataType: 'json'
 		});
+	},
+
+	build_music_chart : function(){
+		if(Object.keys(NicAve.lastfm).length == 0){
+			return;
+		}
+
+		data = [];
+		other = 0;
+		others = []
+
+		total = 0;
+
+		for (artist in NicAve.lastfm){
+			total += NicAve.lastfm[artist];
+		}
+
+		for (artist in NicAve.lastfm){
+			value = NicAve.lastfm[artist];
+			if (value < 5 ){
+				other += value;
+				others.push(artist)
+			} else {
+				datum = [artist, value]
+				data.push(datum)
+			}
+		}
+
+
+		if(other > 0){
+			data.push(["Others", other]);
+		}
+
+        var options = {
+          "title" : "Music",
+          'chartArea': {'width': '90%', 'height': '90%'},
+          'backgroundColor' : 'transparent'
+        };
+
+		var container = document.querySelector('#tiles');
+
+		if(!NicAve.music_chart){
+			chartBox = $('<div id="music_chart"/>');
+			$(container).append( chartBox );
+			packeryInstance.appended( chartBox );
+		}
+
+		var data = google.visualization.arrayToDataTable(data);
+		NicAve.music_chart = new google.visualization.PieChart(document.getElementById('music_chart'));
+
+		height = Math.ceil( (total*.75) / 50) * 50;
+		width  = Math.ceil( (total) / 100) * 100
+		maxwidth = $(container).width();
+
+		if (height > (maxwidth*.75)) {
+			height = maxwidth*.75;
+		}
+		if (width > (maxwidth)) {
+			width = maxwidth;
+		}
+
+		if(width < 300){
+			height = 300;
+			width = 400;
+		}
+
+		$('#music_chart').height(height);
+		$('#music_chart').width(width);
+
+		if(!$('#music_others').length){
+			chartBox = $('<div id="music_others"/>');
+			chartBox.addClass("item");
+			$(container).append( chartBox );
+			packeryInstance.appended( chartBox );
+		}
+		if(others.length > 1){
+			plus = others.pop();
+			$('#music_others').html("'Others' includes "+others.join(", ")+" &amp; "+plus);
+		}
+
+
+		NicAve.music_chart.draw(data, options);
+
 	},
 
 	success : function(data, status, xhdr){
@@ -346,9 +519,11 @@ var NicAve = {
 			}
 		})
 
+		NicAve.build_music_chart();
+
 		$(".item").each(function(){
 			item = $(this);
-			if(!item.hasClass("photo")){
+			if(!item.hasClass("photo") && !item.hasClass("achivement")){
 				height = $(item).height()+12;
 				if($("img", item).length){
 					imgheight = $("img", item).height();
