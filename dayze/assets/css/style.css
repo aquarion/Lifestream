@@ -46,42 +46,72 @@ header h1 {
 	text-align: center;
 	padding: 0em 1em 0 1em;
 	margin-bottom: 0em ;
+}
+
+h1, h2, h3, h4 {
   	font-family: 'Comfortaa', sans-serif;
+  	text-shadow: 3px 3px 5px rgba(0,0,0,.7);
+}
+
+h2 {
+	margin: .25em;
 }
  
 header .buttons {
 	text-align: center;
 }
 
-#message {
+
+#message, #navigation, #years {
 	text-align: center;
+	margin: .25em;
 }
 
-	.item {
-	width:  188px;
-		overflow: hidden;
-		background: #eee;
-		padding: 5px;
-  background: rgba(125,96,103, .4);
-  background: -moz-linear-gradient(100% 100% 30deg, rgba(125,96,103, .9), rgba(184,163,168, .9));
-  background: -webkit-gradient(linear, 0% 0%, 50% 100%, from(rgba(125,96,103, .9)), to(rgba(184,163,168, .9)));
-  text-decoration: none;
-  color: white;
-  border-top: 1px solid rgba(255,255,255,.3);
-  border-left:  1px solid rgba(255,255,255,.3);
-  border-bottom:    1px solid rgba(0,0,0,.3);
-  border-right:   1px solid rgba(0,0,0,.3);
-  position: relative;
-	}
+#navigation {
+	font-size: 2em;
+}
 
-	.item img {
-		float: right;
-		max-height: 64px;
-	}
+#navigation a {
+	text-decoration: none;
+}
+
+#navigation a.navDisabled {
+	color: rgba(255,255,255,.3);
+}
+
+#years {
+	padding-bottom: .5em;
+}
+
+.item {
+	width:  188px;
+	overflow: hidden;
+	background: #eee;
+	padding: 5px;
+	background: rgba(125,96,103, .4);
+	background: -moz-linear-gradient(100% 100% 30deg, rgba(125,96,103, .9), rgba(184,163,168, .9));
+	background: -webkit-gradient(linear, 0% 0%, 50% 100%, from(rgba(125,96,103, .9)), to(rgba(184,163,168, .9)));
+	text-decoration: none;
+	color: white;
+	border-top: 1px solid rgba(255,255,255,.3);
+	border-left:  1px solid rgba(255,255,255,.3);
+	border-bottom:    1px solid rgba(0,0,0,.3);
+	border-right:   1px solid rgba(0,0,0,.3);
+	position: relative;
+}
+
+.item img.icon {
+	float: right;
+	max-height: 64px;
+}
 
 .tumblr_quote {
 	quotes:"\201C""\201D""\2018""\2019";
 	width:  388px;
+}
+
+.item img {
+	max-width: 100%;
 }
 
 .tumblr {
@@ -126,6 +156,25 @@ header .buttons {
 	color: limegreen;
 	width:  188px;
   	font-family: 'PT Mono', monospace;
+}
+
+.xkcd {
+	position: absolute;
+	width: 100%;
+	height: 200px;	
+	left: 50%;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+  background: rgba(224,109,27, .4);
+  background: -moz-linear-gradient(100% 100% 30deg, rgba(224,109,27, .8), rgba(224,162,27, .8));
+  background: -webkit-gradient(linear, 0% 0%, 50% 100%, from(rgba(224,109,27, .8)), to(rgba(224,162,27, .8)));
+
+}
+.xkcd img.icon {
+	width: auto;
+	height: auto;	
+	clear: both;
 }
 
 .oyster_oyster {
@@ -231,4 +280,4 @@ border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 
 
 .kickstarter {
 	height: 88px;
-}style.css
+}

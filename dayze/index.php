@@ -1,4 +1,46 @@
-<!DOCTYPE>
+<?PHP
+define("AN_HOUR", 60*60 );
+define("A_DAY", 60*60*24 );
+define("A_WEEK", 60*60*24*7 );
+define("A_MONTH", 60*60*24*30 );
+define("A_YEAR", 60*60*24*364 );
+
+
+require("../web/library.php");
+
+$split = explode("/", $_SERVER['REQUEST_URI']);
+array_shift($split);
+
+$last = end($split);
+reset($split);
+
+if($last == ""){
+	array_pop($split);
+}
+
+$ordered = false;
+$title = false;
+
+if (count($split) == 1){ // One Year
+	$today = mktime(0,0,0, 1, 1, $split[0]);
+	$format = "/Y/m/d";
+} elseif(count($split) == 2 && strpos($split[1], "wk") !== false){  // One Week
+	$week = substr($split[1], 2);
+	list($today, $to) = get_start_and_end_date_from_week($week, $split[0]);
+	$format = "/Y/\w\kW";
+} elseif(count($split) == 2 && is_numeric($split[1])){  // One Month
+	$today = mktime (0, 0, 0, intval($split[1]), 1, intval($split[0]));
+	$format = "/Y/m";
+} elseif(count($split) == 3 && is_numeric($split[1])){  // One Day
+	$today = mktime (0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
+	$format = "/Y/m/d";
+} else {  // Last 200
+	$today = time();
+	$format = "/Y/m/d";
+}
+
+
+?><!DOCTYPE>
 <html>
 <head>
 	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
@@ -7,12 +49,15 @@
 	<script src="/assets/libs/md5-min.js"></script>
 
 	<link href='http://fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
-	<link rel="stylesheet" href="assets/css/style.css">
+	<link rel="stylesheet" href="/assets/css/style.css">
 
-	<script type="text/javascript" src="assets/js/library.js"></script>
-	<script type="text/javascript" src="assets/js/formatting.js"></script>
-	<script type="text/javascript" src="assets/js/nicave.js"></script>
+	<script type="text/javascript" src="/assets/js/library.js"></script>
+	<script type="text/javascript" src="/assets/js/formatting.js"></script>
+	<script type="text/javascript" src="/assets/js/nicave.js"></script>
+	<link rel="stylesheet" href="http://dailyphoto.aquarionics.com/background.css.php?from=<?PHP echo date("Y-m-d", $today) ?>"/>
+	<?PHP include("google_analytics.html"); ?>
 
+	<title>Nicholas Avenell - Web Person</title>
 </head>
 <body>
 
@@ -37,7 +82,29 @@
 		<a href="https://plus.google.com/106823138194139107308/posts"><img src="http://art.istic.net/iconography/elegantmediaicons/PNG/google.png" title="" alt="" /></a>
 	</p>
 </p>
+
 <p id="message" />
+<p id="navigation">
+	<a href="#" id="navleft">&#8592;</a>
+	<a href="#" id="navup">&#8593;</a>
+	<a href="#" id="navright">&#8594;</a>
+</p>
+<p id="years">
+	<?PHP 
+	$template = '<a href="%s" title="%s">%s</a>';
+	$this_year = date("Y", $today);
+	$years = array();
+	for($i=2001;$i <= date("Y"); $i++){
+		$years_ago = $this_year - $i;
+		$past_date = $today - ($years_ago * A_YEAR);
+
+		$date = date($format, $past_date);
+		$years[] = sprintf($template, $date, date("r", $past_date), $i);
+	}
+	print implode(" | ", $years);
+	?>
+</p>
+
 </header>
 
   <div id="tiles" class="container">

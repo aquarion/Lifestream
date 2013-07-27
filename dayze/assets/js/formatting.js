@@ -70,8 +70,9 @@ var Formatting = {
 
 		element.addClass("achivement");
 		element.css("background-image", "url('"+object.image+"')");
-		element.css("width", "160");
-		element.css("height", "160");
+		element.css("width", "100");
+		element.css("height", "100");
+		element.css("background-size", "cover");
 
 		element.html("")
 

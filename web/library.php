@@ -13,7 +13,7 @@ function get_start_and_end_date_from_week ($w, $y)
 
     $date += $days*(24*60*60);
 
-    $d = date("N", $date) - 1;
+    $d = date("N", $date);# - 1;
 
     $from = $date - (($d) * A_DAY);
     $to   = $date + ((7-$d) * A_DAY) -1;

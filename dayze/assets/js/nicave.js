@@ -138,6 +138,32 @@ var NicAve = {
 
 		$('#message').html(data.message);
 
+		$('title').text("Nicholas Avenell - Web Person - "+data.title);
+
+		if (data.nav.back){
+			$('#navleft').attr("href", data.nav.back);
+			$('#navleft').removeClass("navDisabled");
+		} else {
+			$('#navleft').attr("href", '');
+			$('#navleft').addClass("navDisabled");
+		}
+
+		if (data.nav.forward){
+			$('#navright').attr("href", data.nav.forward);
+			$('#navleft').removeClass("navDisabled");
+		} else {
+			$('#navright').attr("href", '');
+			$('#navright').addClass("navDisabled");
+		}
+
+		if (data.nav.up){
+			$('#navup').attr("href", data.nav.up);
+			$('#navup').removeClass("navDisabled");
+		} else {
+			$('#navup').attr("href", '');
+			$('#navup').addClass("navDisabled");
+		}
+
 		$(data.items).each(function(){
 			var identifier = hex_md5("id"+this['type']+this['systemid']);
 
