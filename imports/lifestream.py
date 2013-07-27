@@ -125,14 +125,19 @@ class Lifestream:
 		self.config = config
 
 	# Lifestream.add_entry(type, id, title, source, date, url='', image='', fulldata_json=False)
-	def add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, ignore=False):
+	def add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False):
 		
 		if fulldata_json:
 			fulldata_json = simplejson.dumps(fulldata_json)
 
-		if ignore:
-			s_sql = u'INSERT IGNORE into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
+		sql = 'select date_created from lifestream where type = %s and systemid = %s order by date_created desc limit 1 ';
+		self.cursor.execute(sql, (type, id))
+		if self.cursor.fetchone():
+			if not update:
+				return False
+			else:
+				s_sql = u'UPDATE lifestream set `title`=%s, `url`=%s, `date_created`=%s, `source`=%s, `image`=%s, `fulldata_json`=%s where `systemid`=%s and `type`=%s'
+				self.cursor.execute(s_sql, (title, url, date, source, image, fulldata_json, id, type))
 		else:
-			s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
-
-		self.cursor.execute(s_sql, (type, id, title, url, date, source, image, fulldata_json))
+			s_sql = u'INSERT INTO lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
+			self.cursor.execute(s_sql, (type, id, title, url, date, source, image, fulldata_json))

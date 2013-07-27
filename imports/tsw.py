@@ -47,4 +47,4 @@ for character in CHARACTERS.split(","):
 
 	id = hashlib.md5()
 	id.update(text)
-	Lifestream.add_entry("gaming", id.hexdigest(), text, "The Secret World", datetime.now(), url=url, image=src, ignore=True)
+	Lifestream.add_entry("gaming", id.hexdigest(), text, "The Secret World", datetime.now(), url=url, image=src)

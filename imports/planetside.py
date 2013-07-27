@@ -36,7 +36,7 @@ for character in characters:
 	id = hashlib.md5()
 	id.update(text)
 
-	Lifestream.add_entry("gaming", id.hexdigest(), text, "Planetside 2", datetime.now(), url=url, image=IMG, fulldata_json=profile, ignore=True)
+	Lifestream.add_entry("gaming", id.hexdigest(), text, "Planetside 2", datetime.now(), url=url, image=IMG, fulldata_json=profile)
 	
 	if 'stats_daily' in profile.keys():
 		stats = profile['stats_daily']
@@ -49,4 +49,4 @@ for character in characters:
 		
 		id = hashlib.md5()
 		id.update(text)
-		Lifestream.add_entry("gaming", id.hexdigest(), text, "Planetside 2", datetime.now(), url=url, image=IMG, fulldata_json=stats, ignore=True)
+		Lifestream.add_entry("gaming", id.hexdigest(), text, "Planetside 2", datetime.now(), url=url, image=IMG, fulldata_json=stats)
