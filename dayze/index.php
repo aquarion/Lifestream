@@ -179,9 +179,15 @@ border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 
 }
 
 .gaming {
-  background-color: rgba(26,130,247, .4);
-  background: -moz-linear-gradient(100% 100% 90deg, rgba(100, 168, 245, .5), rgba(26,130,247, .4));
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(100, 168, 245, .4)), to(rgba(26,130,247, .4)));
+  background-color: rgba(176,28,28, .6);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(176, 28, 28, .6), rgba(176,28,129, .6));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(176, 28, 28, .6)), to(rgba(176,28,129, .6)));
+}
+
+.fitbit {
+  background-color: rgba(64,163,60, .6);
+  background: -moz-linear-gradient(100% 100% 90deg, rgba(64,163,60, .6), rgba(65,135,62, .6));
+  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(rgba(64,163,60, .6)), to(rgba(65,135,62, .6)));
 }
 
 .item cite {
@@ -213,7 +219,7 @@ border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 
 	padding: 0;
 	position: relative;
 
-	background-color: rgba(0,0,0,.8);
+  background-color: rgba(48,0,0, .8);
 	background-position: center center;
 	background-repeat: no-repeat;
 }
@@ -222,6 +228,18 @@ border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 
 	width:  388px;
 	background: rgba(255,255,255,.6);
 	color: #333;
+}
+
+.fitbit_steps, .fitbit_activeScore {
+	width: 88px;
+}
+
+.twitter img.icon , .Raptr img.icon {
+	width: 32px;
+}
+
+.kickstarter {
+	height: 88px;
 }
 
 </style>
@@ -241,6 +259,10 @@ function decodeEntities(s){
     return str;
 }
 
+String.prototype.capitalize = function() {
+    return this.replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+};
+
 var Formatting = {
 
 	'achivement' : function(object, element){
@@ -249,7 +271,7 @@ var Formatting = {
 		element.addClass("achivement");
 		element.html("");
 
-		element.attr("title", decodeEntities(object.title))
+		element.attr("title", (object.source+" "+object.type).capitalize()+": "+decodeEntities(object.title))
 
 		element.height(100);
 		element.width(100);
@@ -300,6 +322,14 @@ var Formatting = {
 		return element;
 	},
 
+	'Raptr' : function(object, element){
+
+		element.addClass("gaming");
+		element.removeClass("twitter");
+
+		return element;
+	},
+
 	'Foursquare-Badge' : function(object, element){
 
 		element.addClass("achivement");
@@ -312,12 +342,18 @@ var Formatting = {
 		return element;
 	},
 
+	'fitbit' : function(object, element){
+		element.html(element.html().replace("activeScore", "Active Score"));
+		img = $('<img/>');
+		img.attr('src', "http://liveart.istic.net/iconography/fitbit.png");
+		element.prepend(img);
+		return element;
+	},
+
+
 };
 
-
-Formatting.fitbit_badge = Formatting.achivement;
-Formatting.steambadge = Formatting.achivement;
-Formatting.steam_steam = Formatting.achivement;
+Formatting.badge = Formatting.achivement;
 
 
 var NicAve = {
@@ -475,6 +511,7 @@ var NicAve = {
 
 			if(this.image && this.image != 0){
 				img = $('<img/>');
+				img.addClass("icon")
 				img.attr('src', this.image);
 				item.prepend(img);
 			}
