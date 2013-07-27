@@ -4,6 +4,7 @@ import os
 import sys
 import cymysql as MySQLdb
 import codecs
+import simplejson
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(basedir+"/../lib")
@@ -111,3 +112,22 @@ def niceTimeDelta(timedelta, format="decimal"):
 		return "seconds"
 	else:
 		return string
+
+class Lifestream:
+
+	dbcxn  = False
+	cursor = False
+	config = False
+
+	def __init__(self):
+		self.dbcxn = getDatabaseConnection()
+		self.cursor = cursor(self.dbcxn)
+		self.config = config
+
+	def add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False):
+		
+		if fulldata_json:
+			fulldata_json = simplejson.dumps(fulldata_json)
+
+		s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
+		self.cursor.execute(s_sql, (type, id, title, url, date, source, image, fulldata_json))
