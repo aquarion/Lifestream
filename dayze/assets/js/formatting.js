@@ -82,6 +82,7 @@ var Formatting = {
 	'fitbit' : function(object, element){
 		element.html(element.html().replace("activeScore", "Active Score"));
 		img = $('<img/>');
+		img.addClass("icon")
 		img.attr('src', "http://liveart.istic.net/iconography/fitbit.png");
 		element.prepend(img);
 		return element;
