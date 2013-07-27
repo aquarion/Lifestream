@@ -9,8 +9,7 @@ from mechanize import Browser, RobustFactory
 
 from datetime import datetime
 
-dbcxn  = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+Lifestream = lifestream.Lifestream()
 
 if (len(sys.argv) < 2):
 	print "Usage: %s charactername[,charactername] " % sys.argv[0]
@@ -31,8 +30,6 @@ for character in CHARACTERS.split(","):
 
 	html = br.response().read();
 
-	s_sql = u'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, NOW(), %s, %s, %s);'
-
 	soup = BeautifulSoup(html)
 
 	rank = soup.findAll("div", {"class":"x6"})
@@ -50,4 +47,4 @@ for character in CHARACTERS.split(","):
 
 	id = hashlib.md5()
 	id.update(text)
-	cursor.execute(s_sql, ("gaming", id.hexdigest(), text, url, "The Secret World", src))
+	Lifestream.add_entry("gaming", id.hexdigest(), text, "The Secret World", datetime.now(), url=url, image=src, ignore=True)

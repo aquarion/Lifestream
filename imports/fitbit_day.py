@@ -3,21 +3,16 @@
 import lifestream, lifestreamutils
 
 import sys, cPickle as pickle
-import simplejson
 from datetime import datetime, timedelta
-from time import mktime
 
 import oauth2 as oauth
 
+
+Lifestream = lifestream.Lifestream()
+
 import fitbit
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
-
 OAUTH_SECRETS  = lifestream.config.get("fitbit", "secrets_file")
-
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`) values (%s, %s, %s, %s, %s, "", "");'
-
 
 def fitbitAuth(config, OAUTH_SECRETS):
 	consumer_key    = config.get("fitbit", "consumer_key")
@@ -73,9 +68,6 @@ def fitbitAuth(config, OAUTH_SECRETS):
 
 fbcxn = fitbitAuth(lifestream.config, OAUTH_SECRETS)
 
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, "fitbit", %s, %s);'
-
-
 for sleep in fbcxn.sleep()['sleep']:
 
 	type  = "sleep"
@@ -91,7 +83,7 @@ for sleep in fbcxn.sleep()['sleep']:
 
 	title = "Took %s to fall asleep for %s (%d%% efficent sleep)." % (toSleep, asleep, sleep['efficiency'])
 
-	cursor.execute(s_sql, (type, id, title, url, date, image, simplejson.dumps(sleep)))
+	Lifestream.add_entry(type=type, id=id, title=title, source="fitbit", date=date, fulldata_json=sleep)
 	lifestreamutils.newstat(sleep['startTime'], "sleep", sleep['minutesAsleep'])
 
 for badge in fbcxn.get_badges()['badges']:
@@ -100,8 +92,8 @@ for badge in fbcxn.get_badges()['badges']:
 	url   = ''
 	image = badge['image75px']
 	date  = badge['dateTime']
-	print badge
-	cursor.execute(s_sql, (type, id, "", url, date, image, simplejson.dumps(badge)))
+
+	Lifestream.add_entry(type=type, id=id, title='', source="fitbit", date=date, fulldata_json=badge)
 
 
 for day in range(0,7):
@@ -112,12 +104,12 @@ for day in range(0,7):
 	for steps in allsteps:
 		#print "Steps for %s : %s" % (steps['dateTime'], steps['value'])
 		if steps['value'] > 0:
-			cursor.execute(s_sql, ("steps", "steps"+steps['dateTime'], "%s steps" % steps['value'], "", steps['dateTime'], "", simplejson.dumps(steps)))
+			Lifestream.add_entry(type="steps", id="steps"+steps['dateTime'], title="%s steps" % steps['value'], source="fitbit", date=steps['dateTime'], fulldata_json=steps)
 			lifestreamutils.newstat(steps['dateTime'], "steps", steps['value'])
 
 	allscore = fbcxn.time_series("activities/activeScore", period="1d", base_date=this_day_str)['activities-activeScore']
 	for score in allscore:
 		#print "score for %s : %s" % (score['dateTime'], score['value'])
 		if score['value'] > 0:
-			cursor.execute(s_sql, ("activeScore", "activeScore"+score['dateTime'], "activeScore of %s" % score['value'], "", score['dateTime'], "", simplejson.dumps(score)))
+			Lifestream.add_entry(type="activeScore", id="activeScore"+score['dateTime'], title="activeScore of %s" % score['value'], source="fitbit", date=score['dateTime'], fulldata_json=score)
 			lifestreamutils.newstat(score['dateTime'], "activeScore", score['value'])

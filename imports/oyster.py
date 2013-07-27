@@ -15,9 +15,7 @@ from time import sleep
 
 from datetime import datetime
 
-dbcxn  = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
-
+Lifestream = lifestream.Lifestream()
 
 if (len(sys.argv) < 3):
 	print "Usage: %s class oystercard_number" % sys.argv[0]
@@ -105,4 +103,4 @@ for row in dataReader:
 		id.update(action)
 		
 		#print action, utcdate
-		cursor.execute(s_sql, ("oyster", id.hexdigest(), action, utcdate, "#", "oyster"))
+		Lifestream.add_entry("oyster", id.hexdigest(), action, "oyster", id.hexdigest())

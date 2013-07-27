@@ -8,16 +8,12 @@ import sys
 
 import urllib2
 
-dbcxn  = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+Lifestream = lifestream.Lifestream()
 
 USERNAME   = lifestream.config.get("github", "username")
 TOKEN      = lifestream.config.get("github", "auth_token")
 MAX_PAGES  = 2
 URL_PREFIX = "https://github.com"
-
-
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
 
 ls_type = "code"
 ls_source = "github"
@@ -65,5 +61,6 @@ for repo in repos:
 		id        = commit['sha']
 		
 		#print message
-		cursor.execute(s_sql, (ls_type, id, message, utcdate, url, ls_source))
+		#cursor.execute(s_sql, (ls_type, id, message, utcdate, url, ls_source))
 		#print s_sql % (ls_type, id, message, utcdate, url, ls_source)
+		Lifestream.add_entry(ls_type, id, message, ls_source, utcdate, url=url, fulldata_json=commit)

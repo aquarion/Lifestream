@@ -12,12 +12,9 @@ from time import mktime
 from pytumblr import TumblrRestClient
 import oauth2 as oauth
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+Lifestream = lifestream.Lifestream()
 
 OAUTH_TUMBLR  = lifestream.config.get("tumblr", "secrets_file")
-
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`) values (%s, %s, %s, %s, %s, "", "");'
 
 
 def tumblrAuth(config, OAUTH_TUMBLR):
@@ -74,9 +71,6 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
 tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, "tumblr", %s, %s);'
-
-
 blogs = lifestream.config.get("tumblr","blogs").split(",")
 
 for blog in blogs:
@@ -118,5 +112,4 @@ for blog in blogs:
 			if type == "photo":
 				image = post['photos'][0]['original_size']['url']
 
-			cursor.execute(s_sql, (type, id, title, url,  post['date'], image, simplejson.dumps(post) ))
-			print url, title
+			Lifestream.add_entry(type, id, title, "tumblr", post['date'], url=url, image=image, fulldata_json=post)

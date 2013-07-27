@@ -13,12 +13,8 @@ import requests
 
 from pprint import pprint
 
-if (len(sys.argv) < 3):
-	print "Usage: lifestreamit class username"
-	sys.exit(5)
-
-type = sys.argv[1]
-username = sys.argv[2]
+type = "location"
+username = lifestream.config.get("foursquare", "username")
 url = "http://foursquare.com/%s" % username
 
 #DB Setup
@@ -29,7 +25,7 @@ cursor = lifestream.cursor(dbcxn)
 
 #Oauth Setup
 
-OAUTH_FILENAME  = os.environ.get('HOME', '') + os.sep + '.foursquare_oauth_'+username
+OAUTH_FILENAME  = lifestream.config.get("foursquare", "secrets_file")
 CONSUMER_KEY    = lifestream.config.get("foursquare", "client_id")
 CONSUMER_SECRET = lifestream.config.get("foursquare", "secret")
 
@@ -42,7 +38,7 @@ oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
 
 # Loop setup
 
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, %s, %s, %s, %s);'
+Lifestream = lifestream.Lifestream()
 
 l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, "foursquare", %s, %s, %s, %s, %s, 1, %s, %s);'
   
@@ -53,7 +49,7 @@ URL_BASE = "https://api.foursquare.com/v2/%%s?oauth_token=%s" % oauth_token
 
 r = requests.get(URL_BASE% "users/self/checkins")
 
-data = r.json()
+data = r.json
 
 checkins = data['response']['checkins']['items']
 
@@ -87,7 +83,8 @@ if 'checkins' in data['response'].keys():
 
 	    url = "http://www.foursquare.com/%s/checkin/%s" % (username, id);
 
-	    cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
+	    #cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
+	    Lifestream.add_entry(type, id, message, source, utcdate, url=url, image=image, fulldata_json=location)
 
 	    coordinates = location['venue']['location']
 
@@ -97,7 +94,7 @@ if 'checkins' in data['response'].keys():
 
 r = requests.get(URL_BASE% "users/self/badges")
 
-data = r.json()
+data = r.json
 
 badges = data['response']['badges']
 
@@ -118,4 +115,4 @@ for badgeid, badge in badges.items():
     localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
     utcdate = localtime.strftime("%Y-%m-%d %H:%M")
 
-    cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
+    Lifestream.add_entry(type, id, message, source, utcdate, url=url, image=image, fulldata_json=badge)

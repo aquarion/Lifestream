@@ -13,19 +13,9 @@ from mechanize import Browser, RobustFactory
 
 from time import sleep
 
-from datetime import datetime
-
-dbcxn  = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
-
-
-if (len(sys.argv) < 2):
-	print "Usage: %s username " % sys.argv[0]
-	sys.exit(5)
-
-USERNAME     = sys.argv[1]
-
+USERNAME = lifestream.config.get("steam", "username")
 steamtime     = pytz.timezone('US/Pacific')
+Lifestream = lifestream.Lifestream()
 
 br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
@@ -45,9 +35,8 @@ soup = BeautifulSoup(html)
 badges = soup.findAll("div", {"class":"badge_row_inner"})
 
 for badge in badges:
-	src = badge.findAll("div", {"class" : "badge_info_image"} )[0].findAll("img")[0].attrs[0][1]
+	image = badge.findAll("div", {"class" : "badge_info_image"} )[0].findAll("img")[0].attrs[0][1]
 	name = badge.findAll("div", {"class" : "badge_info_title"} )[0].string.strip()
-	#desc = badge.findAll("div", {"class" : "badge_description"} )[0].string
 	date = badge.findAll("div", {"class" : "badge_info_unlocked"} )[0].string.strip()[10:]
 	
 	#text = "%s &mdash; %s" % (name, desc)
@@ -60,6 +49,5 @@ for badge in badges:
 	id = hashlib.md5()
 	id.update(text)
 	
-	cursor.execute(s_sql, ("gaming", id.hexdigest(), text, utcdate, URL, "steambadge", src))
-	
+	Lifestream.add_entry("badge", id.hexdigest(), text, "steam", utcdate, url=URL, image=image)
 	

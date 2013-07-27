@@ -26,10 +26,9 @@ if (len(sys.argv) < 3):
 type            = sys.argv[1]
 username        = sys.argv[2]
 
-dbcxn           = lifestream.getDatabaseConnection()
-cursor          = lifestream.cursor(dbcxn)
+Lifestream = lifestream.Lifestream()
 
-OAUTH_FILENAME  = os.environ.get('HOME', '') + os.sep + '.lifesteam_oauth_'+username
+OAUTH_FILENAME  = "%s/twitter_%s.oauth" % (lifestream.config.get("global", "secrets_dir"), username)
 CONSUMER_KEY    = lifestream.config.get("twitter", "consumer_key")
 CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
 
@@ -45,7 +44,7 @@ twitter = Twitter(
 auth=OAuth(
 	oauth_token, oauth_token_secret, CONSUMER_KEY, CONSUMER_SECRET),
 	secure=True,
-	api_version='1',
+	api_version='1.1',
 	domain='api.twitter.com')
 
 
@@ -59,16 +58,15 @@ except URLError, e:
 		print e.reason
 	sys.exit(5)
 except Exception, e:
-	#print "Caught error %s" % Exception
-	#print e
+	print "Caught error %s" % Exception
+	print e
 	sys.exit(12)
 #print '-- Welcome to Twipistula'
-
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
 
 for tweet in tweets:
 	id = tweet['id']
 	#message = tweet['text'].replace('"', '\\"');
+	image = tweet['user']['profile_image_url']
 	message = tweet['text'].encode("utf_8")
 	source = tweet['source'];
 
@@ -77,5 +75,5 @@ for tweet in tweets:
 	url = "http://twitter.com/%s/status/%d" % (username, id)
 
 	localdate = dateutil.parser.parse(tweet['created_at'])
-        utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-	cursor.execute(s_sql, (type, id, message, utcdate, url, source))
+	utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
+	Lifestream.add_entry(type, id, message, source, utcdate, url=url, image=image, fulldata_json=tweet)

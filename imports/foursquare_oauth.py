@@ -27,7 +27,7 @@ basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 config = ConfigParser.ConfigParser()
 config.readfp(open(basedir+'/../config.ini'))
 
-OAUTH_FILENAME = os.environ.get('HOME', '') + os.sep + '.foursquare_oauth_'+username
+OAUTH_FILENAME = config.get("foursquare", "secrets_file")
 CLIENT_ID = config.get("foursquare", "client_id")
 CLIENT_SECRET = config.get("foursquare", "secret")
 CALLBACK_URL="www.github.com/aquarion/lifestream"

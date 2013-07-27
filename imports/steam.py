@@ -7,25 +7,19 @@ import hashlib
 import sys
 import time
 import os
+import pytz
 
 from xml.parsers.expat import ExpatError
 
+from datetime import datetime
+
 DEBUG = False;
 
+Lifestream = lifestream.Lifestream()
 
-dbcxn  = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+steamtime     = pytz.timezone('US/Pacific')
 
-
-type = "steam"
-
-if (len(sys.argv) < 2):
-        print "Usage: %s username" % sys.argv[0]
-        sys.exit(5)
-
-user = sys.argv[1]
-
-s_sql = u'insert delayed ignore into lifestream (`id`, `type`, `systemid`, `title`, `date_created`, `image`, `url`, `source`) values (0, %s, %s, %s, NOW(), %s, %s, "steam");'
+user = lifestream.config.get("steam", "username")
 
 if DEBUG:
 	print "Opening http://steamcommunity.com/id/%s/games?tab=recent&xml=1" % user;
@@ -100,8 +94,12 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 		
 		image = achivement.getElementsByTagName('iconClosed')[0].firstChild.data
 
+		unlocked         = achivement.getElementsByTagName('unlockTimestamp')[0].firstChild.data
+		us_timestamp     = datetime.fromtimestamp(int(unlocked));
+		local_timestamp  = steamtime.localize(us_timestamp)
+
 		if DEBUG:
-			print "         + %s (Achieved)" % name	
+			print "         + %s (Achieved at %s )" % (name, local_timestamp)	
 
 		message = "%s &ndash; %s" % (gamename, name)
 	
@@ -109,8 +107,5 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 		m.update(name.encode('utf-8')); 
 		id = image
 	
-		#print "   %s %s " % (name, image)
-	
-		#print s_sql % (type, id, message, image, statspage)
-		cursor.execute(s_sql, (type, id, message, image, statspage))
+		Lifestream.add_entry("achivement", id, message, "steam", local_timestamp, url=statspage, image=image)
 

@@ -17,6 +17,8 @@ DEBUG = False
 dbcxn  = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
+Lifestream = lifestream.Lifestream()
+
 ## Only search from the most recent result
 sql = 'select date_created from lifestream where type = "flickr" order by date_created desc limit 1 ';
 cursor.execute(sql)
@@ -46,7 +48,7 @@ if pages == 0:
 if max_pages and pages > max_pages:
 	pages = max_pages;
 
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`) values (%s, %s, %s, %s, %s, "", %s);'
+
 s_url = 'http://farm%s.staticflickr.com/%s/%s_%s_%s.jpg' #% (farm, server, id, secret, size)
 
 size_code = "z"
@@ -71,4 +73,4 @@ for page in range(1,pages+1):
 		if DEBUG:
 			print "     %s %s" % (date_taken, title)
 		
-		cursor.execute(s_sql, (type, id, title, page_url, date_taken, image))
+		Lifestream.add_entry(type="flickr", id=id, title=title, url=page_url, source="flickr", date=date_taken, image=image)

@@ -14,7 +14,7 @@ cursor = lifestream.cursor(dbcxn)
 br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
 
-s_sql = u'REPLACE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, %s, %s, %s, %s);'
+Lifestream = lifestream.Lifestream()
 
 # FOr each LOTRO character, add a line to the [lotro] section of the config file with the name and My.Lotro URL for it, like this:
 # [lotro]
@@ -72,5 +72,4 @@ for item in lifestream.config.items("lotro"):
 		id = hashlib.md5()
 		id.update(text.encode("utf-8"))
 		
-		cursor.execute(s_sql, ("gaming", id.hexdigest(), text, parseddate, URL, "lotro", icon))
-		#print s_sql % ("gaming", id.hexdigest(), text, parseddate, URL, "lotro", icon)
+		Lifestream.add_entry("gaming", id.hexdigest(), text, "lotro", parseddate, url=URL, image=icon)

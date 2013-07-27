@@ -124,10 +124,15 @@ class Lifestream:
 		self.cursor = cursor(self.dbcxn)
 		self.config = config
 
-	def add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False):
+	# Lifestream.add_entry(type, id, title, source, date, url='', image='', fulldata_json=False)
+	def add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, ignore=False):
 		
 		if fulldata_json:
 			fulldata_json = simplejson.dumps(fulldata_json)
 
-		s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
+		if ignore:
+			s_sql = u'INSERT IGNORE into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
+		else:
+			s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
+
 		self.cursor.execute(s_sql, (type, id, title, url, date, source, image, fulldata_json))

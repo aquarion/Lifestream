@@ -2,6 +2,7 @@
 
 import lifestream
 import requests, hashlib, ConfigParser
+from datetime import datetime
 
 IMG = "http://art.istic.net/iconography/games/planetside2.png"
 
@@ -15,28 +16,27 @@ except ConfigParser.NoOptionError:
 
 api_base = "http://census.soe.com%s/get/ps2-beta" % api_key
 
-dbcxn  = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+Lifestream = lifestream.Lifestream()
 
-s_sql = u'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, NOW(), %s, %s, %s);'
 
 for character in characters:
 	charac  = requests.get("%s/character/?name.first_lower=%s" % (api_base, character) )
 	
-	profile = charac.json()['character_list'][0]
+	profile = charac.json['character_list'][0]
 	xp      = profile['experience'][0]
 	faction = profile['type']['faction']
 	name    = profile['name']['first']
 	
 	## 
 	ranki   = requests.get("%s/rank/%s" % (api_base, xp['rank']) )
-	rank    = ranki.json()['rank_list'][0][faction]['en']
+	rank    = ranki.json['rank_list'][0][faction]['en']
 	text    = "In Planetside 2, %s achieved the rank %s" % (name, rank)
-	url     = "https://players.planetside2.com/#!/%s" % charac.json()['character_list'][0]['id']
+	url     = "https://players.planetside2.com/#!/%s" % charac.json['character_list'][0]['id']
 	
 	id = hashlib.md5()
 	id.update(text)
-	cursor.execute(s_sql, ("gaming", id.hexdigest(), text, url, "Planetside 2", IMG))
+
+	Lifestream.add_entry("gaming", id.hexdigest(), text, "Planetside 2", datetime.now(), url=url, image=IMG, fulldata_json=profile, ignore=True)
 	
 	if 'stats_daily' in profile.keys():
 		stats = profile['stats_daily']
@@ -49,4 +49,4 @@ for character in characters:
 		
 		id = hashlib.md5()
 		id.update(text)
-		cursor.execute(s_sql, ("gaming", id.hexdigest(), text, url, "Planetside 2", IMG))
+		Lifestream.add_entry("gaming", id.hexdigest(), text, "Planetside 2", datetime.now(), url=url, image=IMG, fulldata_json=stats, ignore=True)

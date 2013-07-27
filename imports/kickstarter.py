@@ -39,8 +39,7 @@ for project in kickstarter['projects']:
 	date  = datetime.now()
 	url   = project['urls']['web']['project'];
 	photo = project['photo']['full']
-	print project['name']
-	Lifestream.add_entry(type="pledge", id=project['id'], title=project['name'], source="kickstarter", url=url, date=date, image=photo, fulldata_json=project)
+	Lifestream.add_entry(type="pledge", id=project['id'], title=project['name'], source="kickstarter", url=url, date=date, image=photo, fulldata_json=project, ignore=True)
 
 
 #### This code is to "catch up" from kickstarter history, you should only need to do it once. Uncomment it when you do.

@@ -14,13 +14,9 @@ if (len(sys.argv) < 3):
 type = sys.argv[1]
 url = sys.argv[2]
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+Lifestream = lifestream.Lifestream()
 
 fp = feedparser.parse(url)
-
-
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`) values (%s, %s, %s, %s, %s, "", "");'
 
 for i in range(len(fp['entries'])):
 	o_item   = fp['entries'][i]
@@ -28,4 +24,4 @@ for i in range(len(fp['entries'])):
 	dt       = datetime.fromtimestamp(mktime(o_item['updated_parsed']))
 	updated  = dt.strftime("%Y-%m-%d %H:%M")
 		
-	cursor.execute(s_sql, (type, id, o_item['title'], o_item['links'][0]['href'],  updated))
+	add_entry(type=type, id=id, title=o_item['title'], source=type, date=updated, url=o_item['links'][0]['href'], fulldata_json=o_item)
