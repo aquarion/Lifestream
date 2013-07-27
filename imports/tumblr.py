@@ -74,7 +74,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
 tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`) values (%s, %s, %s, %s, %s, "tumblr", %s);'
+s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, "tumblr", %s, %s);'
 
 
 blogs = lifestream.config.get("tumblr","blogs").split(",")
@@ -85,31 +85,38 @@ for blog in blogs:
 	max_posts = details['blog']['posts']
 
 
-	# while startat < max_posts:
+	#while startat < max_posts:
 	# 	details = tumblr.posts(blog, offset=startat, limit=20)
 	# 	startat += 20;
 
-	posts = details['posts'];
+	if True:
+		posts = details['posts'];
 
-	print "%s %d/%d %.2f%%" % (blog, startat,max_posts, (startat/max_posts)*100.0);
+		print "%s %d/%d %.2f%%" % (blog, startat,max_posts, (startat/max_posts)*100.0);
 
-	for post in posts:
-		id   = post['id'];
-		type = post['type']
-		url  = post['post_url']
-		image = False
+		for post in posts:
+			id   = post['id'];
+			type = post['type']
+			url  = post['post_url']
+			image = False
 
-		if post.has_key("title") and post['title']:
-			title = post['title']
-		else:
-			title = "Tumblr %s" % type
+			if post.has_key("title") and post['title']:
+				title = post['title']
+			elif post.has_key("caption"):
+				title = post['caption']
+			elif post.has_key("text"):
+				title = post['text']
+			elif post.has_key("body"):
+				title = post['body']
+			else:
+			#	print post
+				title = "Tumblr %s" % type
 
-		if type == "quote":
-			title = post['text']
+			if type == "quote":
+				title = post['text']
 
-		if type == "photo":
-			image = post['photos'][0]['original_size']['url']
+			if type == "photo":
+				image = post['photos'][0]['original_size']['url']
 
-		cursor.execute(s_sql, (type, id, title, url,  post['date'], image))
-
-		print url, title
+			cursor.execute(s_sql, (type, id, title, url,  post['date'], image, simplejson.dumps(post) ))
+			print url, title
