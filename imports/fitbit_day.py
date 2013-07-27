@@ -96,10 +96,11 @@ for sleep in fbcxn.sleep()['sleep']:
 
 for badge in fbcxn.get_badges()['badges']:
 	type  = "badge"
-	id    = "%s%s" % (badge['badgeType'], badge['value'])
+	id    = badge['badgeType']+str(badge['value'])+badge['dateTime']
 	url   = ''
-	image = badge['image50px']
+	image = badge['image75px']
 	date  = badge['dateTime']
+	print badge
 	cursor.execute(s_sql, (type, id, "", url, date, image, simplejson.dumps(badge)))
 
 
