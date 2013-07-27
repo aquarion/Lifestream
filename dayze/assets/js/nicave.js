@@ -234,9 +234,6 @@ var NicAve = {
 			setTimeout(function(){NicAve.fetchNext(data.offset)}, data.next * 1000);
 		} else {
 			setTimeout(function(){NicAve.fetchUpdate(nextDate.toISOString())}, data.next * 1000);
-			console.log(nextDate.toISOString())
-			console.log(data.log)
-			console.log(data.next)
 		}
 	},
 

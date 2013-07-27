@@ -134,10 +134,13 @@ class Lifestream:
 		self.cursor.execute(sql, (type, id))
 		if self.cursor.fetchone():
 			if not update:
+				#print "Ignore - %s" % title
 				return False
 			else:
+				#print "Update - %s" % title
 				s_sql = u'UPDATE lifestream set `title`=%s, `url`=%s, `date_created`=%s, `source`=%s, `image`=%s, `fulldata_json`=%s where `systemid`=%s and `type`=%s'
 				self.cursor.execute(s_sql, (title, url, date, source, image, fulldata_json, id, type))
 		else:
+			#print "Insert - %s" % title
 			s_sql = u'INSERT INTO lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
 			self.cursor.execute(s_sql, (type, id, title, url, date, source, image, fulldata_json))
