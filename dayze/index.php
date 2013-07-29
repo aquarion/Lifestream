@@ -24,19 +24,24 @@ $title = false;
 if (count($split) == 1){ // One Year
 	$today = mktime(0,0,0, 1, 1, $split[0]);
 	$format = "/Y/m/d";
+	$display_format = "\Y\e\a\r \o\f Y";
 } elseif(count($split) == 2 && strpos($split[1], "wk") !== false){  // One Week
 	$week = substr($split[1], 2);
 	list($today, $to) = get_start_and_end_date_from_week($week, $split[0]);
 	$format = "/Y/\w\kW";
+	$display_format = "\W\k W Y";
 } elseif(count($split) == 2 && is_numeric($split[1])){  // One Month
 	$today = mktime (0, 0, 0, intval($split[1]), 1, intval($split[0]));
 	$format = "/Y/m";
+	$display_format = "F Y";
 } elseif(count($split) == 3 && is_numeric($split[1])){  // One Day
 	$today = mktime (0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
 	$format = "/Y/m/d";
+	$display_format = "l jS F Y";
 } else {  // Last 200
 	$today = time();
 	$format = "/Y/m/d";
+	$display_format = "l jS F Y";
 }
 
 
@@ -94,12 +99,19 @@ if (count($split) == 1){ // One Year
 	$template = '<a href="%s" title="%s">%s</a>';
 	$this_year = date("Y", $today);
 	$years = array();
-	for($i=2001;$i <= date("Y"); $i++){
-		$years_ago = $this_year - $i;
-		$past_date = $today - ($years_ago * A_YEAR);
+	
 
-		$date = date($format, $past_date);
-		$years[] = sprintf($template, $date, date("r", $past_date), $i);
+	for($i=2001;$i <= date("Y"); $i++){
+		$this_date = new DateTime(date("Y-m-d", $today));
+		$years_ago = $this_year - $i;
+		$interval = new DateInterval(sprintf('P%dY', abs($years_ago)));	
+		if ($years_ago > 0){
+			$this_date->sub($interval);	
+		} else {
+			$this_date->add($interval);	
+		}
+		$date = $this_date->format($format);
+		$years[] = sprintf($template, $date, $this_date->format($display_format), $i);
 	}
 	print implode(" | ", $years);
 	?>
