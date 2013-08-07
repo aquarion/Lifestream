@@ -20,5 +20,5 @@ touch $LOCKFILE
 source /usr/local/bin/virtualenvwrapper.sh
 workon lifestream
 
-python `dirname $0`/../imports/kickstarters.py
+python `dirname $0`/../imports/kickstarter.py
 
