@@ -24,4 +24,4 @@ for i in range(len(fp['entries'])):
 	dt       = datetime.fromtimestamp(mktime(o_item['updated_parsed']))
 	updated  = dt.strftime("%Y-%m-%d %H:%M")
 		
-	Lifestream.add_entry(type=type, id=id, title=o_item['title'], source=type, date=updated, url=o_item['links'][0]['href'], fulldata_json=o_item)
+	Lifestream.add_entry(type=type, id=id, title=o_item['title'], source=type, date=updated, url=o_item['links'][0]['href'])

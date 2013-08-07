@@ -86,7 +86,7 @@ for blog in blogs:
 	if True:
 		posts = details['posts'];
 
-		print "%s %d/%d %.2f%%" % (blog, startat,max_posts, (startat/max_posts)*100.0);
+		#print "%s %d/%d %.2f%%" % (blog, startat,max_posts, (startat/max_posts)*100.0);
 
 		for post in posts:
 			id   = post['id'];
