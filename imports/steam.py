@@ -14,6 +14,7 @@ from xml.parsers.expat import ExpatError
 from datetime import datetime
 
 DEBUG = False;
+#DEBUG = True;
 
 Lifestream = lifestream.Lifestream()
 
@@ -34,7 +35,7 @@ games = minidom.parse(gameslist_xml);
 
 gamesList = games.getElementsByTagName('game')
 
-maxGames   = 10
+maxGames   = 10000
 thisGame   = 0
 foundGames = 0
 
@@ -94,9 +95,13 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 		
 		image = achivement.getElementsByTagName('iconClosed')[0].firstChild.data
 
-		unlocked         = achivement.getElementsByTagName('unlockTimestamp')[0].firstChild.data
-		us_timestamp     = datetime.fromtimestamp(int(unlocked));
-		local_timestamp  = steamtime.localize(us_timestamp)
+		try:
+			unlocked         = achivement.getElementsByTagName('unlockTimestamp')[0].firstChild.data
+			us_timestamp     = datetime.fromtimestamp(int(unlocked));
+			local_timestamp  = steamtime.localize(us_timestamp)
+		except IndexError:
+			local_timestamp	 = datetime.now()
+			
 
 		if DEBUG:
 			print "         + %s (Achieved at %s )" % (name, local_timestamp)	
