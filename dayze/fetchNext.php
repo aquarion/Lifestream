@@ -7,6 +7,9 @@ ORM::configure('logging', true);
 ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'));
 $query = ORM::for_table('lifestream');
 
+
+$location_query = ORM::for_table('lifestream_locations');
+
 $blocksize = 100;
 $next = 30;
 $max = false;
@@ -22,6 +25,7 @@ if(isset($_POST['after'])){
 
 $query->where_not_null("title");
 $query->where_not_equal("source", "tumblr");
+$query->where_not_equal("source", "lastfm");
 
 define("AN_HOUR", 60*60 );
 define("A_DAY", 60*60*24 );
@@ -48,6 +52,10 @@ if (count($split) == 1){ // One Year
 	$to   = strtotime("+1 year", $from) -1;
 	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 00:00", $to));
+
+	$location_query->where_gt("timestamp", date("Y-m-d 00:00", $from));
+	$location_query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+
 	$message = sprintf("Year from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
 
 	$back    = date("/Y", $from-A_YEAR);
@@ -59,6 +67,10 @@ if (count($split) == 1){ // One Year
 	list($from, $to) = get_start_and_end_date_from_week($week, $split[0]);
 	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 00:00", $to));
+
+	$location_query->where_gt("timestamp", date("Y-m-d 00:00", $from));
+	$location_query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+
 	$message = sprintf("Week $week from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
 
 	$back    = date("/Y/\w\kW", $from-A_WEEK);
@@ -69,8 +81,13 @@ if (count($split) == 1){ // One Year
 
 	$from = mktime (0, 0, 0, intval($split[1]), 1, intval($split[0]));
 	$to   = mktime (0, 0, 0, intval($split[1] + 1), 1, intval($split[0])) -1;
+
 	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 00:00", $to));
+
+	$location_query->where_gt("timestamp", date("Y-m-d 00:00", $from));
+	$location_query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+
 	$message = sprintf("Month from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
 
 	$back    = date("/Y/m", $from-A_MONTH);
@@ -81,8 +98,13 @@ if (count($split) == 1){ // One Year
 
 	// mktime ($hour, $minute, $second, $month, $day, $year)
 	$from = mktime (0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
+
 	$query->where_gt("date_created", date("Y-m-d 03:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 03:00", $from + A_DAY));
+
+	$location_query->where_gt("timestamp", date("Y-m-d 03:00", $from));
+	$location_query->where_lt("timestamp", date("Y-m-d 03:00", $from + A_DAY));
+
 	$message = sprintf("Day from %s to %s", date("Y-m-d 03:00", $from), date("Y-m-d 03:00", $from + A_DAY));
 	//$message = print_r($split, 1);#sprintf("Month from %s to %s", date("Y-m-d 00:00", $from), date("Y-m-d 00:00", $to));
 
@@ -95,6 +117,9 @@ if (count($split) == 1){ // One Year
 	$max = 200;
 	#$append = "prepend";
 	$query->order_by_desc("date_created");
+
+	$location_query->order_by_desc("timestamp");
+
 	$message = "This is the last $max things various services have seen me do.";
 	$title = " Last 200 Items";
 	$ordered = true;
