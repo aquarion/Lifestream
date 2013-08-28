@@ -28,7 +28,7 @@ def build_auth_header(url, method):
 now = time.time()
 params = {'start_time': now - 24*60*60, 'end_time': now}    # get the last 24 hours
 query = "%s?%s" % (URL, urllib.urlencode(params))
-print(query)
+
 try:
     request = urllib2.Request(query)
     request.headers = build_auth_header(URL, 'GET')
