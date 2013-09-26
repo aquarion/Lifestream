@@ -42,7 +42,10 @@ for badge in badges:
 	#text = "%s &mdash; %s" % (name, desc)
 	text = name
 
-	parseddate = datetime.strptime(date, "%b %d, %Y @ %I:%M%p")
+	try:
+		parseddate = datetime.strptime(date, "%b %d, %Y @ %I:%M%p")
+	except ValueError:
+		parseddate = datetime.strptime(date, "%b %d @ %I:%M%p")
 	localdate  = steamtime.localize(parseddate)
 	utcdate    = localdate.astimezone(pytz.utc)
 	
