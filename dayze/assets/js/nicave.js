@@ -173,9 +173,9 @@ var NicAve = {
 
 			item = $('<a class="item"></a>');
 			item.attr("id", identifier)
-			item.addClass(this['source'])
-			item.addClass(this['type'])
-			item.addClass(this['source']+'_'+this['type']);
+			item.addClass(this['source'].replace(/\s/g, "_"))
+			item.addClass(this['type'].replace(/\s/g, "_"))
+			item.addClass((this['source']+'_'+this['type']).replace(/\s/g," "));
 
 			if(!this['title'] && !this['image']){
 				return;

@@ -3,7 +3,11 @@ var Formatting = {
 
 	'achivement' : function(object, element){
 
+		if(element.hasClass("Raptr")){
+			return element;
+		}
 		element.css("background-image", "url('"+object.image+"')");
+		element.css("background-size", "contain");
 		element.addClass("achivement");
 		element.html("");
 
@@ -12,8 +16,24 @@ var Formatting = {
 		element.height(100);
 		element.width(100);
 
+
 		return element;
 	},
+
+	'kickstarter' :  function(object, element){
+
+                element.css("background-image", "url('"+object.image+"')");
+                element.css("background-size", "contain");
+                element.addClass("achivement");
+                element.html("");
+
+                element.attr("title", (object.source+" "+object.type).capitalize()+": "+decodeEntities(object.title))
+
+                element.height(100);
+                element.width(200);
+
+                return element;
+        },
 
 	'oyster' : function(object, element){
 
@@ -92,3 +112,5 @@ var Formatting = {
 };
 
 Formatting.badge = Formatting.achivement;
+Formatting.gaming = Formatting.achivement;
+Formatting.rapr = false;
