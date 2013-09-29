@@ -103,13 +103,13 @@ for day in range(0,7):
 	allsteps = fbcxn.time_series("activities/steps", period="1d", base_date=this_day_str)['activities-steps']
 	for steps in allsteps:
 		#print "Steps for %s : %s" % (steps['dateTime'], steps['value'])
-		if steps['value'] > 0:
+		if int(steps['value']) > 0:
 			Lifestream.add_entry(type="steps", id="steps"+steps['dateTime'], title="%s steps" % steps['value'], source="fitbit", date=steps['dateTime'], fulldata_json=steps, update=True)
 			lifestreamutils.newstat(steps['dateTime'], "steps", steps['value'])
 
 	allscore = fbcxn.time_series("activities/activeScore", period="1d", base_date=this_day_str)['activities-activeScore']
 	for score in allscore:
 		#print "score for %s : %s" % (score['dateTime'], score['value'])
-		if score['value'] > 0:
+		if int(score['value']) > 0:
 			Lifestream.add_entry(type="activeScore", id="activeScore"+score['dateTime'], title="activeScore of %s" % score['value'], source="fitbit", date=score['dateTime'], fulldata_json=score, update=True)
 			lifestreamutils.newstat(score['dateTime'], "activeScore", score['value'])
