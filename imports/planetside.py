@@ -67,8 +67,6 @@ for character in characters:
 		localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
 		utcdate = localtime.strftime("%Y-%m-%d %H:%M")
 		
-		print text, utcdate
-
 		Lifestream.add_entry("gaming", id.hexdigest(), text, "PS2 Achivement", date, url=url, image=image, fulldata_json=achivement)
 	
 	# if 'stats_daily' in profile.keys():
