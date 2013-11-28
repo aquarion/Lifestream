@@ -36,8 +36,8 @@ br.set_handle_robots(False)
 response = br.open("https://oyster.tfl.gov.uk/oyster/entry.do")
 
 br.select_form(name="sign-in")
-br['j_password']=PASSWORD
-br['j_username']=USERNAME
+br['Password']=PASSWORD
+br['UserName']=USERNAME
 br.submit()
 
 ############### Card Choice
@@ -93,7 +93,6 @@ for row in dataReader:
 		elif not time_from:
 			time_from = "00:00"
 		
-		#print row
 		timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
 		loc_date  = londontime.localize(timestamp)
 		utcdate   = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
@@ -102,5 +101,5 @@ for row in dataReader:
 		id.update(utcdate)
 		id.update(action)
 		
-		#print action, utcdate
-		Lifestream.add_entry("oyster", id.hexdigest(), action, "oyster", id.hexdigest())
+		print action, utcdate
+		Lifestream.add_entry("oyster", id.hexdigest(), action, "oyster", utcdate)
