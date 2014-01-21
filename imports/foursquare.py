@@ -47,7 +47,9 @@ URL_BASE = "https://api.foursquare.com/v2/%%s?oauth_token=%s" % oauth_token
 
 # Get the data 
 
-r = requests.get(URL_BASE% "users/self/checkins")
+payload = { 'v' : "20120101" };
+
+r = requests.get(URL_BASE% "users/self/checkins", params=payload)
 
 data = r.json
 
@@ -70,6 +72,7 @@ if 'checkins' in data['response'].keys():
 		    for category in location['venue']['categories']:
 			if "primary" in category.keys():
 			    image = category['icon']
+		            image = image['prefix']+"64.png"
 	    else:
 		message = location['location']['name']
 
@@ -92,7 +95,7 @@ if 'checkins' in data['response'].keys():
 	    cursor.execute(l_sql, (epoch, coordinates['lat'], coordinates['lng'], coordinates['lat'], coordinates['lng'], utcdate, location['venue']['name'], image))
 
 
-r = requests.get(URL_BASE% "users/self/badges")
+r = requests.get(URL_BASE% "users/self/badges", params=payload)
 
 data = r.json
 

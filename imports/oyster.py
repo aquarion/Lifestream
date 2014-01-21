@@ -36,8 +36,8 @@ br.set_handle_robots(False)
 response = br.open("https://oyster.tfl.gov.uk/oyster/entry.do")
 
 br.select_form(name="sign-in")
-br['Password']=PASSWORD
-br['UserName']=USERNAME
+br['j_password']=PASSWORD
+br['j_username']=USERNAME
 br.submit()
 
 ############### Card Choice
@@ -101,5 +101,5 @@ for row in dataReader:
 		id.update(utcdate)
 		id.update(action)
 		
-		print action, utcdate
+		#print action, utcdate
 		Lifestream.add_entry("oyster", id.hexdigest(), action, "oyster", utcdate)

@@ -51,6 +51,7 @@ var NicAve = {
 	},
 
 	build_music_chart : function(){
+		return;
 		if(Object.keys(NicAve.lastfm).length == 0){
 			return;
 		}
