@@ -47,7 +47,7 @@ URL_BASE = "https://api.foursquare.com/v2/%%s?oauth_token=%s" % oauth_token
 
 # Get the data 
 
-payload = { 'v' : "20120101" };
+payload = { 'v' : "20140226" };
 
 r = requests.get(URL_BASE% "users/self/checkins", params=payload)
 
@@ -76,11 +76,9 @@ if 'checkins' in data['response'].keys():
 	    else:
 		message = location['location']['name']
 
-		
 	    epoch = location['createdAt']
-	    localzone = pytz.timezone(location['timeZone'])
-	    localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
-	    utcdate = localtime.strftime("%Y-%m-%d %H:%M")
+	    utctime = datetime.utcfromtimestamp(epoch)
+	    utcdate = utctime.strftime("%Y-%m-%d %H:%M")
 	    
 	    id = location['id']
 
@@ -114,8 +112,7 @@ for badgeid, badge in badges.items():
     id      = checkin['id']
 
     epoch = checkin['createdAt']
-    localzone = pytz.timezone(checkin['timeZone'])
-    localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
-    utcdate = localtime.strftime("%Y-%m-%d %H:%M")
+    utctime = datetime.utcfromtimestamp(epoch)
+    utcdate = utctime.strftime("%Y-%m-%d %H:%M")
 
     Lifestream.add_entry(type, id, message, source, utcdate, url=url, image=image, fulldata_json=badge)
