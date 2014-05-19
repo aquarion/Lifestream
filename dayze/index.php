@@ -20,6 +20,7 @@ if($last == ""){
 
 $ordered = false;
 $title = false;
+$date_point = false;
 
 if (count($split) == 1){ // One Year
 	$today = mktime(0,0,0, 1, 1, $split[0]);
@@ -30,6 +31,7 @@ if (count($split) == 1){ // One Year
 	list($today, $to) = get_start_and_end_date_from_week($week, $split[0]);
 	$format = "/Y/\w\kW";
 	$display_format = "\W\k W Y";
+	$date_point = (($to-$today)/2) + $today;
 } elseif(count($split) == 2 && is_numeric($split[1])){  // One Month
 	$today = mktime (0, 0, 0, intval($split[1]), 1, intval($split[0]));
 	$format = "/Y/m";
@@ -42,6 +44,10 @@ if (count($split) == 1){ // One Year
 	$today = time();
 	$format = "/Y/m/d";
 	$display_format = "l jS F Y";
+}
+
+if(!$date_point){
+	$date_point = $today;
 }
 
 
@@ -102,7 +108,7 @@ if (count($split) == 1){ // One Year
 	
 
 	for($i=2001;$i <= date("Y"); $i++){
-		$this_date = new DateTime(date("Y-m-d", $today));
+		$this_date = new DateTime(date("Y-m-d", $date_point));
 		$years_ago = $this_year - $i;
 		$interval = new DateInterval(sprintf('P%dY', abs($years_ago)));	
 		if ($years_ago > 0){
