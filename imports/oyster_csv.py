@@ -56,4 +56,8 @@ for row in dataReader:
 		id.update(action)
 		
 		print action, utcdate
-		Lifestream.add_entry("oyster", id.hexdigest(), action, "oyster", utcdate)
+		#add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False)
+		Lifestream.add_entry("oyster", id.hexdigest(), action, "oyster", utcdate, False, False, row)
+
+data.close()
+
