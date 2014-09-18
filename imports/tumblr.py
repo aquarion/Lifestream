@@ -16,6 +16,8 @@ Lifestream = lifestream.Lifestream()
 
 OAUTH_TUMBLR  = lifestream.config.get("tumblr", "secrets_file")
 
+# Use this once to import everything, otherwise it's the last 20 items
+FULL_IMPORT = False;
 
 def tumblrAuth(config, OAUTH_TUMBLR):
 	consumer_key    = config.get("tumblr", "consumer_key")
@@ -73,20 +75,26 @@ tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 
 blogs = lifestream.config.get("tumblr","blogs").split(",")
 
+
 for blog in blogs:
+	#debug# print blog
+	#debug# print "----"
 	details = tumblr.posts(blog)
 	startat = 0.0;
-	max_posts = details['blog']['posts']
+
+	if FULL_IMPORT:
+		max_posts = details['blog']['posts']
+	else:
+		max_posts = 20
 
 
-	#while startat < max_posts:
-	# 	details = tumblr.posts(blog, offset=startat, limit=20)
-	# 	startat += 20;
+	while startat < max_posts:
+	 	details = tumblr.posts(blog, offset=startat, limit=20)
+	 	startat += 20;
 
-	if True:
 		posts = details['posts'];
 
-		#print "%s %d/%d %.2f%%" % (blog, startat,max_posts, (startat/max_posts)*100.0);
+		#debug# print "%s %d/%d %.2f%%" % (blog, startat,max_posts, (startat/max_posts)*100.0);
 
 		for post in posts:
 			id   = post['id'];
@@ -103,7 +111,7 @@ for blog in blogs:
 			elif post.has_key("body"):
 				title = post['body']
 			else:
-			#	print post
+				#debug# print post
 				title = "Tumblr %s" % type
 
 			if type == "quote":
