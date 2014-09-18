@@ -1,7 +1,6 @@
 twitter*sh
 config.ini
 *.pyc
-shell/bioware.sh
 keys
 latitude.dat
 cache
