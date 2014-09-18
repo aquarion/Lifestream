@@ -1,19 +1,21 @@
 #!/usr/bin/python
 
 import lifestream
-import requests, hashlib, ConfigParser
+import requests
+import hashlib
+import ConfigParser
 from datetime import datetime
 import pytz
 
 IMG = "http://art.istic.net/iconography/games/planetside2.png"
 
-characters  = lifestream.config.get("planetside", "characters")
-characters = characters.split(",");
+characters = lifestream.config.get("planetside", "characters")
+characters = characters.split(",")
 
 try:
-	api_key = "/s:%s" % lifestream.config.get("planetside", "service_key")
+    api_key = "/s:%s" % lifestream.config.get("planetside", "service_key")
 except ConfigParser.NoOptionError:
-	api_key = '';
+    api_key = ''
 
 api_base = "http://census.soe.com%s/get/ps2:v2" % api_key
 
@@ -23,61 +25,83 @@ Lifestream = lifestream.Lifestream()
 
 
 for character in characters:
-	charac  = requests.get("%s/character/?name.first_lower=%s&c:resolve=faction" % (api_base, character) )
-	
-	character_id = charac.json['character_list'][0]['character_id']
+    charac = requests.get(
+        "%s/character/?name.first_lower=%s&c:resolve=faction" %
+        (api_base, character))
 
-	profile = charac.json['character_list'][0]
-	br      = profile['battle_rank']
-	faction = profile['faction']['code_tag'].lower()
-	name    = profile['name']['first']
+    character_id = charac.json['character_list'][0]['character_id']
 
-	## 
-	ranki   = requests.get("%s/experience_rank?rank=%s" % (api_base, br['value']) )
-	rank    = ranki.json['experience_rank_list'][0][faction]['title']['en']
-	text    = "In Planetside 2, %s achieved the rank %s" % (name, rank)
-	url     = "https://players.planetside2.com/#!/%s" % character_id
-	
-	image_key = "%s_image_path" % faction
-	image   = image_base+ranki.json['experience_rank_list'][0][image_key]
+    profile = charac.json['character_list'][0]
+    br = profile['battle_rank']
+    faction = profile['faction']['code_tag'].lower()
+    name = profile['name']['first']
 
-	id = hashlib.md5()
-	id.update(text)
+    ##
+    ranki = requests.get(
+        "%s/experience_rank?rank=%s" %
+        (api_base, br['value']))
+    rank = ranki.json['experience_rank_list'][0][faction]['title']['en']
+    text = "In Planetside 2, %s achieved the rank %s" % (name, rank)
+    url = "https://players.planetside2.com/#!/%s" % character_id
 
-	Lifestream.add_entry("gaming", id.hexdigest(), text, "Planetside 2", datetime.now(), url=url, image=image, fulldata_json=charac.json)
+    image_key = "%s_image_path" % faction
+    image = image_base + ranki.json['experience_rank_list'][0][image_key]
 
-	## Achivements
+    id = hashlib.md5()
+    id.update(text)
 
-	achivements = requests.get("%s/characters_achievement/?character_id=%s&c:join=achievement&c:limit=100" % (api_base, character_id))
+    Lifestream.add_entry(
+        "gaming",
+        id.hexdigest(),
+        text,
+        "Planetside 2",
+        datetime.now(),
+        url=url,
+        image=image,
+        fulldata_json=charac.json)
 
-	for achivement in achivements.json['characters_achievement_list']:
-		if achivement['finish'] == "0":
-			continue
+    # Achivements
 
-		name  = achivement['achievement_id_join_achievement']['name']['en']
-		text  = "%s earnt %s" % (character, name)
-		image = image_base+achivement['achievement_id_join_achievement']['image_path']
-		date  = achivement['finish_date']
-		id = hashlib.md5()
-		id.update(text+date)
+    achivements = requests.get(
+        "%s/characters_achievement/?character_id=%s&c:join=achievement&c:limit=100" %
+        (api_base, character_id))
 
+    for achivement in achivements.json['characters_achievement_list']:
+        if achivement['finish'] == "0":
+            continue
 
-		epoch = float(achivement['finish'])
-		localzone = pytz.timezone("Europe/London")
-		localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
-		utcdate = localtime.strftime("%Y-%m-%d %H:%M")
-		
-		Lifestream.add_entry("gaming", id.hexdigest(), text, "PS2 Achivement", date, url=url, image=image, fulldata_json=achivement)
-	
-	# if 'stats_daily' in profile.keys():
-	# 	stats = profile['stats_daily']
-	# 	text = "Played Planetside as %s %s for %s, with a K:D of %2.2f%% (%d:%d)"
-	# 	time = lifestream.niceTimeDelta(int(stats['play_time']['value']))
-	# 	kd   = float(stats['kill_death_ratio']['value'])
-	# 	k    = int(stats['kills']['value'])
-	# 	d    = int(stats['deaths']['value'])
-	# 	text = text % (rank, name, time, kd, k, d)
-		
-	# 	id = hashlib.md5()
-	# 	id.update(text)
-	# 	Lifestream.add_entry("gaming", id.hexdigest(), text, "Planetside 2", datetime.now(), url=url, image=IMG, fulldata_json=stats)
+        name = achivement['achievement_id_join_achievement']['name']['en']
+        text = "%s earnt %s" % (character, name)
+        image = image_base + \
+            achivement['achievement_id_join_achievement']['image_path']
+        date = achivement['finish_date']
+        id = hashlib.md5()
+        id.update(text + date)
+
+        epoch = float(achivement['finish'])
+        localzone = pytz.timezone("Europe/London")
+        localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
+        utcdate = localtime.strftime("%Y-%m-%d %H:%M")
+
+        Lifestream.add_entry(
+            "gaming",
+            id.hexdigest(),
+            text,
+            "PS2 Achivement",
+            date,
+            url=url,
+            image=image,
+            fulldata_json=achivement)
+
+    # if 'stats_daily' in profile.keys():
+    # 	stats = profile['stats_daily']
+    # 	text = "Played Planetside as %s %s for %s, with a K:D of %2.2f%% (%d:%d)"
+    # 	time = lifestream.niceTimeDelta(int(stats['play_time']['value']))
+    # 	kd   = float(stats['kill_death_ratio']['value'])
+    # 	k    = int(stats['kills']['value'])
+    # 	d    = int(stats['deaths']['value'])
+    # 	text = text % (rank, name, time, kd, k, d)
+
+    # 	id = hashlib.md5()
+    # 	id.update(text)
+    # 	Lifestream.add_entry("gaming", id.hexdigest(), text, "Planetside 2", datetime.now(), url=url, image=IMG, fulldata_json=stats)

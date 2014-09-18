@@ -1,5 +1,6 @@
 
-import pickle, sqlite3
+import pickle
+import sqlite3
 
 from dropbox import client, rest, session
 
@@ -26,7 +27,7 @@ token_data.close()
 # Setup Dropbox Access
 
 sess = session.DropboxSession(APP_KEY, APP_SECRET, ACCESS_TYPE)
-sess.set_token(token['key'],token['secret'])
+sess.set_token(token['key'], token['secret'])
 ## client = client.DropboxClient(sess)
 
 # Grab the database
@@ -34,8 +35,8 @@ sess.set_token(token['key'],token['secret'])
 
 # Write it out
 ## out = open(MESSAGES_DATABASE_CACHE, "wb")
-## out.write(f.read())
-## out.close()
+# out.write(f.read())
+# out.close()
 
 # Connect to it
 
@@ -44,7 +45,7 @@ cxn = sqlite3.connect(MESSAGES_DATABASE_CACHE)
 print "HellO"
 print cxn
 
-# Get the data 
+# Get the data
 
 sql = "select message.guid, message.text, message.date, handle.id, message.is_from_me from message, handle where handle.rowid = message.handle_id;"
 
@@ -55,18 +56,18 @@ sql = "select message.guid, message.text, message.date, handle.id, message.is_fr
 # 4 - Is From Me
 
 res = cxn.execute(sql)
-messages = res.fetchall();
+messages = res.fetchall()
 
-exclude = ("86444", # Twitter
-	"google",
-	'+447781484000', # Pingdom
-	'3alerts', # 3
-	'+447786204400', # Paypal
-	'irc',
-	'halifax'
-	)
+exclude = ("86444",  # Twitter
+           "google",
+           '+447781484000',  # Pingdom
+           '3alerts',  # 3
+           '+447786204400',  # Paypal
+           'irc',
+           'halifax'
+           )
 
 for message in messages:
-	if message[3]in exclude:
-		continue
-	print message[3], message[1]
+    if message[3]in exclude:
+        continue
+    print message[3], message[1]
