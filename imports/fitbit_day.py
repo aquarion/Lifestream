@@ -21,9 +21,9 @@ def fitbitAuth(config, OAUTH_SECRETS):
     consumer_key = config.get("fitbit", "consumer_key")
     consumer_secret = config.get("fitbit", "secret_key")
 
-    request_token_url = 'http://api.fitbit.com/oauth/request_token'
-    access_token_url = 'http://api.fitbit.com/oauth/access_token'
-    authorize_url = 'http://www.fitbit.com/oauth/authorize'
+    request_token_url = 'https://api.fitbit.com/oauth/request_token'
+    access_token_url = 'https://api.fitbit.com/oauth/access_token'
+    authorize_url = 'https://www.fitbit.com/oauth/authorize'
 
     try:
         f = open(OAUTH_SECRETS, "rb")
@@ -37,6 +37,7 @@ def fitbitAuth(config, OAUTH_SECRETS):
         consumer = oauth.Consumer(consumer_key, consumer_secret)
         client = oauth.Client(consumer)
         resp, content = client.request(request_token_url, "GET")
+	print request_token_url
         if resp['status'] != '200':
             raise Exception("Invalid response %s." % resp['status'])
 

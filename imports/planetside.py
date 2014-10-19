@@ -29,9 +29,11 @@ for character in characters:
         "%s/character/?name.first_lower=%s&c:resolve=faction" %
         (api_base, character))
 
-    character_id = charac.json['character_list'][0]['character_id']
+    character = charac.json()
 
-    profile = charac.json['character_list'][0]
+    character_id = character['character_list'][0]['character_id']
+
+    profile = character['character_list'][0]
     br = profile['battle_rank']
     faction = profile['faction']['code_tag'].lower()
     name = profile['name']['first']
@@ -40,12 +42,12 @@ for character in characters:
     ranki = requests.get(
         "%s/experience_rank?rank=%s" %
         (api_base, br['value']))
-    rank = ranki.json['experience_rank_list'][0][faction]['title']['en']
+    rank = ranki.json()['experience_rank_list'][0][faction]['title']['en']
     text = "In Planetside 2, %s achieved the rank %s" % (name, rank)
     url = "https://players.planetside2.com/#!/%s" % character_id
 
     image_key = "%s_image_path" % faction
-    image = image_base + ranki.json['experience_rank_list'][0][image_key]
+    image = image_base + ranki.json()['experience_rank_list'][0][image_key]
 
     id = hashlib.md5()
     id.update(text)
@@ -58,7 +60,7 @@ for character in characters:
         datetime.now(),
         url=url,
         image=image,
-        fulldata_json=charac.json)
+        fulldata_json=character)
 
     # Achivements
 
@@ -66,7 +68,7 @@ for character in characters:
         "%s/characters_achievement/?character_id=%s&c:join=achievement&c:limit=100" %
         (api_base, character_id))
 
-    for achivement in achivements.json['characters_achievement_list']:
+    for achivement in achivements.json()['characters_achievement_list']:
         if achivement['finish'] == "0":
             continue
 

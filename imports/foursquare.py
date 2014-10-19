@@ -51,7 +51,7 @@ payload = {'v': "20140226"}
 
 r = requests.get(URL_BASE % "users/self/checkins", params=payload)
 
-data = r.json
+data = r.json()
 
 checkins = data['response']['checkins']['items']
 
@@ -112,7 +112,7 @@ if 'checkins' in data['response'].keys():
 
 r = requests.get(URL_BASE % "users/self/badges", params=payload)
 
-data = r.json
+data = r.json()
 
 badges = data['response']['badges']
 
