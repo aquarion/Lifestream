@@ -7,8 +7,7 @@ import sys
 import cPickle as pickle
 from datetime import datetime, timedelta
 
-import oauth2 as oauth
-
+from fitbit.api import FitbitOauthClient
 
 Lifestream = lifestream.Lifestream()
 
@@ -17,9 +16,14 @@ import fitbit
 OAUTH_SECRETS = lifestream.config.get("fitbit", "secrets_file")
 
 
+import os
+import pprint
+import sys
+
+
 def fitbitAuth(config, OAUTH_SECRETS):
-    consumer_key = config.get("fitbit", "consumer_key")
-    consumer_secret = config.get("fitbit", "secret_key")
+    CLIENT_KEY = config.get("fitbit", "consumer_key")
+    CLIENT_SECRET = config.get("fitbit", "secret_key")
 
     request_token_url = 'https://api.fitbit.com/oauth/request_token'
     access_token_url = 'https://api.fitbit.com/oauth/access_token'
@@ -27,53 +31,53 @@ def fitbitAuth(config, OAUTH_SECRETS):
 
     try:
         f = open(OAUTH_SECRETS, "rb")
-        oauth_token = pickle.load(f)
+        token = pickle.load(f)
         f.close()
     except:
         print "Couldn't open %s, reloading..." % OAUTH_SECRETS
-        oauth_token = False
+        token = False
 
-    if(not oauth_token):
-        consumer = oauth.Consumer(consumer_key, consumer_secret)
-        client = oauth.Client(consumer)
-        resp, content = client.request(request_token_url, "GET")
-	print request_token_url
-        if resp['status'] != '200':
-            raise Exception("Invalid response %s." % resp['status'])
+    if(not token):
+        pp = pprint.PrettyPrinter(indent=4)
+        client = FitbitOauthClient(CLIENT_KEY, CLIENT_SECRET)
 
-        request_token = dict(urlparse.parse_qsl(content))
-        print "Go to the following link in your browser:"
-        print "%s?oauth_token=%s" % (authorize_url, request_token['oauth_token'])
-        print
+        print('* Obtain a request token ...\n')
+        token = client.fetch_request_token()
+        print('RESPONSE')
+        pp.pprint(token)
+        print('')
 
-        accepted = 'n'
-        while accepted.lower() == 'n':
-            accepted = raw_input('Have you authorized me? (y/n) ')
-        oauth_verifier = raw_input('What is the PIN? ')
+        print('* Authorize the request token in your browser\n')
+        
+        print client.authorize_token_url()
 
-        token = oauth.Token(
-            request_token['oauth_token'],
-            request_token['oauth_token_secret'])
-        token.set_verifier(oauth_verifier)
-        client = oauth.Client(consumer, token)
+        try:
+            verifier = raw_input('Verifier: ')
+        except NameError:
+            # Python 3.x
+            verifier = input('Verifier: ')
 
-        resp, content = client.request(access_token_url, "POST")
-        oauth_token = dict(urlparse.parse_qsl(content))
-        print resp
+        # get access token
+        print('\n* Obtain an access token ...\n')
+        token = client.fetch_access_token(verifier)
+        print('RESPONSE')
+        pp.pprint(token)
+        print('')
 
-        print oauth_token
-        print "Access key:", oauth_token['oauth_token']
-        print "Access Secret:", oauth_token['oauth_token_secret']
+
+        print token
+        print "Access key:", token['oauth_token']
+        print "Access Secret:", token['oauth_token_secret']
 
         f = open(OAUTH_SECRETS, "w")
-        pickle.dump(oauth_token, f)
+        pickle.dump(token, f)
         f.close()
 
     return fitbit.Fitbit(
-        consumer_key,
-        consumer_secret,
-        user_key=oauth_token['oauth_token'],
-        user_secret=oauth_token['oauth_token_secret'])
+        CLIENT_KEY,
+        CLIENT_SECRET,
+        resource_owner_key=token['oauth_token'],
+        resource_owner_secret=token['oauth_token_secret'])
 
 fbcxn = fitbitAuth(lifestream.config, OAUTH_SECRETS)
 
