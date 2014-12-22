@@ -2,6 +2,13 @@
 
 include("idiorm.php");
 
+
+define("AN_HOUR", 60*60 );
+define("A_DAY", 60*60*24 );
+define("A_WEEK", 60*60*24*7 );
+define("A_MONTH", 60*60*24*30 );
+define("A_YEAR", 60*60*24*364 );
+
 define("IMAGE_ROOT", 'http://art.istic.net/iconography/');
 
 function get_start_and_end_date_from_week ($w, $y) 

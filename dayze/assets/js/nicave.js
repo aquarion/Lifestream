@@ -239,6 +239,18 @@ var NicAve = {
 			}
 		})
 
+		if(data.locations && data.locations.length && !$('#mapcanvas').length ){
+			item = $('<div class="item"></div>');
+			item.attr("id", 'mapcanvas')
+			item.addClass('map')
+			item.width(460)
+			item.height(360)
+			$(container).prepend( item );
+			packeryInstance.prepended( item );
+			console.log('hi');
+			NicAve.leaflet_map(data.locations);
+		}
+
 		NicAve.build_music_chart();
 
 		$(".item").each(function(){
@@ -255,6 +267,8 @@ var NicAve = {
 				item.height(nearest50-12);
 			}
 		});
+
+
 		packeryInstance.layout();
 
 		if (data.offset){
@@ -267,7 +281,114 @@ var NicAve = {
 	error : function(header, status, error){
 		console.log(status);
 		console.log(error);
-	}
+	},
+
+
+	// Map stuff
+
+	locations_to_latlngs : function(locations){
+
+	  list = []
+
+	  for(i=0;i < locations.length; i++){
+	    markerpos = new L.LatLng(locations[i]['lat'], locations[i]['long']);
+	    markerpos['count'] = 2
+	    list.push(markerpos)
+	  }
+
+	  return list
+	},
+
+
+
+	leaflet_map : function(locations){
+
+	  if (locations.length == 0){
+	    return;
+	  }
+
+	  // replace "toner" here with "terrain" or "watercolor"
+	  var map = new L.Map("mapcanvas", {
+	      center: new L.LatLng(locations[0]['lat'], locations[0]['long']),
+	      zoom: 12
+	  });
+
+	  var watercolorMap = new L.StamenTileLayer("watercolor");
+	  map.addLayer(watercolorMap);
+
+	  var tonerliteMap = new L.StamenTileLayer("toner-lite");
+	  var tonerMap = new L.StamenTileLayer("toner");
+
+	  // var layer = new L.StamenTileLayer("toner-lines");
+	  // map.addLayer(layer);
+
+	  var labelsLayer = new L.StamenTileLayer("toner-labels");
+
+
+	  latlngs = NicAve.locations_to_latlngs(locations)
+	  var bounds = new L.LatLngBounds(latlngs);
+	  map.fitBounds(bounds);
+
+	  var heatmap = new L.TileLayer.WebGLHeatMap({ 
+	    size : 5000,
+	    opacity : .7
+	  });
+
+
+	  heatmapData = []
+	  foursquareMarkers = []
+
+	  for(i=0;i < locations.length; i++){
+
+	    point = locations[i]
+
+	    markerpos = new L.LatLng(point['lat'], point['long']);
+	    
+
+	    if (point['icon']){
+	        image = point['icon'];
+	          marker = new L.Marker(markerpos, {
+	            map:map,
+	            draggable:false,
+	            title: point['title'],
+	            icon: L.icon({
+	                  iconUrl: point['icon'].replace('_64.png', '_bg_32.png'),
+	                  iconSize: [16, 16],
+	              })
+	          });
+	          foursquareMarkers.push(marker)
+	    }
+
+	    
+	    //heatmapData.push({'lat': point['lat'], 'lon': point['long'], 'value': 0.4});
+	    heatmapData.push([point['lat'], point['long'], .3]);
+
+
+	  }
+
+	  foursquareLayer = new L.featureGroup(foursquareMarkers)
+	  heatmap.setData(heatmapData)
+
+
+	  map.addLayer(heatmap);
+	  map.addLayer(foursquareLayer);
+	   
+	  var overlays = {
+	      //"Marker": marker,
+	      "Roads": labelsLayer,
+	      "Heatmap": heatmap,
+	      "Foursquare": foursquareLayer
+	  };
+	  var baseLayers = {
+	      //"Marker": marker,
+	      "Watercolor": watercolorMap,
+	      "Toner": tonerMap,
+	      "Toner Lite": tonerliteMap
+	  };
+	  L.control.layers(baseLayers, overlays).addTo(map);
+
+	},
+
 }
 
 $(document).ready(NicAve.init);

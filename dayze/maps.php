@@ -8,7 +8,7 @@ ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAME
 $query = ORM::for_table('lifestream_locations');
 
 
-$from = time() - 60*60*24*3;
+$from = time() - 60*60*24*30;
 $to   = time();
   $query->where_gt("timestamp", date("Y-m-d 00:00", $from));
   $query->where_lt("timestamp", date("Y-m-d 00:00", $to));
@@ -16,7 +16,6 @@ $items = $query->find_array();
 
 
 $previous = "xxxx";
-
 foreach ($items as $row){
 
   if (!$row['lat_vague']){
@@ -63,81 +62,140 @@ var locations = <?PHP print json_encode($locations) ?>;
 
 </script>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-    <script type="text/javascript"
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBdHTYldEJBPKy0F4g8P1t653oKpPJtwyk&sensor=false">
-    </script>
+
+<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+<script type="text/javascript" src="/assets/js/webgl-heatmap-leaflet/js/webgl-heatmap.js"></script>
+<script type="text/javascript" src="/assets/js/webgl-heatmap-leaflet/js/webgl-heatmap-leaflet.js"></script>
+<script type="text/javascript" src="http://maps.stamen.com/js/tile.stamen.js?v1.3.0"></script>
+
     <script type="text/javascript">
 
+var defaultIcon = L.icon({
+    iconUrl: 'https://phenomsff.com/images/red.png',
+    iconSize: [16, 16],
+});
 
-      function google_map(){
+var heatmapLayer = false
 
-        console.log("Hello World");
-        
+
+function locations_to_latlngs(){
+
+  list = []
+
+  for(i=0;i < locations.length; i++){
+    markerpos = new L.LatLng(locations[i]['lat'], locations[i]['long']);
+    markerpos['count'] = 2
+    list.push(markerpos)
+  }
+
+  return list
+}
+
+function leaflet_map(){
+
   if (locations.length == 0){
     return;
   }
-  
-  var bounds = new google.maps.LatLngBounds();
-  
-  
-  
-  for(i=0;i < locations.length; i++){
-    markerpos = new google.maps.LatLng(locations[i]['lat'], locations[i]['long']);
-    bounds.extend(markerpos)    
-    console.log(markerpos)
-  }
-  
-  var myOptions = {
-    center: new google.maps.LatLng(0, 0),
-    zoom: 1,
-   disableDefaultUI: true,
-      scrollwheel: false,
-      draggable: false,
-      keyboardShortcuts: false,
-    mapTypeId: google.maps.MapTypeId.ROADMAP
-  };
-  
-  var map = new google.maps.Map(document.getElementById("mapcanvas"), myOptions);
-    
-  defaultimage = 'https://phenomsff.com/images/red.png';
 
-  for(i=0;i < locations.length; i++){
-    markerpos = new google.maps.LatLng(locations[i]['lat'], locations[i]['long']);
-        
-        if (locations[i]['icon']){
-            image = locations[i]['icon'];
-              marker = new google.maps.Marker({
-                map:map,
-                draggable:false,
-                position: markerpos,
-                //icon: image,
-                title: locations[i]['title']
-              });
-        } else {
-              marker = new google.maps.Marker({
-                icon: defaultimage,
-                map:map,
-                draggable:false,
-                animation: google.maps.Animation.DROP,
-                position: markerpos,
-                title: locations[i]['title']
-              });
+  // replace "toner" here with "terrain" or "watercolor"
+  var map = new L.Map("mapcanvas", {
+      center: new L.LatLng(locations[0]['lat'], locations[0]['long']),
+      zoom: 12
+  });
 
-        }
-        
+  var watercolorMap = new L.StamenTileLayer("watercolor");
+  map.addLayer(watercolorMap);
 
-    
-   }
-  
+  var tonerliteMap = new L.StamenTileLayer("toner-lite");
+  var tonerMap = new L.StamenTileLayer("toner");
+
+  // var layer = new L.StamenTileLayer("toner-lines");
+  // map.addLayer(layer);
+
+  var labelsLayer = new L.StamenTileLayer("toner-labels");
+
+
+  latlngs = locations_to_latlngs()
+  var bounds = new L.LatLngBounds(latlngs);
   map.fitBounds(bounds);
-  // var listener = google.maps.event.addListener(map, "idle", function() { 
-  //   if (map.getZoom() > 16) map.setZoom(16); 
-  //   google.maps.event.removeListener(listener); 
-  // });
-      }
+
+  var heatmap = new L.TileLayer.WebGLHeatMap({ 
+    size : 5000,
+    opacity : .7
+  });
+
+
+  heatmapData = []
+  foursquareMarkers = []
+
+  for(i=0;i < locations.length; i++){
+
+    point = locations[i]
+
+    markerpos = new L.LatLng(point['lat'], point['long']);
+    
+
+    if (point['icon']){
+        image = point['icon'];
+          marker = new L.Marker(markerpos, {
+            map:map,
+            draggable:false,
+            title: point['title'],
+            icon: L.icon({
+                  iconUrl: point['icon'].replace('_64.png', '_bg_32.png'),
+                  iconSize: [16, 16],
+              })
+          });
+          foursquareMarkers.push(marker)
+    } else {
+          // marker = new L.Marker(markerpos, {
+          //   icon: defaultIcon,
+          //   draggable:false,
+          //   title: point['title']
+          // });
+          // marker.addTo(map)
+
+    }
+
+    
+    //heatmapData.push({'lat': point['lat'], 'lon': point['long'], 'value': 0.4});
+    heatmapData.push([point['lat'], point['long'], .2]);
+
+
+  }
+
+  foursquareLayer = new L.featureGroup(foursquareMarkers)
+  heatmap.setData(heatmapData)
+
+
+  map.addLayer(heatmap);
+  map.addLayer(foursquareLayer);
+
+
+   
+  var overlays = {
+      //"Marker": marker,
+      "Roads": labelsLayer,
+      "Heatmap": heatmap,
+      "Foursquare": foursquareLayer
+  };
+  var baseLayers = {
+      //"Marker": marker,
+      "Watercolor": watercolorMap,
+      "Toner": tonerMap,
+      "Toner Lite": tonerliteMap
+  };
+  L.control.layers(baseLayers, overlays).addTo(map);
+
+}
+
+
+
+
 
 $( document ).ready(function() {
-  google_map();
+  leaflet_map();
 });
     </script>
   </head>

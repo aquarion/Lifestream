@@ -62,11 +62,21 @@ if(!$date_point){
 	<link href='http://fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
 	<link rel="stylesheet" href="/assets/css/style.css">
 
+
+	<!-- Map stuff -->
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+	<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+	<script type="text/javascript" src="/assets/js/webgl-heatmap-leaflet/js/webgl-heatmap.js"></script>
+	<script type="text/javascript" src="/assets/js/webgl-heatmap-leaflet/js/webgl-heatmap-leaflet.js"></script>
+	<script type="text/javascript" src="http://maps.stamen.com/js/tile.stamen.js?v1.3.0"></script>
+	<!-- /Map stuff -->
+
 	<script type="text/javascript" src="/assets/js/library.js"></script>
 	<script type="text/javascript" src="/assets/js/formatting.js"></script>
 	<script type="text/javascript" src="/assets/js/nicave.js"></script>
 	<link rel="stylesheet" href="http://dailyphoto.aquarionics.com/background.css.php?from=<?PHP echo date("Y-m-d", $today) ?>"/>
 	<?PHP include("google_analytics.html"); ?>
+
 
 	<title>Nicholas Avenell - Web Person</title>
 </head>

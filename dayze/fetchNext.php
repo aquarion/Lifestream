@@ -24,17 +24,16 @@ if(isset($_POST['after'])){
 
 
 $query->where_not_null("title");
-$query->where_not_equal("source", "tumblr");
+//$query->where_not_equal("source", "tumblr");
 $query->where_not_equal("source", "lastfm");
 
-define("AN_HOUR", 60*60 );
-define("A_DAY", 60*60*24 );
-define("A_WEEK", 60*60*24*7 );
-define("A_MONTH", 60*60*24*30 );
-define("A_YEAR", 60*60*24*364 );
 
-$split = explode("/", $_POST['path']);
-array_shift($split);
+if(isset($_POST['path'])){
+	$split = explode("/", $_POST['path']);
+	array_shift($split);
+} else {
+	$split = array();
+}
 
 $last = end($split);
 reset($split);
@@ -118,6 +117,9 @@ if (count($split) == 1){ // One Year
 	#$append = "prepend";
 	$query->order_by_desc("date_created");
 
+	$from = time() - (A_WEEK*2);
+	$location_query->where_gt("timestamp", date("Y-m-d 03:00", $from ));
+
 	$location_query->order_by_desc("timestamp");
 
 	$message = "This is the last $max things various services have seen me do.";
@@ -198,7 +200,36 @@ foreach($items as $row){
 	$return['items'][] = $row;
 }
 
-$return['log'] = ORM::get_last_query();
+$return['log'][] = ORM::get_last_query();
+
+////////////////////////////////////////////////////// Locations
+
+$location_query->select_expr("*");
+$location_query->select_expr("round(`long`) as `long`");
+$location_query->select_expr("round(`lat`) as `lat`");
+$location_query->select_expr("count(*) as `value`");
+$location_query->group_by_expr('concat(round(`lat`,2),"/",round(`long`,2))');
+$location_rows = $location_query->find_array();
+$locations = array();
+
+foreach ($location_rows as $row){
+
+    if($row['title']){
+        $title = $row['title'];
+    } else {
+        $title = $row['timestamp'];
+    }
+    
+    $newentry = array("lat" => $row['lat_vague'], "long" => $row['long_vague'], 'title' => $title, 'value' => $row['value']);
+    if($row['icon']){
+        $newentry['icon'] = $row['icon'];
+    }
+    $locations[] = $newentry;  
+}
+
+$return['locations'] = $locations;
+$return['log'][] = ORM::get_last_query();
+
 
 #$return['items'] = array_reverse($return['items']);
 
