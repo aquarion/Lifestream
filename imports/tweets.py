@@ -20,6 +20,8 @@ import rfc822
 
 from urllib2 import URLError
 
+import socket
+socket.setdefaulttimeout(60) # Force a timeout if twitter doesn't respond
 
 if (len(sys.argv) < 3):
     print "Usage: lifestreamit class username"
