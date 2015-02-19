@@ -17,6 +17,7 @@ oauthlib==0.6.3
 pep8==1.5.7
 python-dateutil==2.2
 python-gflags==2.0
+python-wordpress-xmlrpc==2.3
 pytz==2013b
 requests==2.4.3
 requests-oauthlib==0.4.1
