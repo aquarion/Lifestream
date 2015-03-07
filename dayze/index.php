@@ -37,9 +37,15 @@ if (count($split) == 1){ // One Year
 	$format = "/Y/m";
 	$display_format = "F Y";
 } elseif(count($split) == 3 && is_numeric($split[1])){  // One Day
-	$today = mktime (0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
-	$format = "/Y/m/d";
-	$display_format = "l jS F Y";
+	if($split[0] == '*'){
+		$today = mktime (0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
+		$format = "/\*/m/d";
+		$display_format = "l jS F \A\\n\y \y\e\a\\r";
+	} else {
+		$today = mktime (0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
+		$format = "/Y/m/d";
+		$display_format = "l jS F Y";
+	}
 } else {  // Last 200
 	$today = time();
 	$format = "/Y/m/d";
