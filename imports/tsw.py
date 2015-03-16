@@ -11,18 +11,19 @@ from datetime import datetime
 
 Lifestream = lifestream.Lifestream()
 
-if (len(sys.argv) < 2):
-    print "Usage: %s charactername[,charactername] " % sys.argv[0]
-    sys.exit(5)
-
-CHARACTERS = sys.argv[1]
+CHARACTERS = Lifestream.config.get("thesecretworld", "characters");
 
 br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
 
 # Login
 
+DEBUG = True
+
 for character in CHARACTERS.split(","):
+
+    if DEBUG:
+	print character
 
     url = "http://chronicle.thesecretworld.com/character/%s" % character
 
@@ -45,6 +46,9 @@ for character in CHARACTERS.split(","):
 
     text = "%s achieved %s&ndash;%s" % (
         character, rank_n.string, rank_t.string)
+
+    if DEBUG:
+	print " -- " + text
 
     id = hashlib.md5()
     id.update(text)
