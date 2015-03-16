@@ -24,7 +24,7 @@ if(isset($_POST['after'])){
 
 
 $query->where_not_null("title");
-//$query->where_not_equal("source", "tumblr");
+$query->where_not_equal("source", "tumblr");
 $query->where_not_equal("source", "lastfm");
 
 

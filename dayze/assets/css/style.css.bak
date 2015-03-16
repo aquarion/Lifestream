@@ -282,7 +282,7 @@ border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 
 	height: 88px;
 }
 
-.aquarionics_wordpress .bloginner {
+.wordpress_aquarionics .bloginner {
   background: rgba(0,0,0,.5);
   font-size: 18pt;
   border-radius: .2em;
@@ -292,7 +292,7 @@ border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 
   padding: .2em;
 }
 
-.aquarionics_wordpress .aqcomicon {
+.wordpress_aquarionics .aqcomicon {
   position: absolute;
   bottom: .2em;
   right: .2em;

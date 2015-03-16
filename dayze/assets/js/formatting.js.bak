@@ -110,11 +110,7 @@ var Formatting = {
 
 	'aquarionics' : function(object, element){
 		console.log(object);
-		if(object.image){
-			element.css("background-image", "url('"+object.image+"')");
-		} else {
-			element.css("background-image", "url('"+object.image+"')");
-		}
+		element.css("background-image", "url('"+object.image+"')");
 		element.css("background-size", "cover");
 		element.css("background-position", "center");
 		element.html('<div class="bloginner">' + object.title + '</div><img src="http://art.istic.net/iconography/aqcom/logo_64.png" height="64" width="64" class="aqcomicon">');
