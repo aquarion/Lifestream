@@ -17,9 +17,11 @@ try:
 except ConfigParser.NoOptionError:
     api_key = ''
 
-api_base = "http://census.soe.com%s/get/ps2:v2" % api_key
+url_base = "https://census.daybreakgames.com"
 
-image_base = "https://census.soe.com"
+api_base = "%s/%s/get/ps2:v2" % (url_base, api_key)
+
+image_base = url_base
 
 Lifestream = lifestream.Lifestream()
 
