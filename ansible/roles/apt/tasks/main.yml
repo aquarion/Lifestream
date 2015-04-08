@@ -1,0 +1,25 @@
+---
+
+- name: Update apt cache
+  apt: update_cache=yes
+
+- name: Install useful OS packages
+  apt: name={{ item }} state=present
+  with_items:
+  - vim
+  - ntp
+  - bzip2
+  - git
+  - curl
+  - wget
+ 
+- name: Install required OS packages
+  apt: name={{ item }} state=present
+  with_items:
+  - python
+  - python-dev
+  - python-mysqldb
+  - python-lxml
+  - virtualenvwrapper
+  - mysql-server-5.5
+  - mysql-client-5.5

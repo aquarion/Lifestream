@@ -1,0 +1,8 @@
+
+- name: Send deploy notification message via Slack
+  local_action:
+    module: slack
+    channel: "#general"
+    domain: istic.slack.com
+    token: T02Q92T60/B043ZD1TT/ArRFgZbL5Rt41DQetIwcCt7x
+    msg: "[Lifestream] deploy to {{ inventory_hostname }} completed"

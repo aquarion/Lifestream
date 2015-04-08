@@ -1,0 +1,8 @@
+
+- pip: requirements=/vagrant/requirements.pip virtualenv=/home/vagrant/venv virtualenv_site_packages=yes
+
+# Dev modules
+- pip: name=ipython version=2.1.0 virtualenv=/home/vagrant/venv
+- pip: name=ipdb version=0.8 virtualenv=/home/vagrant/venv
+- pip: name=rednose version=0.4.1 virtualenv=/home/vagrant/venv
+- pip: name=coverage version=3.7.1 virtualenv=/home/vagrant/venv

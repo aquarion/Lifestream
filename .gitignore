@@ -10,3 +10,4 @@ dayze.new
 dayze.old
 dayze/lib
 *.oauth
+.vagrant
