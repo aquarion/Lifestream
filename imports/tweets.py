@@ -23,7 +23,7 @@ from urllib2 import URLError
 import socket
 
 import logging
-lifestream.arguments.add_argument('class')
+lifestream.arguments.add_argument('itemtype')
 lifestream.arguments.add_argument('username')
 args = lifestream.arguments.parse_args()
 
@@ -83,8 +83,10 @@ for tweet in tweets:
 
     localdate = dateutil.parser.parse(tweet['created_at'])
     utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
+
+    logger.info(message)
     Lifestream.add_entry(
-        args.type,
+        args.itemtype,
         id,
         message,
         source,
