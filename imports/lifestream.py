@@ -23,14 +23,30 @@ except IOError:
 arguments = argparse.ArgumentParser()
 arguments.add_argument('--debug', required=False, help="Enable Debug", default=False, action='store_true')
 
-if '--debug' in sys.argv:
-    level = logging.DEBUG
+LOG_DIR = config.get('global', 'log_location')
+
+LOG_FORMAT = '%(asctime)s [%(name)s] %(message)s'
+
+if ('--debug' in sys.argv):
+    DEBUG = True
 else:
-    level = logging.WARNING
+    DEBUG = False
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    filename='%s/lifestream.log' % LOG_DIR,
+                    filemode='a')
+
+console = logging.StreamHandler()
+console.setLevel(logging.WARN)
+formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+console.setFormatter(formatter)
+logging.getLogger('').addHandler(console)
+
 
 #logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
 
-logging.basicConfig(format='%(asctime)s [%(name)s] %(message)s', level=level)
+
 
 logger = logging.getLogger(__name__)
 

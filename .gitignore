@@ -11,3 +11,4 @@ dayze.old
 dayze/lib
 *.oauth
 .vagrant
+logs/lifestream.log
