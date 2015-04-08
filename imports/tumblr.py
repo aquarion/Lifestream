@@ -14,12 +14,24 @@ from time import mktime
 from pytumblr import TumblrRestClient
 import oauth2 as oauth
 
+
+import logging
+logger = logging.getLogger('Tumblr')
+lifestream.arguments.add_argument('--full-import', required=False, help="Full Import of all entries", default=False, action='store_true')
+
+args = lifestream.arguments.parse_args()
+
 Lifestream = lifestream.Lifestream()
 
 OAUTH_TUMBLR = lifestream.config.get("tumblr", "secrets_file")
 
 # Use this once to import everything, otherwise it's the last 20 items
-FULL_IMPORT = False
+if args.full_import:
+    logger.info("Full Import!")
+    FULL_IMPORT = True
+else:
+    logger.info("Import most recent!")
+    FULL_IMPORT = False
 
 
 def tumblrAuth(config, OAUTH_TUMBLR):
@@ -85,8 +97,8 @@ blogs = lifestream.config.get("tumblr", "blogs").split(",")
 
 
 for blog in blogs:
-    # debug# print blog
-    # debug# print "----"
+    logger.info(blog)
+    logger.info("----")
     details = tumblr.posts(blog)
     startat = 0.0
 
@@ -101,8 +113,7 @@ for blog in blogs:
 
         posts = details['posts']
 
-        # debug# print "%s %d/%d %.2f%%" % (blog, startat,max_posts,
-        # (startat/max_posts)*100.0);
+        logger.info("%s %d/%d %.2f%%" % (blog, startat,max_posts, (startat/max_posts)*100.0));
 
         for post in posts:
             id = post['id']
@@ -119,7 +130,7 @@ for blog in blogs:
             elif "body" in post:
                 title = post['body']
             else:
-                # debug# print post
+                logger.info(post)
                 title = "Tumblr %s" % type
 
             if type == "quote":

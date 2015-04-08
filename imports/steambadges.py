@@ -13,6 +13,10 @@ from mechanize import Browser, RobustFactory
 
 from time import sleep
 
+import logging
+logger = logging.getLogger('Steam Badges')
+args = lifestream.arguments.parse_args()
+
 USERNAME = lifestream.config.get("steam", "username")
 steamtime = pytz.timezone('US/Pacific')
 Lifestream = lifestream.Lifestream()
@@ -58,6 +62,8 @@ for badge in badges:
 
     id = hashlib.md5()
     id.update(text)
+
+    logger.info(text)
 
     Lifestream.add_entry(
         "badge",

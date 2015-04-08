@@ -15,6 +15,10 @@ from time import sleep
 
 from datetime import datetime
 
+import logging
+logger = logging.getLogger('Oyster')
+args = lifestream.arguments.parse_args()
+
 Lifestream = lifestream.Lifestream()
 
 if (len(sys.argv) < 3):
@@ -104,6 +108,7 @@ for row in dataReader:
         id.update(action)
 
         # print action, utcdate
+        logger.info(action)
         Lifestream.add_entry(
             "oyster",
             id.hexdigest(),

@@ -8,14 +8,25 @@ import feedparser
 import datetime
 import sys
 
-if (len(sys.argv) < 2):
-    print "Usage: lastfm lastfmid"
+import logging
+logger = logging.getLogger('Last.FM')
+args = lifestream.arguments.parse_args()
+
+
+try:
+    id = lifestream.config.get("lastfm", "username")
+except:
+    id = False
+    pass
+
+if not id:
+    logger.error("No Last.fm user found in config file")
     sys.exit(5)
 
 Lifestream = lifestream.Lifestream()
 
-id = sys.argv[1]
 url = "http://ws.audioscrobbler.com/1.0/user/%s/recenttracks.rss" % id
+logging.info('Grabbing %s' % url)
 fp = feedparser.parse(url)
 type = "lastfm"
 
@@ -26,6 +37,7 @@ for i in range(1, len(fp['entries'])):
     localdate = dateutil.parser.parse(o_item.updated)
     updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
     del o_item['updated_parsed']
+    logger.info(title)
     Lifestream.add_entry(
         type,
         id,

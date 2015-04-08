@@ -20,6 +20,10 @@ import ipdb
 
 Lifestream = lifestream.Lifestream()
 
+import logging
+logger = logging.getLogger('Histumblr')
+args = lifestream.arguments.parse_args()
+
 OAUTH_TUMBLR = lifestream.config.get("tumblr", "secrets_file")
 
 
@@ -36,7 +40,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         oauth_token = pickle.load(f)
         f.close()
     except:
-        print "Couldn't open %s, reloading..." % OAUTH_TUMBLR
+        logger.error("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 
     if(not oauth_token):
@@ -64,9 +68,9 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         resp, content = client.request(access_token_url, "POST")
         oauth_token = dict(urlparse.parse_qsl(content))
-        print resp
 
-        print oauth_token
+        logger.debug(resp)
+        logger.debug(oauth_token)
         print "Access key:", oauth_token['oauth_token']
         print "Access Secret:", oauth_token['oauth_token_secret']
 
@@ -109,12 +113,12 @@ tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 cursor.execute(sql, (datefrom.isoformat(), dateto.isoformat()))
 for post in cursor:
     systemid = post[4]
-    print post[0]
+    debug.info(post[0])
     data = simplejson.loads(post[3])
     date_created = post[1]
-    print date_created
-    print date_created + four_years
-    print '---'
+    logger.info(date_created)
+    logger.info(date_created + four_years)
+    logger.info('---')
 
     tumblr.reblog(
         "aquarions-of-history",

@@ -7,6 +7,12 @@ import ConfigParser
 from datetime import datetime
 import pytz
 
+
+
+import logging
+logger = logging.getLogger('Planetside2')
+args = lifestream.arguments.parse_args()
+
 IMG = "http://art.istic.net/iconography/games/planetside2.png"
 
 characters = lifestream.config.get("planetside", "characters")
@@ -26,10 +32,11 @@ image_base = url_base
 Lifestream = lifestream.Lifestream()
 
 
-for character in characters:
+for character_name in characters:
+    logger.info("Data for %s" % character_name)
     charac = requests.get(
         "%s/character/?name.first_lower=%s&c:resolve=faction" %
-        (api_base, character))
+        (api_base, character_name))
 
     character = charac.json()
 
@@ -38,7 +45,7 @@ for character in characters:
     profile = character['character_list'][0]
     br = profile['battle_rank']
     faction = profile['faction']['code_tag'].lower()
-    name = profile['name']['first']
+    character_name = name = profile['name']['first']
 
     ##
     ranki = requests.get(
@@ -53,6 +60,8 @@ for character in characters:
 
     id = hashlib.md5()
     id.update(text)
+
+    logger.info(text)
 
     Lifestream.add_entry(
         "gaming",
@@ -75,12 +84,14 @@ for character in characters:
             continue
 
         name = achivement['achievement_id_join_achievement']['name']['en']
-        text = "%s earnt %s" % (character, name)
+        text = "%s earnt %s" % (character_name, name)
         image = image_base + \
             achivement['achievement_id_join_achievement']['image_path']
         date = achivement['finish_date']
         id = hashlib.md5()
         id.update(text + date)
+
+        logger.info(text)
 
         epoch = float(achivement['finish'])
         localzone = pytz.timezone("Europe/London")

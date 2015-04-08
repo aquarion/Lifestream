@@ -18,12 +18,12 @@ br.set_handle_robots(False)
 
 # Login
 
-DEBUG = True
+import logging
+logger = logging.getLogger('TSW')
+args = lifestream.arguments.parse_args()
 
 for character in CHARACTERS.split(","):
 
-    if DEBUG:
-	print character
 
     url = "http://chronicle.thesecretworld.com/character/%s" % character
 
@@ -47,8 +47,7 @@ for character in CHARACTERS.split(","):
     text = "%s achieved %s&ndash;%s" % (
         character, rank_n.string, rank_t.string)
 
-    if DEBUG:
-	print " -- " + text
+    logger.info(text)
 
     id = hashlib.md5()
     id.update(text)

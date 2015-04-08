@@ -1,33 +1,35 @@
 #!/usr/bin/python
 
 import lifestream
-
+import logging
 import feedparser
 import sys
 from datetime import datetime
 from time import mktime
 
-if (len(sys.argv) < 3):
-    print "Usage: %s type url" % sys.argv[0]
-    sys.exit(5)
+logger = logging.getLogger('Atom')
 
-type = sys.argv[1]
-url = sys.argv[2]
+lifestream.arguments.add_argument('type')
+lifestream.arguments.add_argument('url')
+
+args = lifestream.arguments.parse_args()
 
 Lifestream = lifestream.Lifestream()
 
-fp = feedparser.parse(url)
+logger.info('Grabbing %s' % args.url )
+fp = feedparser.parse(args.url)
 
 for i in range(len(fp['entries'])):
     o_item = fp['entries'][i]
     id = o_item['guid']
     dt = datetime.fromtimestamp(mktime(o_item['updated_parsed']))
     updated = dt.strftime("%Y-%m-%d %H:%M")
+    logger.info("Adding new %s item: %s" % (args.type, o_item['title']))
 
     Lifestream.add_entry(
-        type=type,
+        type=args.type,
         id=id,
         title=o_item['title'],
-        source=type,
+        source=args.type,
         date=updated,
         url=o_item['links'][0]['href'])

@@ -17,9 +17,11 @@ from datetime import datetime
 
 Lifestream = lifestream.Lifestream()
 
-if (len(sys.argv) < 2):
-    print "Usage: %s filename" % sys.argv[0]
-    sys.exit(5)
+
+import logging
+logger = logging.getLogger('Oyster-CSV')
+lifestream.arguments.add_argument('filename')
+args = lifestream.arguments.parse_args()
 
 londontime = pytz.timezone("Europe/London")
 
@@ -27,7 +29,7 @@ londontime = pytz.timezone("Europe/London")
 
 headers = False
 
-data = open(sys.argv[1], 'rb')
+data = open(args.filename, 'rb')
 dataReader = csv.reader(data)
 for row in dataReader:
     if not headers:
@@ -57,7 +59,7 @@ for row in dataReader:
         id.update(utcdate)
         id.update(action)
 
-        print action, utcdate
+        logger.info("%s: %s", (action, utcdate))
         #add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False)
         Lifestream.add_entry(
             "oyster",

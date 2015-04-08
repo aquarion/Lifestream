@@ -4,6 +4,7 @@ import lifestream
 import lifestreamutils
 
 import sys
+import logging
 import cPickle as pickle
 from datetime import datetime, timedelta
 
@@ -20,6 +21,8 @@ import os
 import pprint
 import sys
 
+logger = logging.getLogger('Fitbit Day')
+args = lifestream.arguments.parse_args()
 
 def fitbitAuth(config, OAUTH_SECRETS):
     CLIENT_KEY = config.get("fitbit", "consumer_key")
@@ -34,7 +37,7 @@ def fitbitAuth(config, OAUTH_SECRETS):
         token = pickle.load(f)
         f.close()
     except:
-        print "Couldn't open %s, reloading..." % OAUTH_SECRETS
+        logger.error("Couldn't open %s, reloading..." % OAUTH_SECRETS)
         token = False
 
     if(not token):
@@ -96,6 +99,7 @@ for sleep in fbcxn.sleep()['sleep']:
     title = "Took %s to fall asleep for %s (%d%% efficent sleep)." % (
         toSleep, asleep, sleep['efficiency'])
 
+    logger.info("Sleep: %s" % title)
     Lifestream.add_entry(
         type=type,
         id=id,
@@ -115,6 +119,7 @@ for badge in fbcxn.get_badges()['badges']:
     image = badge['image75px']
     date = badge['dateTime']
 
+    logger.info("Badge: %s" % badge['image75px'])
     Lifestream.add_entry(
         type=type,
         id=id,
@@ -135,6 +140,7 @@ for day in range(0, 7):
     for steps in allsteps:
         # print "Steps for %s : %s" % (steps['dateTime'], steps['value'])
         if int(steps['value']) > 0:
+            logger.info("Steps: %s" % steps['value'])
             Lifestream.add_entry(
                 type="steps",
                 id="steps" +
@@ -154,6 +160,7 @@ for day in range(0, 7):
     for score in allscore:
         # print "score for %s : %s" % (score['dateTime'], score['value'])
         if int(score['value']) > 0:
+            logger.info("Score: %s" % score['value'])
             Lifestream.add_entry(
                 type="activeScore",
                 id="activeScore" +

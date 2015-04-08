@@ -7,6 +7,10 @@ import urllib
 import urllib2
 import json
 
+import logging
+logger = logging.getLogger('Openpaths')
+args = lifestream.arguments.parse_args()
+
 dbcxn = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
@@ -40,6 +44,7 @@ params = {
 query = "%s?%s" % (URL, urllib.urlencode(params))
 
 try:
+    logger.debug('Grabbing %s' % URL)
     request = urllib2.Request(query)
     request.headers = build_auth_header(URL, 'GET')
     connection = urllib2.urlopen(request)
@@ -79,7 +84,7 @@ for datum in data:
             'latitude'] and not longitude_vague == previous['longitude']:
 
         accuracy = 100
-
+        logger.info('Found %s %s/%s' % (timestamp, latitude_best, longitude_best))
         #                                (`id`,                 `lat`,             `long`,            `lat_vague`,   `long_vague`, `timestamp`, `accuracy`)
         cursor.execute(
             s_sql,

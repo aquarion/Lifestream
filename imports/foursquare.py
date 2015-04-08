@@ -6,6 +6,7 @@ import os
 import pytz
 import re
 from datetime import datetime
+import logging
 
 import oauth2
 from twitter.oauth import write_token_file, read_token_file
@@ -16,6 +17,10 @@ from pprint import pprint
 type = "location"
 username = lifestream.config.get("foursquare", "username")
 url = "http://foursquare.com/%s" % username
+
+
+logger = logging.getLogger('Foursquare')
+args = lifestream.arguments.parse_args()
 
 # DB Setup
 
@@ -30,6 +35,7 @@ CONSUMER_KEY = lifestream.config.get("foursquare", "client_id")
 CONSUMER_SECRET = lifestream.config.get("foursquare", "secret")
 
 if not os.path.exists(OAUTH_FILENAME):
+    logger.error("No OAUTH found at %s" % OAUTH_FILENAME)
     print "You need to run foursquare_oauth.py to generate the oauth key"
     sys.exit(5)
 
@@ -97,6 +103,8 @@ if 'checkins' in data['response'].keys():
 
         coordinates = location['venue']['location']
 
+        logger.info("Checkin %s@%s" % (utcdate, location['venue']['name']))
+
         #                     (`id`,  `lat`,            `long`, `lat_vague`, `long_vague`, `timestamp`, `title`, `icon`)
         cursor.execute(
             l_sql,
@@ -132,6 +140,8 @@ for badgeid, badge in badges.items():
     epoch = checkin['createdAt']
     utctime = datetime.utcfromtimestamp(epoch)
     utcdate = utctime.strftime("%Y-%m-%d %H:%M")
+
+    logger.info("Badge %s" % (message))
 
     Lifestream.add_entry(
         type,

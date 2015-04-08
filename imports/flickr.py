@@ -3,6 +3,7 @@
 import lifestream
 import sys
 import flickrapi
+import logging
 
 max_pages = False
 per_page = 100
@@ -18,6 +19,9 @@ dbcxn = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
 Lifestream = lifestream.Lifestream()
+
+logger = logging.getLogger('Flickr')
+args = lifestream.arguments.parse_args()
 
 # Only search from the most recent result
 sql = 'select date_created from lifestream where type = "flickr" order by date_created desc limit 1 '
@@ -40,13 +44,10 @@ photos_xml = flickr.photos_search(
 
 pages = int(photos_xml.find('photos').attrib['pages'])
 
-if DEBUG:
-    print "Since %s" % since
-    print pages
+logger.info("Since %s" % since)
 
 if pages == 0:
-    if DEBUG:
-        print "No photos found"
+    logger.info("Nothing found")
     sys.exit(0)
 
 if max_pages and pages > max_pages:
@@ -61,8 +62,7 @@ type = "flickr"
 
 
 for page in range(1, pages + 1):
-    if DEBUG:
-        print "Page %d of %d" % (page, pages)
+    logger.info("Page %d of %d" % (page, pages))
     photos_xml = flickr.photos_search(
         user_id=FLICKRID,
         per_page=per_page,
@@ -85,8 +85,7 @@ for page in range(1, pages + 1):
         id = photo.attrib['id']
         date_taken = info.find("photo").find("dates").attrib['taken']
 
-        if DEBUG:
-            print "     %s %s" % (date_taken, title)
+        logger.info("     %s %s" % (date_taken, title))
 
         Lifestream.add_entry(
             type="flickr",

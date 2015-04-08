@@ -6,6 +6,9 @@ import cymysql as MySQLdb
 import codecs
 import simplejson
 
+import argparse
+import logging
+
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(basedir + "/../lib")
 
@@ -17,6 +20,19 @@ try:
 except IOError:
     config.readfp(open(os.getcwd() + '/../config.ini'))
 
+arguments = argparse.ArgumentParser()
+arguments.add_argument('--debug', required=False, help="Enable Debug", default=False, action='store_true')
+
+if '--debug' in sys.argv:
+    level = logging.DEBUG
+else:
+    level = logging.WARNING
+
+#logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
+
+logging.basicConfig(format='%(asctime)s [%(name)s] %(message)s', level=level)
+
+logger = logging.getLogger(__name__)
 
 def getDatabaseConnection():
 

@@ -4,6 +4,7 @@ import lifestream
 
 import pytz
 import dateutil.parser
+import logging
 import sys
 
 import urllib2
@@ -18,12 +19,15 @@ URL_PREFIX = "https://github.com"
 ls_type = "code"
 ls_source = "github"
 
+logger = logging.getLogger('Github')
+args = lifestream.arguments.parse_args()
 
 import requests
 import simplejson as json
 
 
 def github_call(path, token, page=1, perpage=100):
+    logger.debug("Calling %s" % path)
     gh_url = 'https://api.github.com/%s?page=%d&perpage=%d' % (
         path, page, perpage)
     headers = {"Authorization": "token %s" % token}
@@ -39,6 +43,7 @@ def github_call(path, token, page=1, perpage=100):
 repos = github_call("user/repos", TOKEN)
 
 for repo in repos:
+    logger.debug("Hello %s" % repo['name'])
     # if repo['private']:
     #	continue;
 
@@ -51,7 +56,8 @@ for repo in repos:
             author = commit['author']['login']
 
         if not USERNAME.lower() == author.lower():
-            # print "%s - Skipped" % commit['commit']['message']
+            logger.debug("%s - Skipped" % commit['commit']['message'])
+            # print 
             continue
 
         message = "%s: %s" % (repo['name'], commit['commit']['message'])
@@ -61,6 +67,7 @@ for repo in repos:
         id = commit['sha']
 
         # print message
+        logger.info(message)
         #cursor.execute(s_sql, (ls_type, id, message, utcdate, url, ls_source))
         # print s_sql % (ls_type, id, message, utcdate, url, ls_source)
         Lifestream.add_entry(

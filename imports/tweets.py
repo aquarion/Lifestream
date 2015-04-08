@@ -21,19 +21,21 @@ import rfc822
 from urllib2 import URLError
 
 import socket
+
+import logging
+lifestream.arguments.add_argument('class')
+lifestream.arguments.add_argument('username')
+args = lifestream.arguments.parse_args()
+
+logger = logging.getLogger('Twitter/%s' % args.username)
+
 socket.setdefaulttimeout(60) # Force a timeout if twitter doesn't respond
 
-if (len(sys.argv) < 3):
-    print "Usage: lifestreamit class username"
-    sys.exit(5)
-
-type = sys.argv[1]
-username = sys.argv[2]
 
 Lifestream = lifestream.Lifestream()
 
 OAUTH_FILENAME = "%s/twitter_%s.oauth" % (
-    lifestream.config.get("global", "secrets_dir"), username)
+    lifestream.config.get("global", "secrets_dir"), args.username)
 CONSUMER_KEY = lifestream.config.get("twitter", "consumer_key")
 CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
 
@@ -77,12 +79,12 @@ for tweet in tweets:
 
     source = re.sub(r'<[^>]*?>', '', source)
 
-    url = "http://twitter.com/%s/status/%d" % (username, id)
+    url = "http://twitter.com/%s/status/%d" % (args.username, id)
 
     localdate = dateutil.parser.parse(tweet['created_at'])
     utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
     Lifestream.add_entry(
-        type,
+        args.type,
         id,
         message,
         source,
