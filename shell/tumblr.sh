@@ -20,7 +20,7 @@ touch $LOCKFILE
 source /usr/local/bin/virtualenvwrapper.sh
 workon lifestream
 
-python `dirname $0`/../imports/tumblr.py tumblr http://aquarion.tumblr.com/rss
+python `dirname $0`/../imports/tumblr.py
 
 
 # IMPORTANT: Run this first in a terminal or ssh session to go though the oauth keys
