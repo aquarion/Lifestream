@@ -20,7 +20,7 @@ touch $LOCKFILE
 source /usr/local/bin/virtualenvwrapper.sh
 workon lifestream
 
-python `dirname $0`/../imports/tsw.py Salique,Delique,Modique
+python `dirname $0`/../imports/tsw.py
 
 
 # IMPORTANT: Run this first in a terminal or ssh session to go though the oauth keys
