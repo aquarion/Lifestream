@@ -2,7 +2,7 @@
 
 # directories
 LOCKDIR=/tmp
-
+export VIRTUALENVWRAPPER_LOG_FILE=`basedir $0`/logs/venv_`basename $0`.log
 # Locking code based on code from http://troy.jdmz.net/cron/
 
 # Originally by Troy Johnson,
