@@ -23,21 +23,26 @@ from urllib2 import URLError
 import socket
 
 import logging
-lifestream.arguments.add_argument('itemtype')
-lifestream.arguments.add_argument('username')
-args = lifestream.arguments.parse_args()
-
-logger = logging.getLogger('Twitter/%s' % args.username)
-
-socket.setdefaulttimeout(60) # Force a timeout if twitter doesn't respond
-
 
 Lifestream = lifestream.Lifestream()
 
-OAUTH_FILENAME = "%s/twitter_%s.oauth" % (
-    lifestream.config.get("global", "secrets_dir"), args.username)
+logger = logging.getLogger('Twitter')
+args = lifestream.arguments.parse_args()
+
+
+socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
+
+
+OAUTH_FILENAME = "%s/twitter.oauth" % (
+    lifestream.config.get("global", "secrets_dir"))
 CONSUMER_KEY = lifestream.config.get("twitter", "consumer_key")
 CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
+
+ACCOUNTS = lifestream.config.get("twitter", "accounts")
+
+if not ACCOUNTS:
+    logger.error("No twitter accounts found in config")
+    sys.exit(5)
 
 if not os.path.exists(OAUTH_FILENAME):
     oauth_dance(
@@ -54,43 +59,43 @@ twitter = Twitter(
     api_version='1.1',
     domain='api.twitter.com')
 
+for account in ACCOUNTS.split(","):
+    logger.debug("Loading tweets for %s" % account)
+    try:
+        tweets = twitter.statuses.user_timeline(screen_name=account)
+    except ValueError:
+        sys.exit(4)
+    except URLError as e:
+        if not e.reason[0] == 104:
+            logger.error("Caught error %s" % e.reason[0])
+            logger.error(e.reason)
+        sys.exit(5)
+    # except Exception as e:
+    #     logger.error("Caught error %s" % Exception)
+    #     logger.error(e)
+    #     sys.exit(12)
+    # logger.info('-- Welcome to Twipistula')
 
-try:
-    tweets = twitter.statuses.user_timeline()
-except ValueError:
-    sys.exit(4)
-except URLError as e:
-    if not e.reason[0] == 104:
-        print "Caught error %s" % e.reason[0]
-        print e.reason
-    sys.exit(5)
-except Exception as e:
-    print "Caught error %s" % Exception
-    print e
-    sys.exit(12)
-# print '-- Welcome to Twipistula'
+    for tweet in tweets:
+        id = tweet['id']
+        image = tweet['user']['profile_image_url']
+        message = tweet['text'].encode("utf_8")
+        source = tweet['source']
+        logger.debug(" -  %s" % tweet['text'].encode("utf_8"))
 
-for tweet in tweets:
-    id = tweet['id']
-    #message = tweet['text'].replace('"', '\\"');
-    image = tweet['user']['profile_image_url']
-    message = tweet['text'].encode("utf_8")
-    source = tweet['source']
+        source = re.sub(r'<[^>]*?>', '', source)
 
-    source = re.sub(r'<[^>]*?>', '', source)
+        url = "http://twitter.com/%s/status/%d" % (account, id)
 
-    url = "http://twitter.com/%s/status/%d" % (args.username, id)
+        localdate = dateutil.parser.parse(tweet['created_at'])
+        utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
-    localdate = dateutil.parser.parse(tweet['created_at'])
-    utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-
-    logger.info(message)
-    Lifestream.add_entry(
-        args.itemtype,
-        id,
-        message,
-        source,
-        utcdate,
-        url=url,
-        image=image,
-        fulldata_json=tweet)
+        Lifestream.add_entry(
+            "twitter",
+            id,
+            message,
+            source,
+            utcdate,
+            url=url,
+            image=image,
+            fulldata_json=tweet)
