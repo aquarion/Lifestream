@@ -2,7 +2,6 @@
 
 # directories
 LOCKDIR=/tmp
-export VIRTUALENVWRAPPER_LOG_FILE=$(readlink -f `dirname $0`/../logs/venv_`basename $0`.log)
 
 # Locking code based on code from http://troy.jdmz.net/cron/
 
@@ -18,8 +17,7 @@ trap "{ rm -f $LOCKFILE; exit 255; }" 15
 trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
-source /usr/local/bin/virtualenvwrapper.sh
-workon lifestream
+source ~/.virtualenvs/lifestream/bin/activate
 
 python `dirname $0`/../imports/mailbox-stats.py aqcom-emails-received /home/aquarion/mail-archive/aquarionics-backup.mbox
 

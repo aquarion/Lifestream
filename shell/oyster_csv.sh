@@ -2,7 +2,6 @@
 
 # directories
 LOCKDIR=/tmp
-export VIRTUALENVWRAPPER_LOG_FILE=$(readlink -f `dirname $0`/../logs/venv_`basename $0`.log)
 
 # Locking code based on code from http://troy.jdmz.net/cron/
 
@@ -28,9 +27,7 @@ then
 	exit 0
 fi
 
-source /usr/local/bin/virtualenvwrapper.sh
-workon lifestream
-
+source ~/.virtualenvs/lifestream/bin/activate
 
 for fle in ~/Dropbox/File\ Transfer/TFL/*.csv;
 do

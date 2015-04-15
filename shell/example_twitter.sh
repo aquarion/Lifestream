@@ -2,8 +2,6 @@
 
 # directories
 LOCKDIR=/tmp
-export VIRTUALENVWRAPPER_LOG_FILE=$(readlink -f `dirname $0`/../logs/venv_`basename $0`.log)
-
 # Locking code based on code from http://troy.jdmz.net/cron/
 
 # Originally by Troy Johnson,
@@ -18,10 +16,7 @@ trap "{ rm -f $LOCKFILE; exit 255; }" 15
 trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
-export VIRTUALENVWRAPPER_LOG_FILE=`basedir $0`/logs/venv_`basename $0`.log
-
-source /usr/local/bin/virtualenvwrapper.sh
-workon lifestream
+source ~/.virtualenvs/lifestream/bin/activate
 
 echo `dirname $0`/tweets.py twitter twitterusername
 
