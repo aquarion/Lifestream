@@ -9,7 +9,7 @@ LOCKDIR=/tmp
 # Adapted by Nicholas Avenell <nicholas@aquarionics.com> for lifestream.
 
 # lock file creation and removal
-LOCKFILE=$LOCKDIR/`basename $0`.lock
+LOCKFILE=$LOCKDIR/$1.lock
 [ -f $LOCKFILE ] && echo $LOCKFILE exists && exit 0
 trap "{ rm -f $LOCKFILE; exit 255; }" 2
 trap "{ rm -f $LOCKFILE; exit 255; }" 9
