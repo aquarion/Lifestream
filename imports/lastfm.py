@@ -40,7 +40,7 @@ for i in range(1, len(fp['entries'])):
     title = o_item.title  # .encode("utf_8")
     localdate = dateutil.parser.parse(o_item.updated)
     updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-    del o_item['updated_parsed']
+    del o_item['published_parsed']
     logger.info(title)
     Lifestream.add_entry(
         type,
