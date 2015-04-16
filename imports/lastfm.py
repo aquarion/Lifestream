@@ -1,14 +1,18 @@
 #!/usr/bin/python
-
-import lifestream
-
+# Python
 import dateutil.parser
 import pytz
 import feedparser
 import datetime
 import sys
-
 import logging
+
+# Libraries
+
+# Local
+import lifestream
+
+
 logger = logging.getLogger('Last.FM')
 args = lifestream.arguments.parse_args()
 

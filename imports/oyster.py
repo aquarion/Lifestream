@@ -1,21 +1,23 @@
 #!/usr/bin/python
-
-import lifestream
+# Python
 import sys
-from BeautifulSoup import BeautifulSoup
 import pytz
 import re
 import hashlib
 import csv
 import StringIO
+from time import sleep
+from datetime import datetime
+import logging
 
+# Libraries
+from BeautifulSoup import BeautifulSoup
 from mechanize import Browser, RobustFactory
 
-from time import sleep
+# Local
+import lifestream
 
-from datetime import datetime
 
-import logging
 logger = logging.getLogger('Oyster')
 args = lifestream.arguments.parse_args()
 

@@ -1,13 +1,18 @@
-import lifestream
+# Python
 from datetime import datetime
-
 import oauth2
 import time
 import urllib
 import urllib2
 import json
-
 import logging
+
+# Libraries
+
+# Local
+import lifestream
+
+
 logger = logging.getLogger('Openpaths')
 args = lifestream.arguments.parse_args()
 
@@ -84,7 +89,9 @@ for datum in data:
             'latitude'] and not longitude_vague == previous['longitude']:
 
         accuracy = 100
-        logger.info('Found %s %s/%s' % (timestamp, latitude_best, longitude_best))
+        logger.info(
+            'Found %s %s/%s' %
+            (timestamp, latitude_best, longitude_best))
         #                                (`id`,                 `lat`,             `long`,            `lat_vague`,   `long_vague`, `timestamp`, `accuracy`)
         cursor.execute(
             s_sql,

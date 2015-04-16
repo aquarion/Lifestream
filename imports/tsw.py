@@ -1,29 +1,31 @@
 #!/usr/bin/python
-
-import lifestream
+# Python
 import sys
-from BeautifulSoup import BeautifulSoup
 import hashlib
+from datetime import datetime
+import logging
 
+# Libraries
+from BeautifulSoup import BeautifulSoup
 from mechanize import Browser, RobustFactory
 
-from datetime import datetime
+# Local
+import lifestream
+
 
 Lifestream = lifestream.Lifestream()
 
-CHARACTERS = Lifestream.config.get("thesecretworld", "characters");
+CHARACTERS = Lifestream.config.get("thesecretworld", "characters")
 
 br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
 
 # Login
 
-import logging
 logger = logging.getLogger('TSW')
 args = lifestream.arguments.parse_args()
 
 for character in CHARACTERS.split(","):
-
 
     url = "http://chronicle.thesecretworld.com/character/%s" % character
 

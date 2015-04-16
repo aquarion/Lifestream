@@ -1,28 +1,30 @@
 #!/usr/bin/python
 
-import lifestream
-import lifestreamutils
-
+# Python
 import sys
 import logging
 import cPickle as pickle
 from datetime import datetime, timedelta
-
-from fitbit.api import FitbitOauthClient
-
-Lifestream = lifestream.Lifestream()
-
-import fitbit
-
-OAUTH_SECRETS = lifestream.config.get("fitbit", "secrets_file")
-
-
 import os
 import pprint
 import sys
 
+# Libraries
+from fitbit.api import FitbitOauthClient
+import fitbit
+
+# Local
+import lifestream
+import lifestreamutils
+
+Lifestream = lifestream.Lifestream()
+
+OAUTH_SECRETS = lifestream.config.get("fitbit", "secrets_file")
+
+
 logger = logging.getLogger('Fitbit Day')
 args = lifestream.arguments.parse_args()
+
 
 def fitbitAuth(config, OAUTH_SECRETS):
     CLIENT_KEY = config.get("fitbit", "consumer_key")
@@ -51,7 +53,7 @@ def fitbitAuth(config, OAUTH_SECRETS):
         print('')
 
         print('* Authorize the request token in your browser\n')
-        
+
         print client.authorize_token_url()
 
         try:
@@ -66,7 +68,6 @@ def fitbitAuth(config, OAUTH_SECRETS):
         print('RESPONSE')
         pp.pprint(token)
         print('')
-
 
         print token
         print "Access key:", token['oauth_token']

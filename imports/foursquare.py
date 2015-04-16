@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import lifestream
+# Python
 import sys
 import os
 import pytz
@@ -8,9 +8,14 @@ import re
 from datetime import datetime
 import logging
 
+# Libraries
 import oauth2
 from twitter.oauth import write_token_file, read_token_file
 import requests
+
+# Local
+import lifestream
+
 
 from pprint import pprint
 

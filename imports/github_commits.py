@@ -1,13 +1,16 @@
 #!/usr/bin/python
-
-import lifestream
-
+# Python
 import pytz
 import dateutil.parser
 import logging
 import sys
-
 import urllib2
+
+# Libraries
+
+# Local
+import lifestream
+
 
 Lifestream = lifestream.Lifestream()
 
@@ -57,7 +60,7 @@ for repo in repos:
 
         if not USERNAME.lower() == author.lower():
             logger.debug("%s - Skipped" % commit['commit']['message'])
-            # print 
+            # print
             continue
 
         message = "%s: %s" % (repo['name'], commit['commit']['message'])

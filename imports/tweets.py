@@ -1,28 +1,24 @@
 #!/usr/bin/python
-
-import lifestream
+# Python
 import dateutil.parser
 import pytz
-
 import sys
 import os
 import re
-
 from datetime import datetime
+import calendar
+import rfc822
+from urllib2 import URLError
+import socket
+import logging
 
+# Libraries
 from twitter import Twitter
-
 from twitter.oauth import OAuth, write_token_file, read_token_file
 from twitter.oauth_dance import oauth_dance
 
-import calendar
-import rfc822
-
-from urllib2 import URLError
-
-import socket
-
-import logging
+# Local
+import lifestream
 
 Lifestream = lifestream.Lifestream()
 

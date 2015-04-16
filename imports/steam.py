@@ -1,6 +1,5 @@
 #!/usr/bin/python
-
-import lifestream
+# Python
 from xml.dom import minidom
 import urllib2 as urllib
 import hashlib
@@ -8,12 +7,15 @@ import sys
 import time
 import os
 import pytz
-
 from xml.parsers.expat import ExpatError
-
 from datetime import datetime
-
 import logging
+
+# Libraries
+
+# Local
+import lifestream
+
 logger = logging.getLogger('Steam')
 args = lifestream.arguments.parse_args()
 
@@ -23,7 +25,9 @@ steamtime = pytz.timezone('US/Pacific')
 
 user = lifestream.config.get("steam", "username")
 
-logger.info("Opening http://steamcommunity.com/id/%s/games?tab=recent&xml=1" % user)
+logger.info(
+    "Opening http://steamcommunity.com/id/%s/games?tab=recent&xml=1" %
+    user)
 
 try:
     gameslist_xml = urllib.urlopen(
@@ -72,7 +76,9 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
         logger.info("       + Getting Stats: %s" % statspagexml)
         game = minidom.parse(urllib.urlopen(statspagexml))
     except IOError:
-        logger.info("       + Got socket error fetching %s achievement list" % gamename)
+        logger.info(
+            "       + Got socket error fetching %s achievement list" %
+            gamename)
         continue
     except ExpatError:
         logger.info("       + XML Error reading file. Not a real stats page.")
@@ -98,7 +104,9 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
         except IndexError:
             local_timestamp = datetime.now()
 
-        logger.info("         + %s (Achieved at %s )" % (name, local_timestamp))
+        logger.info(
+            "         + %s (Achieved at %s )" %
+            (name, local_timestamp))
 
         message = "%s &ndash; %s" % (gamename, name)
 

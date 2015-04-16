@@ -1,13 +1,18 @@
+# Python
 import site
 import ConfigParser
 import os
 import sys
-import cymysql as MySQLdb
 import codecs
 import simplejson
-
 import argparse
 import logging
+
+# Libraries
+import cymysql as MySQLdb
+
+# Local
+
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(basedir + "/../lib")
@@ -21,7 +26,12 @@ except IOError:
     config.readfp(open(os.getcwd() + '/../config.ini'))
 
 arguments = argparse.ArgumentParser()
-arguments.add_argument('--debug', required=False, help="Enable Debug", default=False, action='store_true')
+arguments.add_argument(
+    '--debug',
+    required=False,
+    help="Enable Debug",
+    default=False,
+    action='store_true')
 
 LOG_DIR = config.get('global', 'log_location')
 
@@ -32,10 +42,12 @@ if ('--debug' in sys.argv):
 else:
     DEBUG = False
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    filename='%s/lifestream.log' % LOG_DIR,
-                    filemode='a')
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+    filename='%s/lifestream.log' %
+    LOG_DIR,
+    filemode='a')
 
 console = logging.StreamHandler()
 console.setLevel(logging.WARN)
@@ -47,8 +59,8 @@ logging.getLogger('').addHandler(console)
 #logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
 
 
-
 logger = logging.getLogger(__name__)
+
 
 def getDatabaseConnection():
 

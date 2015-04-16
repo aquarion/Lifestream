@@ -1,14 +1,18 @@
 #!/usr/bin/python
-
-import lifestream
-import lifestreamutils
-
-import mailbox
+# Python
 import email
 import datetime
 import time
-
 import sys
+
+
+# Libraries
+import mailbox
+
+# Local
+import lifestream
+import lifestreamutils
+
 
 if (len(sys.argv) < 2):
     print "Usage: %s statistic filename" % (sys.argv[0])

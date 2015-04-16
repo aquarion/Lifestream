@@ -1,26 +1,24 @@
 #!/usr/bin/python
-
-import lifestream
-
-from pprint import pprint
-
+# Python
 import sys
+from pprint import pprint
 import urlparse
 import cPickle as pickle
 import simplejson
 import datetime
 import dateutil.parser
 from time import mktime
+import logging
 
-
+# Libraries
 from pytumblr import TumblrRestClient
 import oauth2 as oauth
 
-import ipdb
+# Local
+import lifestream
 
 Lifestream = lifestream.Lifestream()
 
-import logging
 logger = logging.getLogger('Histumblr')
 args = lifestream.arguments.parse_args()
 

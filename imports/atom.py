@@ -1,11 +1,15 @@
 #!/usr/bin/python
 
-import lifestream
+# Python
 import logging
-import feedparser
 import sys
 from datetime import datetime
 from time import mktime
+# Libraries
+import feedparser
+# Local
+import lifestream
+
 
 logger = logging.getLogger('Atom')
 
@@ -16,7 +20,7 @@ args = lifestream.arguments.parse_args()
 
 Lifestream = lifestream.Lifestream()
 
-logger.info('Grabbing %s' % args.url )
+logger.info('Grabbing %s' % args.url)
 fp = feedparser.parse(args.url)
 
 for i in range(len(fp['entries'])):

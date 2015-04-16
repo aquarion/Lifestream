@@ -1,8 +1,12 @@
-
+# Python
 import pickle
-import sqlite3
 
+# Libraries
+import sqlite3
 from dropbox import client, rest, session
+
+# Local
+
 
 # SOme constants
 APPLE_TO_UNIX_CONVERSION = 978307200

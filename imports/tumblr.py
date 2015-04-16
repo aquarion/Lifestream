@@ -1,23 +1,28 @@
 #!/usr/bin/python
-
-import lifestream
-
+# Python
 from pprint import pprint
-
 import sys
 import urlparse
 import cPickle as pickle
 import simplejson
 from datetime import datetime
 from time import mktime
+import logging
 
+# Libraries
 from pytumblr import TumblrRestClient
 import oauth2 as oauth
 
+# Local
+import lifestream
 
-import logging
 logger = logging.getLogger('Tumblr')
-lifestream.arguments.add_argument('--full-import', required=False, help="Full Import of all entries", default=False, action='store_true')
+lifestream.arguments.add_argument(
+    '--full-import',
+    required=False,
+    help="Full Import of all entries",
+    default=False,
+    action='store_true')
 
 args = lifestream.arguments.parse_args()
 
@@ -113,7 +118,9 @@ for blog in blogs:
 
         posts = details['posts']
 
-        logger.info("%s %d/%d %.2f%%" % (blog, startat,max_posts, (startat/max_posts)*100.0));
+        logger.info(
+            "%s %d/%d %.2f%%" %
+            (blog, startat, max_posts, (startat / max_posts) * 100.0))
 
         for post in posts:
             id = post['id']

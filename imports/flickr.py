@@ -1,9 +1,12 @@
 #!/usr/bin/python
 
-import lifestream
+# Python
 import sys
-import flickrapi
 import logging
+# Libraries
+import flickrapi
+# Local
+import lifestream
 
 max_pages = False
 per_page = 100

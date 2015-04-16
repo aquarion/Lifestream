@@ -1,9 +1,11 @@
+# Python
 import json
 import pprint
 import os
 import sys
 import ConfigParser
 from httplib2 import Http
+
 
 OAUTH_BASE = "https://foursquare.com/oauth2/authenticate"
 

@@ -1,19 +1,20 @@
 #!/usr/bin/python
-
-import lifestream
+# Python
 import sys
-from BeautifulSoup import BeautifulSoup
 import pytz
-
-import hashlib
-
 from datetime import datetime
+from time import sleep
+import hashlib
+import logging
 
+# Libraries
+from BeautifulSoup import BeautifulSoup
 from mechanize import Browser, RobustFactory
 
-from time import sleep
+# Local
+import lifestream
 
-import logging
+
 logger = logging.getLogger('Steam Badges')
 args = lifestream.arguments.parse_args()
 

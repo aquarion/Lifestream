@@ -1,35 +1,38 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
-import lifestream
-
+# Python
 import sys
-import codecs, locale
+import codecs
+import locale
 from datetime import datetime
 from time import mktime
+import argparse
+import ConfigParser
 import logging
 
-import argparse, ConfigParser
-print sys.stdout.encoding
-
+# Libraries
 from wordpress_xmlrpc import Client, WordPressPost
 from wordpress_xmlrpc.methods.posts import GetPosts, NewPost
 from wordpress_xmlrpc.methods.users import GetUserInfo
 
+# Local
+import lifestream
+
 lifestream.arguments.add_argument('site', type=str,
-                   help='Site, as defined in config.ini', nargs='*')
+                                  help='Site, as defined in config.ini',
+                                  nargs='*')
 lifestream.arguments.add_argument('--all', action="store_true",
-                   help='Fetch all posts?',
-                   dest='all_pages')
-lifestream.arguments.add_argument('--max_pages', type=int, 
-                   help='How many pages to fix (overriden by --all)',
-                   default=1,
-                   required=False)
+                                  help='Fetch all posts?',
+                                  dest='all_pages')
+lifestream.arguments.add_argument('--max_pages', type=int,
+                                  help='How many pages (overriden by --all)',
+                                  default=1,
+                                  required=False)
 
 args = lifestream.arguments.parse_args()
 
 if args.site:
-    sites = [args.site,]
+    sites = [args.site, ]
 else:
     sites = []
     for section in lifestream.config.sections():
@@ -46,8 +49,8 @@ for site in sites:
     type = "wordpress"
     logger.info(site)
     try:
-        url    = lifestream.config.get("wordpress:%s" % source, "url")
-        user   = lifestream.config.get("wordpress:%s" % source, "username")
+        url = lifestream.config.get("wordpress:%s" % source, "url")
+        user = lifestream.config.get("wordpress:%s" % source, "username")
         passwd = lifestream.config.get("wordpress:%s" % source, "password")
     except ConfigParser.NoSectionError:
         logger.error("No [wordpress:%s] section found in config" % source)
@@ -56,7 +59,6 @@ for site in sites:
         logger.error(e.message)
         sys.exit(5)
 
-
     wp = Client(url, user, passwd)
 
     this_page = 0
@@ -64,9 +66,9 @@ for site in sites:
 
     while keep_going:
         options = {
-            'number' : 30,
-            'offset' : this_page * 30,
-            'post_status' : 'publish'
+            'number': 30,
+            'offset': this_page * 30,
+            'post_status': 'publish'
         }
         posts = wp.call(GetPosts(options))
         for post in posts:
@@ -81,7 +83,7 @@ for site in sites:
                 thumbnail = post.thumbnail['link']
             else:
                 thumbnail = ''
-            
+
             Lifestream.add_entry(
                 id=post.guid,
                 title=title,
@@ -104,4 +106,3 @@ for site in sites:
             logger.info("Page %d of max %d" % (this_page, args.max_pages))
         else:
             logger.info("Next Page...")
-
