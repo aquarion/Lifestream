@@ -6,6 +6,7 @@ import urllib
 import urllib2
 import json
 import logging
+import sys
 
 # Libraries
 
@@ -55,7 +56,7 @@ try:
     connection = urllib2.urlopen(request)
     data = json.loads(''.join(connection.readlines()))
 except urllib2.HTTPError as e:
-    print(e.read())
+    logger.error(e.read())
     sys.exit(5)
 
 # [
