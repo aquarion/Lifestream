@@ -32,6 +32,8 @@ headers = False
 data = open(args.filename, 'rb')
 dataReader = csv.reader(data)
 for row in dataReader:
+    if not row:
+	continue
     if not headers:
         headers = row
     else:
@@ -59,7 +61,7 @@ for row in dataReader:
         id.update(utcdate)
         id.update(action)
 
-        logger.info("%s: %s", (action, utcdate))
+        logger.info("%s: %s" % (action, utcdate))
         #add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False)
         Lifestream.add_entry(
             "oyster",
