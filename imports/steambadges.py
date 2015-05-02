@@ -49,7 +49,7 @@ for badge in badges:
     date = badge.findAll(
         "div", {
             "class": "badge_info_unlocked"})[0].string.strip()[
-        10:]
+        9:]
 
     #text = "%s &mdash; %s" % (name, desc)
     text = name
@@ -57,7 +57,13 @@ for badge in badges:
     try:
         parseddate = datetime.strptime(date, "%b %d, %Y @ %I:%M%p")
     except ValueError:
-        parseddate = datetime.strptime(date, "%b %d @ %I:%M%p")
+	try:
+        	parseddate = datetime.strptime(date, "%b %d @ %I:%M%p")
+	except ValueError:
+		print date
+		print URL
+		print name
+		sys.exit(5)
     localdate = steamtime.localize(parseddate)
     utcdate = localdate.astimezone(pytz.utc)
 
