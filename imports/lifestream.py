@@ -8,6 +8,8 @@ import simplejson
 import argparse
 import logging
 
+from logging.handlers import TimedRotatingFileHandler
+
 # Libraries
 import cymysql as MySQLdb
 
@@ -37,30 +39,22 @@ LOG_DIR = config.get('global', 'log_location')
 
 LOG_FORMAT = '%(asctime)s [%(name)s] %(message)s'
 
+logging.getLogger('').setLevel(logging.DEBUG)
+
+formatter = logging.Formatter(LOG_FORMAT)
+filename = "%s/lifestream.log" % LOG_DIR
+logfile = TimedRotatingFileHandler(filename, when='W0', interval=1, utc=True)
+logfile.setLevel(logging.DEBUG)
+logfile.setFormatter(formatter)
+logging.getLogger('').addHandler(logfile)
+
 if ('--debug' in sys.argv):
-    DEBUG = True
-else:
-    DEBUG = False
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-    filename='%s/lifestream.log' %
-    LOG_DIR,
-    filemode='a')
-
-console = logging.StreamHandler()
-console.setLevel(logging.WARN)
-formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-console.setFormatter(formatter)
-logging.getLogger('').addHandler(console)
-
-
-#logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
-
+	console = logging.StreamHandler()
+	console.setLevel(logging.DEBUG)
+	console.setFormatter(formatter)
+	logging.getLogger('').addHandler(console)
 
 logger = logging.getLogger(__name__)
-
 
 def getDatabaseConnection():
 
