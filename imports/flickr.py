@@ -8,6 +8,8 @@ import flickrapi
 # Local
 import lifestream
 
+logging.root.handlers.pop(0) # remove Flickrapi's log handler
+
 max_pages = False
 per_page = 100
 
@@ -20,6 +22,7 @@ DEBUG = False
 
 dbcxn = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
+
 
 Lifestream = lifestream.Lifestream()
 
