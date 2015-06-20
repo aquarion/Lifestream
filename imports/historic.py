@@ -9,10 +9,18 @@ import datetime
 import dateutil.parser
 from time import mktime
 import logging
+import os
 
 # Libraries
+import socket
 from pytumblr import TumblrRestClient
 import oauth2 as oauth
+
+# Libraries
+from twitter import Twitter
+from twitter.oauth import OAuth, write_token_file, read_token_file
+from twitter.oauth_dance import oauth_dance
+
 
 # Local
 import lifestream
@@ -82,6 +90,38 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         oauth_token['oauth_token'],
         oauth_token['oauth_token_secret'])
 
+############ Setup Twitter
+socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
+
+
+OAUTH_FILENAME = "%s/twitter_historical.oauth" % (
+    lifestream.config.get("global", "secrets_dir"))
+CONSUMER_KEY = lifestream.config.get("twitter", "consumer_key")
+CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
+
+ACCOUNTS = lifestream.config.get("twitter", "accounts")
+
+if not ACCOUNTS:
+    logger.error("No twitter accounts found in config")
+    sys.exit(5)
+
+if not os.path.exists(OAUTH_FILENAME):
+    oauth_dance(
+        "Lifestream", CONSUMER_KEY, CONSUMER_SECRET,
+        OAUTH_FILENAME)
+
+
+oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
+
+twitter = Twitter(
+    auth=OAuth(
+        oauth_token, oauth_token_secret, CONSUMER_KEY, CONSUMER_SECRET),
+    secure=True,
+    api_version='1.1',
+    domain='api.twitter.com')
+
+
+############ Start the engines
 
 def cursor(dbcxn):
     dbc = dbcxn.cursor()
@@ -96,30 +136,46 @@ to_blog = "aquarions-of-history"
 dbcxn = lifestream.getDatabaseConnection()
 cursor = cursor(dbcxn)
 
-sql = "select title, date_created,url,fulldata_json, systemid from lifestream where source = 'tumblr' and date_created between %s and %s"
+sql = "select title, date_created,url,fulldata_json, systemid, source, type from lifestream where (source = 'tumblr' or type = 'twitter') and date_created between %s and %s"
 
 now = datetime.datetime.utcnow()
 
 four_years = datetime.timedelta(days=365 * 4)
 an_hour = datetime.timedelta(minutes=60)
+quarter_hour = datetime.timedelta(minutes=15)
 
 datefrom = now - four_years
-dateto = now - four_years + an_hour
+dateto = now - four_years + quarter_hour
 
 tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 
 cursor.execute(sql, (datefrom.isoformat(), dateto.isoformat()))
 for post in cursor:
-    systemid = post[4]
-    debug.info(post[0])
-    data = simplejson.loads(post[3])
+    title = post[0]
     date_created = post[1]
+    url = post[2]
+    fulldata = post[3]
+    systemid = post[4]
+    source = post[5]
+    contenttype = post[6]
+
+    logger.info(title)
+
+    print post
+
+    if fulldata:
+        data = simplejson.loads(fulldata)
+    
     logger.info(date_created)
     logger.info(date_created + four_years)
     logger.info('---')
 
-    tumblr.reblog(
-        "aquarions-of-history",
-        id=systemid,
-        reblog_key=data['reblog_key'],
-    )
+    if source == 'tumblr':
+        tumblr.reblog(
+            "aquarions-of-history",
+            id=systemid,
+            reblog_key=data['reblog_key'],
+    	date=date_created + four_years
+        )
+    elif contenttype == 'twitter':
+        twitter.statuses.update(status=title,in_reply_to=systemid)
