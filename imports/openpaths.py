@@ -107,3 +107,5 @@ for datum in data:
                 accuracy))
 
         previous = {'latitude': latitude_best, 'longitude': longitude_best}
+
+dbcxn.close()

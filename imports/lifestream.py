@@ -216,3 +216,5 @@ class Lifestream:
                  source,
                  image,
                  fulldata_json))
+
+dbcxn.close()

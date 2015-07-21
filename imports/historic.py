@@ -179,3 +179,5 @@ for post in cursor:
         )
     elif contenttype == 'twitter':
         twitter.statuses.update(status=title,in_reply_to=systemid)
+
+dbcxn.close()

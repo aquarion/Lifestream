@@ -16,4 +16,5 @@ def newstat(date, stat, number):
     # print cursor._last_executed
 
     dbcxn.commit()
+    dbcxn.close()
     return True

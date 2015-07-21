@@ -19,7 +19,6 @@ FLICKRID = lifestream.config.get("flickr", "account")
 FLICKRNAME = lifestream.config.get("flickr", "account_name")
 
 DEBUG = False
-
 dbcxn = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
@@ -101,3 +100,6 @@ for page in range(1, pages + 1):
             source="flickr",
             date=date_taken,
             image=image)
+
+dbcxn.close()
+

@@ -157,3 +157,6 @@ for badgeid, badge in badges.items():
         url=url,
         image=image,
         fulldata_json=badge)
+
+dbcxn.close()
+

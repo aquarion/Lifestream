@@ -73,3 +73,5 @@ if DEBUG:
 
 for date in dates.keys():
     lifestreamutils.newstat(date, STATISTIC, dates[date]['total'])
+
+dbcxn.close()
