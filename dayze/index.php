@@ -1,9 +1,9 @@
 <?PHP
-define("AN_HOUR", 60*60 );
-define("A_DAY", 60*60*24 );
-define("A_WEEK", 60*60*24*7 );
-define("A_MONTH", 60*60*24*30 );
-define("A_YEAR", 60*60*24*364 );
+// define("AN_HOUR", 60*60 );
+// define("A_DAY", 60*60*24 );
+// define("A_WEEK", 60*60*24*7 );
+// define("A_MONTH", 60*60*24*30 );
+// define("A_YEAR", 60*60*24*364 );
 
 
 require("../web/library.php");
@@ -22,30 +22,38 @@ $ordered = false;
 $title = false;
 $date_point = false;
 
-if (count($split) == 1){ // One Year
-	$today = mktime(0,0,0, 1, 1, $split[0]);
+if(isset($_GET['day']) && isset($_GET['month']) && isset($_GET['yeah'])){
+	$today = mktime (0, 0, 0, intval($_GET['month']), intval($_GET['day']), intval($_GET['year']));
 	$format = "/Y/m/d";
-	$display_format = "\Y\e\a\r \o\f Y";
-} elseif(count($split) == 2 && strpos($split[1], "wk") !== false){  // One Week
-	$week = substr($split[1], 2);
-	list($today, $to) = get_start_and_end_date_from_week($week, $split[0]);
-	$format = "/Y/\w\kW";
-	$display_format = "\W\k W Y";
-	$date_point = (($to-$today)/2) + $today;
-} elseif(count($split) == 2 && is_numeric($split[1])){  // One Month
-	$today = mktime (0, 0, 0, intval($split[1]), 1, intval($split[0]));
+	$display_format = "l jS F Y";
+} elseif( isset($_GET['day']) && isset($_GET['month']) ){
+	$today = mktime (0, 0, 0, intval($_GET['month']), 1, intval($_GET['year']));
 	$format = "/Y/m";
 	$display_format = "F Y";
-} elseif(count($split) == 3 && is_numeric($split[1])){  // One Day
-	if($split[0] == '*'){
-		$today = mktime (0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
-		$format = "/\*/m/d";
-		$display_format = "l jS F \A\\n\y \y\e\a\\r";
-	} else {
-		$today = mktime (0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
-		$format = "/Y/m/d";
-		$display_format = "l jS F Y";
-	}
+} elseif(isset($_GET['year']) && isset($_GET['week']) ){  // One Week
+	$week = intval($_GET['week']);
+	list($today, $to) = get_start_and_end_date_from_week($week, intval($_GET['year']));
+	$format = "/Y/\w\kW";
+	$display_format = "\W\k W Y";
+
+} elseif(isset($_GET['week'])){ # Week, any year
+	$today = time();
+	$format = "\w\kW";
+	$display_format = '\A\n\y \Y\e\a\r, \W\e\e\k W';
+} elseif(isset($_GET['day']) && isset($_GET['month'])){ # day/month, any year
+	$today = time();
+	$format = "m/d";
+	$display_format = 'jS F';
+} elseif(isset($_GET['month'])){ # month, any year
+	$today = time();
+	$format = "m";
+	$display_format = 'F';
+
+
+} elseif(isset($_GET['year'])){
+	$today = mktime(0,0,0, 1, 1, intval($_GET['year']));
+	$format = "/Y/m/d";
+	$display_format = "\Y\e\a\r \o\f Y";
 } else {  // Last 200
 	$today = time();
 	$format = "/Y/m/d";

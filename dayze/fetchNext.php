@@ -17,8 +17,8 @@ $append = "append";
 
 $message = "";
 
-if(isset($_POST['after'])){
-	$query->where_gte("date_updated", $_POST['after']);
+if(isset($_REQUEST['after'])){
+	$query->where_gte("date_updated", $_REQUEST['after']);
 	$append = "prepend";
 }
 
@@ -28,8 +28,8 @@ $query->where_not_equal("source", "tumblr");
 $query->where_not_equal("source", "lastfm");
 
 
-if(isset($_POST['path'])){
-	$split = explode("/", $_POST['path']);
+if(isset($_REQUEST['path'])){
+	$split = explode("/", $_REQUEST['path']);
 	array_shift($split);
 } else {
 	$split = array();
@@ -62,19 +62,38 @@ if (count($split) == 1){ // One Year
 	$up      = false;
 
 } elseif(count($split) == 2 && strpos($split[1], "wk") !== false){  // One Week
-	$week = substr($split[1], 2);
-	list($from, $to) = get_start_and_end_date_from_week($week, $split[0]);
-	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
-	$query->where_lt("date_created", date("Y-m-d 00:00", $to));
 
-	$location_query->where_gt("timestamp", date("Y-m-d 00:00", $from));
-	$location_query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+	$week = intval(substr($split[1], 2));
+	$year = $split[0];
 
-	$message = sprintf("Week $week from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
+	$query->where_raw("WEEK(date_created) = ?", $week);
+	$location_query->where_raw("WEEK(timestamp) = ?", $week);
 
-	$back    = date("/Y/\w\kW", $from-A_WEEK);
-	$forward = date("/Y/\w\kW", $from+A_WEEK+A_DAY);
-	$up      = date("/Y/m", $from);
+	if($year !== "*"){
+		$query->where_raw("YEAR(date_created) = ?", $year);
+		$location_query->where_raw("YEAR(timestamp) = ?", $year);
+
+		list($from, $to) = get_start_and_end_date_from_week($week, $split[0]);
+		$message = sprintf("Week $week from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
+
+		$back    = date("/Y/\w\kW", $from-A_WEEK);
+		$forward = date("/Y/\w\kW", $from+A_WEEK+A_DAY);
+		$up      = date("/Y/m", $from);
+	} else {
+
+		$message = sprintf("Week %d, any year", $week);
+
+		$back    = sprintf("/*/wk%d", $week-1);
+		$forward = sprintf("/*/wk%d", $week+1);
+		$up      = sprintf("/*/%d", intval($week/4));
+	}
+
+	// $query->where_gt("date_created", date("Y-m-d 00:00", $from));
+	// $query->where_lt("date_created", date("Y-m-d 00:00", $to));
+
+	// $location_query->where_gt("timestamp", date("Y-m-d 00:00", $from));
+	// $location_query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+
 
 } elseif(count($split) == 2 && is_numeric($split[1])){  // One Month
 
@@ -142,7 +161,7 @@ if(!$ordered){
 $return = array(
 		'status' => 200, 
 		'next' => $next, 
-		'today' => $from, 
+		'today' => isset($from) ? $from : '', 
 		'offset' => 0, 
 		'max' => 0, 
 		"direction" => $append, 
@@ -156,7 +175,7 @@ $return = array(
 		)
 	);
 
-if ($from > time()){
+if (isset($from) && $from > time()){
 	header("Content-Type: text/json");
 	$return['items'][] = array(
 		"source" => "xkcd", 
@@ -174,8 +193,8 @@ $return['max'] = $countQuery->count();
 
 $query->limit($blocksize);
 
-if(isset($_POST['offset'])){
-	$offset = intval($_POST['offset']);
+if(isset($_REQUEST['offset'])){
+	$offset = intval($_REQUEST['offset']);
 	$query->offset($offset);
 } else {
 	$offset = 0;
