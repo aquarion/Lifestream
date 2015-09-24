@@ -14,7 +14,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	    ansible.playbook = "ansible/vagrant.yml"
 	end
 
-	config.vm.network :forwarded_port, host: 8000, guest: 8000
-	config.vm.network :forwarded_port, host: 8443, guest: 8443
+	config.vm.network :forwarded_port, host: 8000, guest: 80
+	config.vm.network :forwarded_port, host: 8443, guest: 443
 	
 end
