@@ -105,10 +105,10 @@ function leaflet_map(){
   });
 
   var watercolorMap = new L.StamenTileLayer("watercolor");
-  map.addLayer(watercolorMap);
 
   var tonerliteMap = new L.StamenTileLayer("toner-lite");
   var tonerMap = new L.StamenTileLayer("toner");
+  map.addLayer(tonerliteMap);
 
   // var layer = new L.StamenTileLayer("toner-lines");
   // map.addLayer(layer);

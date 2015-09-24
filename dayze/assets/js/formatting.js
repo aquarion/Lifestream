@@ -64,7 +64,7 @@ var Formatting = {
 		element.css("background-image", "url('"+object.image+"')");
 		element.addClass("photo");
 		element.html("")
-
+		element.ready(Formatting.photoresize);
 		return element;
 	},
 
@@ -72,6 +72,7 @@ var Formatting = {
 
 		element.addClass("photo");
 		element.css("background-image", "url('"+object.image+"')");
+		element.ready(Formatting.photoresize);
 
 		element.html("")
 
@@ -109,11 +110,14 @@ var Formatting = {
 	},
 
 	'aquarionics' : function(object, element){
-		console.log(object);
+		//element.height(200);
+		element.height(38*3);
+		element.width(288);
+
 		if(object.image){
 			element.css("background-image", "url('"+object.image+"')");
 		} else {
-			element.css("background-image", "url('"+object.image+"')");
+			element.css("background", "rgba(0,0,0,.8)");
 		}
 		element.css("background-size", "cover");
 		element.css("background-position", "center");
@@ -121,14 +125,15 @@ var Formatting = {
 
 		element.attr("title", (object.source+" "+object.type).capitalize()+": "+decodeEntities(object.title))
 
-		element.height(200);
-		element.width(288);
-
 
 		return element;
 	},
 
 
+	photoresize : function(thing){
+		console.log(this);
+		console.log(thing);
+	}
 };
 
 Formatting.badge = Formatting.achivement;

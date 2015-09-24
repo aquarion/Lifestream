@@ -197,6 +197,9 @@ if ($max && $return['offset'] >= $max){
 }
 
 foreach($items as $row){
+	if($row['image']){
+		$row['image'] = "http://art.istic.net/lifestreamprox/".$row['image'];
+	}
 	$return['items'][] = $row;
 }
 
