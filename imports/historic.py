@@ -139,9 +139,11 @@ dbcxn = lifestream.getDatabaseConnection()
 cursor = cursor(dbcxn)
 
 sql = "select title, date_created,url,fulldata_json, systemid, source, type from lifestream where (source = 'tumblr' or type = 'twitter') and date_created between %s and %s"
+sql = "select title, date_created,url,fulldata_json, systemid, source, type from lifestream where (source = 'tumblr' ) and date_created between %s and %s"
 
 now = datetime.datetime.utcnow()
 
+a_day = datetime.timedelta(days=1)
 four_years = datetime.timedelta(days=365 * 4)
 an_hour = datetime.timedelta(minutes=60)
 quarter_hour = datetime.timedelta(minutes=15)
@@ -150,6 +152,9 @@ datefrom = now - four_years
 dateto = now - four_years + quarter_hour
 
 tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
+
+import ipdb
+ipdb.set_trace()
 
 cursor.execute(sql, (datefrom.isoformat(), dateto.isoformat()))
 for post in cursor:
@@ -175,12 +180,18 @@ for post in cursor:
     logger.info('---')
 
     if source == 'tumblr':
-        tumblr.reblog(
+        tresponse = tumblr.reblog(
             "aquarions-of-history",
             id=systemid,
             reblog_key=data['reblog_key'],
-    	date=date_created + four_years
+    	state="queue",
+	date = date_created + four_years
         )
+	print date_created + four_years
+	print tresponse
+	from pprint import pprint
+	post = tumblr.posts("aquarions-of-history", id=tresponse['id'])
+	pprint(post)
     elif contenttype == 'twitter':
         twitter.statuses.update(status=title,in_reply_to=systemid)
 
