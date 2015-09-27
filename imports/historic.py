@@ -152,9 +152,6 @@ dateto = now - four_years + quarter_hour
 
 tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 
-import ipdb
-ipdb.set_trace()
-
 cursor.execute(sql, (datefrom.isoformat(), dateto.isoformat()))
 for post in cursor:
     title = post[0]
