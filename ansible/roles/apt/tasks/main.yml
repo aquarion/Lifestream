@@ -1,7 +1,7 @@
 ---
 
 - name: Update apt cache
-  apt: update_cache=yes
+  apt: update_cache=yes cache_valid_time=3600
 
 - name: Install useful OS packages
   apt: name={{ item }} state=present
@@ -16,10 +16,21 @@
 - name: Install required OS packages
   apt: name={{ item }} state=present
   with_items:
+  - mysql-server-5.5
+  - mysql-client-5.5
+
+- name: Install python packages
+  apt: name={{ item }} state=present
+  with_items:
   - python
   - python-dev
   - python-mysqldb
   - python-lxml
   - virtualenvwrapper
-  - mysql-server-5.5
-  - mysql-client-5.5
+
+- name: Install PHP/Dayze requirements
+  apt: name={{ item }} state=present
+  with_items:
+  - apache2
+  - libapache2-mod-php5
+  - php5-mysqlnd

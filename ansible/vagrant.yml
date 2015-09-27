@@ -2,11 +2,15 @@
 - hosts: all
   remote_user: vagrant
   sudo: yes
+  vars:
+    http_port: 80
+    domain: lifestream.dev
   roles:
   - apt
   - mysql
+  - apache
   tasks:
-  - hostname: name=lifestream.melior.istic.net
+  - hostname: name={{ domain }}
 
 - hosts: all
   remote_user: vagrant
