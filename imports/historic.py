@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 # Python
 import sys
 from pprint import pprint
@@ -158,6 +160,8 @@ for post in cursor:
     systemid = post[4]
     source = post[5]
     contenttype = post[6]
+
+    title = title.replace("@", u"💬");
 
     logger.info(title)
 
