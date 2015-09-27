@@ -3,7 +3,6 @@
 
 # Python
 import sys
-from pprint import pprint
 import urlparse
 import cPickle as pickle
 import simplejson
@@ -170,8 +169,6 @@ for post in cursor:
 
     logger.info(title)
 
-    print post
-
     if fulldata:
         data = simplejson.loads(fulldata)
     
@@ -187,11 +184,6 @@ for post in cursor:
     	state="queue",
 	date = date_created + four_years
         )
-	print date_created + four_years
-	print tresponse
-	from pprint import pprint
-	post = tumblr.posts("aquarions-of-history", id=tresponse['id'])
-	pprint(post)
     elif contenttype == 'twitter':
         twitter.statuses.update(status=title,in_reply_to=systemid)
 
