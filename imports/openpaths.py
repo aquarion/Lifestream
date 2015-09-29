@@ -30,7 +30,7 @@ def build_auth_header(url, method):
     params = {
         'oauth_version': "1.0",
         'oauth_nonce': oauth2.generate_nonce(),
-        'oauth_timestamp': int(time.time()),
+        'oauth_timestamp': str(int(time.time())),
     }
     consumer = oauth2.Consumer(key=ACCESS, secret=SECRET)
     params['oauth_consumer_key'] = consumer.key
