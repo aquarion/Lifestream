@@ -16,6 +16,7 @@ import socket
 import logging
 import pickle
 from pprint import pprint
+import urlparse
 
 # Libraries
 import facebook
@@ -64,11 +65,11 @@ def authenticate(OAUTH_FILENAME, appid, secret):
         logger.debug(access_key)
         print "Access key:", access_key
 
-        oauth_token = {
-        'access_key': access_key
-        }
-
-        f = open(OAUTH_FILENAME, "w")
+	extend_token_url = "https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s" % (appid, secret, access_key)
+	extend_token = requests.get(extend_token_url)
+	oauth_token = urlparse.parse_qs(extend_token.text)
+        
+	f = open(OAUTH_FILENAME, "w")
         pickle.dump(oauth_token, f)
         f.close()
 
@@ -84,7 +85,7 @@ def some_action(post, graph, profile):
         '10152343976945108' : "Limit List"
     }
 
-    if 'application' in post and post['application']['namespace'] == "twitter":
+    if 'application' in post and 'namespace' in post['application'] and post['application']['namespace'] == "twitter":
         return
 
     if post['privacy']['value'] == "SELF":
@@ -119,8 +120,8 @@ def some_action(post, graph, profile):
 
     url = "https://www.facebook.com/%s/posts/%s" % (profile['id'], post['id'].split("_")[1])
 
-
-    print "------"
+    if not 'message' in post:
+	post['message'] = '';
 
     # Lifestream.add_entry(
     #     post['type'],
@@ -143,20 +144,22 @@ def some_action(post, graph, profile):
 
 credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET)
 
-graph = facebook.GraphAPI(credentials['access_key'])
+graph = facebook.GraphAPI(credentials['access_token'][0])
 profile = graph.get_object('me')
 posts = graph.get_object("me/posts", fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time")
 
-# import ipdb
-# ipdb.set_trace();
-
 # Wrap this block in a while loop so we can keep paginating requests until
 # finished.
+page = 0
 while True:
+    page += 1
+    #print "Page ", pagea
+    [some_action(post=post,graph=graph,profile=profile) for post in posts['data']]
+    if page >= 5:
+	break
     try:
         # Perform some action on each post in the collection we receive from
         # Facebook.
-        [some_action(post=post,graph=graph,profile=profile) for post in posts['data']]
         # Attempt to make a request to the next page of data, if it exists.
         posts = requests.get(posts['paging']['next']).json()
         #raise KeyError;
