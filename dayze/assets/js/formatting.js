@@ -35,6 +35,11 @@ var Formatting = {
                 return element;
         },
 
+	'facebook' : function(object, element){
+		element.height(100);
+		return element;
+	},
+
 	'oyster' : function(object, element){
 
 		var journey = element.html();

@@ -136,6 +136,10 @@ header .buttons {
   color: white;
 }
 
+.facebook {
+	background: #1C14FA; color: white;
+}
+
 .location {
   background: rgba(224,109,27, .4);
   background: -moz-linear-gradient(100% 100% 30deg, rgba(224,109,27, .8), rgba(224,162,27, .8));
