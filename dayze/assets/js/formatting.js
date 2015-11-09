@@ -1,4 +1,7 @@
 
+var w = 100;
+var h = 50;
+
 var Formatting = {
 
 	'achivement' : function(object, element){
@@ -7,14 +10,16 @@ var Formatting = {
 			return element;
 		}
 		element.css("background-image", "url('"+object.image+"')");
-		element.css("background-size", "contain");
+		//element.css("background-size", "contain");
 		element.addClass("achivement");
-		element.html("");
+		//element.html("<span>"+decodeEntities(object.title).split(" – ")[0]+"</span>");;
+		element.html("<div style=\"position: absolute; top: 2px; width: 100%; text-align: center; overflow: hidden\">"+decodeEntities(object.title).split(" – ")[0]+"</div>"
+		+"<div style=\"position: absolute; bottom: 2px; text-align: center; width: 100%; overflow: hidden;\">"+decodeEntities(object.title).split(" – ")[1]+"</div>");;
 
 		element.attr("title", (object.source+" "+object.type).capitalize()+": "+decodeEntities(object.title))
 
-		element.height(100);
-		element.width(100);
+		element.height(h*2 - 12);
+		element.width(w*1 - 12);
 
 
 		return element;
@@ -29,14 +34,16 @@ var Formatting = {
 
                 element.attr("title", (object.source+" "+object.type).capitalize()+": "+decodeEntities(object.title))
 
-                element.height(100);
-                element.width(200);
+                element.height(h*2-12);
+                element.width(w*2-12);
 
                 return element;
         },
 
 	'facebook' : function(object, element){
-		element.height(100);
+		//element.height(h*2);
+		element.width(w*3-12);
+		element.data("growthis", true);
 		return element;
 	},
 
@@ -88,7 +95,7 @@ var Formatting = {
 
 		element.addClass("gaming");
 		element.removeClass("twitter");
-
+		
 		return element;
 	},
 
@@ -96,8 +103,8 @@ var Formatting = {
 
 		element.addClass("achivement");
 		element.css("background-image", "url('"+object.image+"')");
-		element.css("width", "100");
-		element.css("height", "100");
+		element.css("width", w);
+		element.css("height", 3*h);
 		element.css("background-size", "cover");
 
 		element.html("")
@@ -116,8 +123,8 @@ var Formatting = {
 
 	'aquarionics' : function(object, element){
 		//element.height(200);
-		element.height(38*3);
-		element.width(288);
+		element.height(h*3-12);
+		element.width(w*3-12);
 
 		if(object.image){
 			element.css("background-image", "url('"+object.image+"')");

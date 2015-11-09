@@ -243,8 +243,8 @@ var NicAve = {
 			item = $('<div class="item"></div>');
 			item.attr("id", 'mapcanvas')
 			item.addClass('map')
-			item.width(460)
-			item.height(360)
+			item.width(288)
+			item.height(288)
 			$(container).prepend( item );
 			packeryInstance.prepended( item );
 			console.log('hi');
@@ -257,14 +257,21 @@ var NicAve = {
 			item = $(this);
 			if(!item.hasClass("photo") && !item.hasClass("achivement")){
 				height = $(item).height()+12;
+				width  = $(item).width()+12;
 				if($("img", item).length){
 					imgheight = $("img", item).height();
+					imgwidth = $("img", item).width();
 					if(imgheight > height){
 						height = imgheight;
+					}
+					if(imgwidth > width){
+						width = imgwidth;
 					}
 				}
 				nearest50 = Math.ceil( height / 50) * 50;
 				item.height(nearest50-12);
+				nearest50 = Math.ceil( width / 50) * 50;
+				item.width(nearest50-12);
 			}
 		});
 

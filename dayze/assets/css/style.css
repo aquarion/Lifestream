@@ -128,8 +128,6 @@ header .buttons {
 
 .twitter {
 	quotes:"\201C""\201D""\2018""\2019";
-	width:  288px;
-
   background: rgba(125,96,103, .4);
   background: -moz-linear-gradient(100% 100% 30deg, rgba(27,80,224, .8), rgba(27,126,224, .8));
   background: -webkit-gradient(linear, 0% 0%, 50% 100%, from(rgba(27,80,224, .8)), to(rgba(27,126,224, .8)));
@@ -256,16 +254,21 @@ border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 
 }
 
 .achivement {
-	border: 0;
-	height: 100;
-	width: 100;
+	/*border: 0;
 	margin: 0;
 	padding: 0;
+	height: 100;
+	width: 100;*/
+	font-size: 7pt;
 	position: relative;
 
   background-color: rgba(48,0,0, .8);
 	background-position: center center;
 	background-repeat: no-repeat;
+}
+
+.achivement div {
+	
 }
 
 #music_chart, #music_others {
