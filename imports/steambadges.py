@@ -8,8 +8,7 @@ import hashlib
 import logging
 
 # Libraries
-from BeautifulSoup import BeautifulSoup
-from mechanize import Browser, RobustFactory
+from selenium import webdriver
 
 # Local
 import lifestream
@@ -22,37 +21,22 @@ USERNAME = lifestream.config.get("steam", "username")
 steamtime = pytz.timezone('US/Pacific')
 Lifestream = lifestream.Lifestream()
 
-br = br = Browser(factory=RobustFactory())
-br.set_handle_robots(False)
+browser = webdriver.PhantomJS()
 
 # Login
 
 URL = "http://steamcommunity.com/id/%s/badges?xml=1" % USERNAME
 
-response = br.open(URL)
-
-html = br.response().read()
+browser.get(URL)
 
 s_sql = u'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, %s, %s, %s, %s);'
 
-soup = BeautifulSoup(html)
-
-badges = soup.findAll("div", {"class": "badge_row_inner"})
+badges = browser.find_elements_by_css_selector("div.badge_row_inner")
 
 for badge in badges:
-    image = badge.findAll(
-        "div", {
-            "class": "badge_info_image"})[0].findAll("img")[0].attrs[0][1]
-    name = badge.findAll(
-        "div", {
-            "class": "badge_info_title"})[0].string.strip()
-    date = badge.findAll(
-        "div", {
-            "class": "badge_info_unlocked"})[0].string.strip()[
-        9:]
-
-    #text = "%s &mdash; %s" % (name, desc)
-    text = name
+    image = badge.find_element_by_css_selector(".badge_info_image img").get_attribute("src")
+    text = badge.find_element_by_class_name("badge_info_title").text.strip()
+    date = badge.find_element_by_class_name("badge_info_unlocked").text.strip()[9:]
 
     try:
         parseddate = datetime.strptime(date, "%b %d, %Y @ %I:%M%p")
@@ -62,7 +46,7 @@ for badge in badges:
 	except ValueError:
 		print date
 		print URL
-		print name
+		print text
 		sys.exit(5)
     localdate = steamtime.localize(parseddate)
     utcdate = localdate.astimezone(pytz.utc)

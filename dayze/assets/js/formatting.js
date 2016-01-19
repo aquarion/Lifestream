@@ -12,9 +12,14 @@ var Formatting = {
 		element.css("background-image", "url('"+object.image+"')");
 		//element.css("background-size", "contain");
 		element.addClass("achivement");
-		//element.html("<span>"+decodeEntities(object.title).split(" – ")[0]+"</span>");;
-		element.html("<div style=\"position: absolute; top: 2px; width: 100%; text-align: center; overflow: hidden\">"+decodeEntities(object.title).split(" – ")[0]+"</div>"
-		+"<div style=\"position: absolute; bottom: 2px; text-align: center; width: 100%; overflow: hidden;\">"+decodeEntities(object.title).split(" – ")[1]+"</div>");;
+		
+		newhtml = "<div style=\"position: absolute; top: 2px; width: 100%; text-align: center; overflow: hidden\">"+decodeEntities(object.title).split(" – ")[0]+"</div>"
+
+		if (decodeEntities(object.title).split(" – ")[1]){
+			newhtml = newhtml + "<div style=\"position: absolute; bottom: 2px; text-align: center; width: 100%; overflow: hidden;\">"+decodeEntities(object.title).split(" – ")[1]+"</div>";
+		}
+
+		element.html(newhtml);
 
 		element.attr("title", (object.source+" "+object.type).capitalize()+": "+decodeEntities(object.title))
 
@@ -52,7 +57,6 @@ var Formatting = {
 		var journey = element.html();
 
 		journey = journey.replace(/\[.*?\]/, '');
-
 		element.addClass("centered");
 		element.html(journey);
 		return element;
@@ -71,8 +75,16 @@ var Formatting = {
 		return false
 	},
 
-	'tumblr_photo' : function(object, element){
+	'facebook_photo' : function(object, element){
+		element.html(
+			'<img src="'+object.image+'" style="float: left; clear: right; padding-right: 5px" />'
+			+ '<p>' + object.title + '</p>'
+			);
+		element.removeClass("photo");
+		return element;
+	},
 
+	'tumblr_photo' : function(object, element){
 		element.css("background-image", "url('"+object.image+"')");
 		element.addClass("photo");
 		element.html("")
