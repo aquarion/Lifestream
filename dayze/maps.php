@@ -9,6 +9,7 @@ $query = ORM::for_table('lifestream_locations');
 
 
 $from = time() - 60*60*24*30;
+$from = time() - 60*60*24*365;
 $to   = time();
   $query->where_gt("timestamp", date("Y-m-d 00:00", $from));
   $query->where_lt("timestamp", date("Y-m-d 00:00", $to));
