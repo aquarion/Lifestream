@@ -64,3 +64,5 @@ for badge in badges:
         utcdate,
         url=URL,
         image=image)
+
+browser.close()
