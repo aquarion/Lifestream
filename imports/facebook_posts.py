@@ -17,6 +17,7 @@ import logging
 import pickle
 from pprint import pprint
 import urlparse
+from datetime import timedelta
 
 # Libraries
 import facebook
@@ -68,6 +69,9 @@ def authenticate(OAUTH_FILENAME, appid, secret):
 	extend_token_url = "https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s" % (appid, secret, access_key)
 	extend_token = requests.get(extend_token_url)
 	oauth_token = urlparse.parse_qs(extend_token.text)
+
+	delta = timedelta(seconds=int(oauth_token['expires'][0]))
+	oauth_token['expire_dt'] = datetime.now() + delta;
         
 	f = open(OAUTH_FILENAME, "w")
         pickle.dump(oauth_token, f)
@@ -141,8 +145,16 @@ def some_action(post, graph, profile):
             image=image,
             fulldata_json=post)
 
-
 credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET)
+
+
+if datetime.now() > credentials['expire_dt']:
+	print "Token has expired!"
+
+delta = credentials['expire_dt'] - datetime.now()
+
+if delta.days <= 7:
+	print "Token will expire in {} days!".format(delta.days)
 
 graph = facebook.GraphAPI(credentials['access_token'][0])
 profile = graph.get_object('me')
