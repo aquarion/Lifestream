@@ -336,11 +336,17 @@ var NicAve = {
 	  var bounds = new L.LatLngBounds(latlngs);
 	  map.fitBounds(bounds);
 
-	  var heatmap = new L.TileLayer.WebGLHeatMap({ 
-	    size : 5000,
-	    opacity : .7
-	  });
 
+	  try {
+		  var heatmap = new L.webGLHeatmap({ 
+		    size : 5000,
+		    opacity : .7
+		  });
+	  } catch(err) {
+	  	console.warn(err)
+	  }
+
+  	console.log("Hi")
 
 	  heatmapData = []
 	  foursquareMarkers = []
@@ -374,18 +380,22 @@ var NicAve = {
 	  }
 
 	  foursquareLayer = new L.featureGroup(foursquareMarkers)
-	  heatmap.setData(heatmapData)
-
-
-	  map.addLayer(heatmap);
 	  map.addLayer(foursquareLayer);
-	   
+	  
 	  var overlays = {
 	      //"Marker": marker,
 	      "Roads": labelsLayer,
-	      "Heatmap": heatmap,
 	      "Foursquare": foursquareLayer
 	  };
+
+	  if(heatmap){
+	  	heatmap.setData(heatmapData)
+	  	map.addLayer(heatmap);
+	  	overlays['Heatmap'] = heatmap
+	  } else {
+
+	  }
+	   
 	  var baseLayers = {
 	      //"Marker": marker,
 	      "Watercolor": watercolorMap,

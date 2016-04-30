@@ -207,13 +207,26 @@ $return['log'][] = ORM::get_last_query();
 
 ////////////////////////////////////////////////////// Locations
 
-$location_query->select_expr("*");
-$location_query->select_expr("round(`long`) as `long`");
-$location_query->select_expr("round(`lat`) as `lat`");
-$location_query->select_expr("count(*) as `value`");
-$location_query->group_by_expr('concat(round(`lat`,2),"/",round(`long`,2))');
-$location_rows = $location_query->find_array();
+$openpath_query = clone $location_query;
+$openpath_query->select_expr("*");
+$openpath_query->select_expr("round(`long`) as `long`");
+$openpath_query->select_expr("round(`lat`) as `lat`");
+$openpath_query->select_expr("count(*) as `value`");
+$openpath_query->where("source", "openpaths");
+$openpath_query->group_by_expr('concat(round(`lat`,2),"/",round(`long`,2))');
+$openpath_rows = $openpath_query->find_array();
+
+$foursquare_query = clone $location_query;
+$foursquare_query->select_expr("*");
+$foursquare_query->select_expr("round(`long`) as `long`");
+$foursquare_query->select_expr("round(`lat`) as `lat`");
+$foursquare_query->select_expr("count(*) as `value`");
+$foursquare_query->where_not_equal("source", "openpaths");
+$foursquare_query->group_by_expr('concat(round(`lat`,2),"/",round(`long`,2))');
+$foursquare_rows = $foursquare_query->find_array();
 $locations = array();
+
+$location_rows = array_merge($foursquare_rows, $openpath_rows);
 
 foreach ($location_rows as $row){
 
