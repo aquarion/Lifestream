@@ -32,7 +32,7 @@ lifestream.arguments.add_argument('--max_pages', type=int,
 args = lifestream.arguments.parse_args()
 
 if args.site:
-    sites = [args.site, ]
+    sites = args.site
 else:
     sites = []
     for section in lifestream.config.sections():
