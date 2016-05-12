@@ -247,7 +247,6 @@ var NicAve = {
 			item.height(288)
 			$(container).prepend( item );
 			packeryInstance.prepended( item );
-			console.log('hi');
 			NicAve.leaflet_map(data.locations);
 		}
 
@@ -321,10 +320,9 @@ var NicAve = {
 	  });
 
 	  var watercolorMap = new L.StamenTileLayer("watercolor");
-	  map.addLayer(watercolorMap);
-
 	  var tonerliteMap = new L.StamenTileLayer("toner-lite");
 	  var tonerMap = new L.StamenTileLayer("toner");
+	  map.addLayer(tonerMap);
 
 	  // var layer = new L.StamenTileLayer("toner-lines");
 	  // map.addLayer(layer);
@@ -345,8 +343,6 @@ var NicAve = {
 	  } catch(err) {
 	  	console.warn(err)
 	  }
-
-  	console.log("Hi")
 
 	  heatmapData = []
 	  foursquareMarkers = []
@@ -398,8 +394,8 @@ var NicAve = {
 	   
 	  var baseLayers = {
 	      //"Marker": marker,
-	      "Watercolor": watercolorMap,
 	      "Toner": tonerMap,
+	      "Watercolor": watercolorMap,
 	      "Toner Lite": tonerliteMap
 	  };
 	  L.control.layers(baseLayers, overlays).addTo(map);

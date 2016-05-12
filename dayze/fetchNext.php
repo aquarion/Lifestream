@@ -7,11 +7,6 @@ ORM::configure('logging', true);
 ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'));
 $query = ORM::for_table('lifestream');
 
-
-$location_query = ORM::for_table('lifestream_locations');
-$location_query->where_gt("lat_vague", 0); 
-$location_query->where_gt("long_vague", 0); 
-
 $blocksize = 100;
 $next = 30;
 $max = false;
@@ -47,6 +42,9 @@ if($last == ""){
 $ordered = false;
 $title = false;
 
+$location_before_ts = false;
+$location_after_ts  = false;
+
 if (count($split) == 1){ // One Year
 
 	$from = mktime(0,0,0, 1, 1, $split[0]);
@@ -54,8 +52,10 @@ if (count($split) == 1){ // One Year
 	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 00:00", $to));
 
-	$location_query->where_gt("timestamp", date("Y-m-d 00:00", $from));
-	$location_query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+	//$location_query->where_gt("timestamp", date("Y-m-d 00:00", $from));
+	//$location_query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+	$location_after_ts = date("Y-m-d 00:00", $from);
+	$location_before_ts = date("Y-m-d 00:00", $to);
 
 	$message = sprintf("Year from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
 
@@ -69,8 +69,8 @@ if (count($split) == 1){ // One Year
 	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 00:00", $to));
 
-	$location_query->where_gt("timestamp", date("Y-m-d 00:00", $from));
-	$location_query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+	$location_after_ts = date("Y-m-d 00:00", $from);
+	$location_before_ts = date("Y-m-d 00:00", $to);
 
 	$message = sprintf("Week $week from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
 
@@ -86,8 +86,8 @@ if (count($split) == 1){ // One Year
 	$query->where_gt("date_created", date("Y-m-d 00:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 00:00", $to));
 
-	$location_query->where_gt("timestamp", date("Y-m-d 00:00", $from));
-	$location_query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+	$location_after_ts = date("Y-m-d 00:00", $from);
+	$location_before_ts = date("Y-m-d 00:00", $to);
 
 	$message = sprintf("Month from %s to %s", date("Y-m-d", $from), date("Y-m-d", $to));
 
@@ -103,8 +103,8 @@ if (count($split) == 1){ // One Year
 	$query->where_gt("date_created", date("Y-m-d 03:00", $from));
 	$query->where_lt("date_created", date("Y-m-d 03:00", $from + A_DAY));
 
-	$location_query->where_gt("timestamp", date("Y-m-d 03:00", $from));
-	$location_query->where_lt("timestamp", date("Y-m-d 03:00", $from + A_DAY));
+	$location_after_ts = date("Y-m-d 03:00", $from);
+	$location_before_ts = date("Y-m-d 03:00", $from + A_DAY);
 
 	$message = sprintf("Day from %s to %s", date("Y-m-d 03:00", $from), date("Y-m-d 03:00", $from + A_DAY));
 	//$message = print_r($split, 1);#sprintf("Month from %s to %s", date("Y-m-d 00:00", $from), date("Y-m-d 00:00", $to));
@@ -120,9 +120,8 @@ if (count($split) == 1){ // One Year
 	$query->order_by_desc("date_created");
 
 	$from = time() - (A_WEEK*2);
-	$location_query->where_gt("timestamp", date("Y-m-d 03:00", $from ));
-
-	$location_query->order_by_desc("timestamp");
+	#$location_query->where_gt("timestamp", date("Y-m-d 03:00", $from ));
+	$location_after_ts = date("Y-m-d 03:00", $from);
 
 	$message = "This is the last $max things various services have seen me do.";
 	$title = " Last 200 Items";
@@ -209,26 +208,44 @@ $return['log'][] = ORM::get_last_query();
 
 ////////////////////////////////////////////////////// Locations
 
-$openpath_query = clone $location_query;
-$openpath_query->select_expr("*");
-$openpath_query->select_expr("round(`long`) as `long`");
-$openpath_query->select_expr("round(`lat`) as `lat`");
-$openpath_query->select_expr("count(*) as `value`");
+
+function generate_location_query($location_before_ts, $location_after_ts){
+	$location_query = ORM::for_table('lifestream_locations');
+	$location_query->select_expr("*");
+	$location_query->select_expr("round(`long`) as `long`");
+	$location_query->where_raw("round(`long`) > 0");
+	$location_query->select_expr("round(`lat`) as `lat`");
+	$location_query->where_raw("round(`lat`) > 0");
+	$location_query->select_expr("count(*) as `value`");
+	$location_query->group_by_expr('concat(round(`lat`,2),"/",round(`long`,2))');
+	$location_query->where_gt("timestamp", $location_after_ts);
+	if ($location_before_ts){
+		$location_query->where_lt("timestamp", $location_before_ts);
+	} else {
+		$location_query->order_by_desc("timestamp");
+	}
+	return $location_query;
+}
+
+$openpath_query = generate_location_query($location_before_ts, $location_after_ts);
 $openpath_query->where("source", "openpaths");
-$openpath_query->group_by_expr('concat(round(`lat`,2),"/",round(`long`,2))');
 $openpath_rows = $openpath_query->find_array();
+$return['log'][] = ORM::get_last_query();
 
-$foursquare_query = clone $location_query;
-$foursquare_query->select_expr("*");
-$foursquare_query->select_expr("round(`long`) as `long`");
-$foursquare_query->select_expr("round(`lat`) as `lat`");
-$foursquare_query->select_expr("count(*) as `value`");
+$foursquare_query = generate_location_query($location_before_ts, $location_after_ts);
 $foursquare_query->where_not_equal("source", "openpaths");
-$foursquare_query->group_by_expr('concat(round(`lat`,2),"/",round(`long`,2))');
 $foursquare_rows = $foursquare_query->find_array();
-$locations = array();
+$return['log'][] = ORM::get_last_query();
+/*echo "<pre>";
+var_dump($foursquare_rows);
+echo "\n\n";
+var_dump(ORM::get_last_query());
+die("HellO");
+*/
 
-$location_rows = array_merge($foursquare_rows, $openpath_rows);
+
+$locations = array();
+$location_rows = array_merge($openpath_rows, $foursquare_rows );
 
 foreach ($location_rows as $row){
 
@@ -246,10 +263,9 @@ foreach ($location_rows as $row){
 }
 
 $return['locations'] = $locations;
-$return['log'][] = ORM::get_last_query();
 
 
 #$return['items'] = array_reverse($return['items']);
 
-header("Content-Type: text/json");
+header("Content-Type: application/json");
 print json_encode($return);

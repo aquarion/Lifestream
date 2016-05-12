@@ -155,8 +155,6 @@ var Formatting = {
 
 
 	photoresize : function(thing){
-		console.log(this);
-		console.log(thing);
 	}
 };
 
