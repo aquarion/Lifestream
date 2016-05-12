@@ -9,6 +9,8 @@ $query = ORM::for_table('lifestream');
 
 
 $location_query = ORM::for_table('lifestream_locations');
+$location_query->where_gt("lat_vague", 0); 
+$location_query->where_gt("long_vague", 0); 
 
 $blocksize = 100;
 $next = 30;
