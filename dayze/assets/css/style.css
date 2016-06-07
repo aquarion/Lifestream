@@ -183,7 +183,7 @@ header .buttons {
 	width: 88px;
   background: -moz-linear-gradient(100% 100% 30deg, rgba(27,80,224, .8), rgba(27,126,224, .8));
   background: -webkit-gradient(linear, 0% 0%, 50% 100%, from(rgba(27,80,224, .8)), to(rgba(27,126,224, .8)));
-	background-image: url('http://liveart.istic.net/iconography/tfl_grad.png');
+	background-image: url('//art.istic.net/iconography/tfl_grad.png');
 	background-size: cover;
 	background-position: center center;
 	background-repeat: no-repeat;
@@ -201,10 +201,10 @@ header .buttons {
 
 
 	border-width: 20px 20px 20px 20px;
-	-moz-border-image: url(http://liveart.istic.net/images/gold-frame.png) 20 20 20 20 stretch;
-	-webkit-border-image: url(http://liveart.istic.net/images/gold-frame.png) 20 20 20 20 stretch;
-	-o-border-image: url(http://liveart.istic.net/images/gold-frame.png) 20 20 20 20 stretch;
-	border-image: url(http://liveart.istic.net/images/gold-frame.png) 20 20 20 20 stretch;
+	-moz-border-image: url(//art.istic.net/images/gold-frame.png) 20 20 20 20 stretch;
+	-webkit-border-image: url(//art.istic.net/images/gold-frame.png) 20 20 20 20 stretch;
+	-o-border-image: url(//art.istic.net/images/gold-frame.png) 20 20 20 20 stretch;
+	border-image: url(//art.istic.net/images/gold-frame.png) 20 20 20 20 stretch;
 	margin: 0;
 	position: relative;
 }
@@ -214,10 +214,10 @@ header .buttons {
 	height: 160px;
 	border-style: solid;
 border-width: 20;
--moz-border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 repeat;
--webkit-border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 repeat;
--o-border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 repeat;
-border-image: url(http://liveart.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fill repeat;
+-moz-border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 repeat;
+-webkit-border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 repeat;
+-o-border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 repeat;
+border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fill repeat;
 }
 
 .gaming {
