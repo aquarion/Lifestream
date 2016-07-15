@@ -66,3 +66,4 @@ for badge in badges:
         image=image)
 
 browser.close()
+browser.quit()
