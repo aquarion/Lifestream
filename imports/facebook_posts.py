@@ -29,6 +29,16 @@ import lifestream
 Lifestream = lifestream.Lifestream()
 
 logger = logging.getLogger('Facebook')
+
+lifestream.arguments.add_argument(
+    '--reauth',
+    required=False,
+    help="Get new token",
+    default=False,
+    action='store_true')
+
+
+
 args = lifestream.arguments.parse_args()
 
 
@@ -40,17 +50,20 @@ OAUTH_FILENAME = "%s/facebook.oauth" % (
 APP_KEY = lifestream.config.get("facebook", "appid")
 APP_SECRET = lifestream.config.get("facebook", "secret")
 
-def authenticate(OAUTH_FILENAME, appid, secret):
+def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     request_token_url = 'https://www.facebook.com/dialog/oauth?client_id=%s&redirect_uri=http://www.nicholasavenell.com/facebook/catch.php&response_type=token&scope=user_posts,user_status' % appid
     access_token_url = 'http://www.tumblr.com/oauth/access_token'
     authorize_url = 'http://www.tumblr.com/oauth/authorize'
 
-    try:
-        f = open(OAUTH_FILENAME, "rb")
-        oauth_token = pickle.load(f)
-        f.close()
-    except:
-        logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
+    if not force_reauth:
+        try:
+            f = open(OAUTH_FILENAME, "rb")
+            oauth_token = pickle.load(f)
+            f.close()
+        except:
+            logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
+            oauth_token = False
+    else:
         oauth_token = False
 
     if(not oauth_token):
@@ -145,7 +158,7 @@ def some_action(post, graph, profile):
             image=image,
             fulldata_json=post)
 
-credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET)
+credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, args.reauth)
 
 
 if datetime.now() > credentials['expire_dt']:
