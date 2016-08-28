@@ -161,6 +161,10 @@ for post in cursor:
     source = post[5]
     contenttype = post[6]
 
+    if not title:
+	logger.info("Skipping, no content");
+	continue;
+
     title = title.replace("@", u"💬");
 
     logger.info(title)
