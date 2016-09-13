@@ -14,7 +14,7 @@ $append = "append";
 
 $message = "";
 
-if(isset($_POST['after'])){
+if(isset($_REQUEST['after'])){
 	$query->where_gte("date_updated", $_POST['after']);
 	$append = "prepend";
 }
@@ -25,8 +25,8 @@ $query->where_not_equal("source", "tumblr");
 $query->where_not_equal("source", "lastfm");
 
 
-if(isset($_POST['path'])){
-	$split = explode("/", $_POST['path']);
+if(isset($_REQUEST['path'])){
+	$split = explode("/", $_REQUEST['path']);
 	array_shift($split);
 } else {
 	$split = array();
@@ -213,9 +213,9 @@ function generate_location_query($location_before_ts, $location_after_ts){
 	$location_query = ORM::for_table('lifestream_locations');
 	$location_query->select_expr("*");
 	$location_query->select_expr("round(`long`) as `long`");
-	$location_query->where_raw("round(`long`) > 0");
+	// $location_query->where_raw("round(`long`) > 0");
 	$location_query->select_expr("round(`lat`) as `lat`");
-	$location_query->where_raw("round(`lat`) > 0");
+	// $location_query->where_raw("round(`lat`) > 0");
 	$location_query->select_expr("count(*) as `value`");
 	$location_query->group_by_expr('concat(round(`lat`,2),"/",round(`long`,2))');
 	$location_query->where_gt("timestamp", $location_after_ts);
@@ -236,18 +236,19 @@ $foursquare_query = generate_location_query($location_before_ts, $location_after
 $foursquare_query->where_not_equal("source", "openpaths");
 $foursquare_rows = $foursquare_query->find_array();
 $return['log'][] = ORM::get_last_query();
-/*echo "<pre>";
-var_dump($foursquare_rows);
-echo "\n\n";
-var_dump(ORM::get_last_query());
-die("HellO");
-*/
+// echo "<pre>";
+// var_dump($openpath_rows);
+// echo "\n\n";
+// var_dump(ORM::get_last_query());
+// die("HellO");
 
 
 $locations = array();
 $location_rows = array_merge($openpath_rows, $foursquare_rows );
 
-foreach ($location_rows as $row){
+foreach ($openpath_rows as $row){
+
+	if(!$row['lat'] || !$row['long']) { continue; }
 
     if($row['title']){
         $title = $row['title'];

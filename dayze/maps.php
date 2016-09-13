@@ -8,8 +8,8 @@ ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAME
 $query = ORM::for_table('lifestream_locations');
 
 
-$from = time() - 60*60*24*30;
-$from = time() - 60*60*24*365;
+$from = time() - A_MONTH;
+$from = time() - A_YEAR*3;
 $to   = time();
   $query->where_gt("timestamp", date("Y-m-d 00:00", $from));
   $query->where_lt("timestamp", date("Y-m-d 00:00", $to));
@@ -121,7 +121,7 @@ function leaflet_map(){
   var bounds = new L.LatLngBounds(latlngs);
   map.fitBounds(bounds);
 
-  var heatmap = new L.TileLayer.WebGLHeatMap({ 
+  var heatmap = new L.webGLHeatmap({ 
     size : 5000,
     opacity : .7
   });

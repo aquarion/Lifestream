@@ -9,7 +9,7 @@ var NicAve = {
 
 	lastfm : {},
 
-	music_chart : false,
+	music_chart : true,
 
 	init : function(){
       	google.setOnLoadCallback(NicAve.loadTiles);
@@ -239,6 +239,8 @@ var NicAve = {
 			}
 		})
 
+		console.log(data.locations.length)
+		console.log($('#mapcanvas'))
 		if(data.locations && data.locations.length && !$('#mapcanvas').length ){
 			item = $('<div class="item"></div>');
 			item.attr("id", 'mapcanvas')
@@ -308,7 +310,7 @@ var NicAve = {
 
 
 	leaflet_map : function(locations){
-
+	  
 	  if (locations.length == 0){
 	    return;
 	  }
