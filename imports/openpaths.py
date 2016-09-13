@@ -41,11 +41,11 @@ def build_auth_header(url, method):
 
 # GET data (last 24 hours)
 now = time.time()
+
+A_DAY = 24 * 60 * 60;
+
 params = {
-    'start_time': now -
-    24 *
-    60 *
-    60,
+    'start_time': now - A_DAY,
     'end_time': now}    # get the last 24 hours
 query = "%s?%s" % (URL, urllib.urlencode(params))
 
