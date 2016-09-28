@@ -36,6 +36,14 @@ if ($split[0] == "search") {
 	$message = $title = sprintf("Search for \"%s\"", $split[1]);
 	$query->where_like("title", sprintf("%%%s%%", $split[1]));
 
+	if (!$ordered) {
+		$query->order_by_asc("date_created");
+	}
+
+	// $back = date("/Y/m/d", $from - A_DAY);
+	// $forward = date("/Y/m/d", $from + A_DAY);
+	$up = "/";
+
 } else {
 
 	define("DO_LOCATIONS", true);

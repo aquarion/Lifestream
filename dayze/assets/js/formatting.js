@@ -15,7 +15,7 @@ var Formatting = {
 		
 		newhtml = "<div style=\"position: absolute; top: 2px; width: 100%; text-align: center; overflow: hidden\">"+decodeEntities(object.title).split(" – ")[0]+"</div>"
 
-		if (decodeEntities(object.title).split(" – ")[1]){
+		if (decodeEntities(object.title).split(" — ")[1]){
 			newhtml = newhtml + "<div style=\"position: absolute; bottom: 2px; text-align: center; width: 100%; overflow: hidden;\">"+decodeEntities(object.title).split(" – ")[1]+"</div>";
 		}
 
