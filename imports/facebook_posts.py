@@ -162,12 +162,16 @@ credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, args.reauth)
 
 
 if datetime.now() > credentials['expire_dt']:
+	logger.error("Token has expired! {} days!".format(delta.days))
 	print "Token has expired!"
 
 delta = credentials['expire_dt'] - datetime.now()
 
 if delta.days <= 7:
+	logger.warning("Token will expire in {} days!".format(delta.days))
 	print "Token will expire in {} days!".format(delta.days)
+else:
+	logger.info("Token will expire in {} days!".format(delta.days))
 
 graph = facebook.GraphAPI(credentials['access_token'][0])
 profile = graph.get_object('me')
