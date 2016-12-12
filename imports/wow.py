@@ -123,7 +123,7 @@ def authenticate(OAUTH_FILENAME, consumer_key, consumer_secret, region, force_re
 
 #     return oauth_token
 
-bnet = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, APP_REGION, force_reauth=False)
+bnet = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, APP_REGION, args.reauth)
 
 
 steamtime = pytz.timezone('Europe/Paris')
@@ -143,7 +143,7 @@ def log_achievement(item, timestamp, character):
     # else:
     #     text = "%s earnt %s &mdash; %s" % (character['name'], item['title'], item['description'])
 
-    text = u"%s — %s" % (item['title'], item['description'])
+    text = u"%s --- %s" % (item['title'], item['description'])
 
     date =  datetime.fromtimestamp(timestamp/1000)
 
