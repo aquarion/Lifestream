@@ -9,7 +9,7 @@ $query = ORM::for_table('lifestream_locations');
 
 
 $from = time() - A_MONTH;
-$from = time() - A_YEAR*3;
+//$from = time() - A_YEAR*3;
 $to   = time();
   $query->where_gt("timestamp", date("Y-m-d 00:00", $from));
   $query->where_lt("timestamp", date("Y-m-d 00:00", $to));
