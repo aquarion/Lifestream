@@ -95,11 +95,12 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
 def some_action(post, graph, profile):
 
-    visible_filters = ['LARP', ]
+    visible_filters = ['LARP', "Unwork"]
 
     filters = {
         '15295050107' : "LARP",
-        '10152343976945108' : "Limit List"
+        '10152343976945108' : "Unwork",
+	'10151965973020108' : "LimitList"
     }
 
     if 'application' in post and 'namespace' in post['application'] and post['application']['namespace'] == "twitter":
@@ -112,8 +113,12 @@ def some_action(post, graph, profile):
 
     show = True
 
+    url = "https://www.facebook.com/%s/posts/%s" % (profile['id'], post['id'].split("_")[1])
+
     if post['privacy']['value'] == "CUSTOM":
-        if post['privacy']['allow'] in filters:
+	if not post['privacy']['allow']:
+		logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
+        elif post['privacy']['allow'] in filters:
             filter_name = filters[post['privacy']['allow']]
             # print "... That's the %s filter" % filter_name
             if filter_name in visible_filters:
@@ -123,7 +128,7 @@ def some_action(post, graph, profile):
                 # print "... hide that"
                 show = False
         else:
-            logger.error("[ERROR] %s not known" % post['privacy']['allow'] )
+            logger.error("[ERROR] on %s - List ID %s not known" % (url, post['privacy']['allow'] ))
             show = False
 
 
@@ -135,7 +140,6 @@ def some_action(post, graph, profile):
     else:
         image = False
 
-    url = "https://www.facebook.com/%s/posts/%s" % (profile['id'], post['id'].split("_")[1])
 
     if not 'message' in post:
 	post['message'] = '';
