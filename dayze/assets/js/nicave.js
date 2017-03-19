@@ -273,6 +273,11 @@ var NicAve = {
 				item.height(nearest50-12);
 				nearest50 = Math.ceil( width / 50) * 50;
 				item.width(nearest50-12);
+
+				if (item.width()/item.height() < .7 ){
+					item.height(288);
+				}
+				//item.html(item.width()/item.height())
 			}
 		});
 
