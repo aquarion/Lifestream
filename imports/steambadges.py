@@ -6,6 +6,7 @@ from datetime import datetime
 from time import sleep
 import hashlib
 import logging
+import signal
 
 # Libraries
 from selenium import webdriver
@@ -65,5 +66,6 @@ for badge in badges:
         url=URL,
         image=image)
 
-browser.close()
-browser.quit()
+
+browser.service.process.send_signal(signal.SIGTERM) # kill the specific phantomjs child proc
+browser.quit()                                      # quit the node proc
