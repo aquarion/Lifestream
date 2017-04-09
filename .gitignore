@@ -12,3 +12,4 @@ dayze/lib
 *.oauth
 .vagrant
 logs
+ghostdriver.log

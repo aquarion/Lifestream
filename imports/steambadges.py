@@ -68,4 +68,7 @@ for badge in badges:
 
 
 browser.service.process.send_signal(signal.SIGTERM) # kill the specific phantomjs child proc
-browser.quit()                                      # quit the node proc
+try:
+	browser.quit()                                      # quit the node proc
+except AttributeError as e:
+	logger.info("Failed to quit: %s" % e )
