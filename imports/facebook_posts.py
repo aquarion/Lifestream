@@ -18,6 +18,7 @@ import pickle
 from pprint import pprint
 import urlparse
 from datetime import timedelta
+import ConfigParser # For the exceptions
 
 # Libraries
 import facebook
@@ -25,6 +26,7 @@ import requests
 
 # Local
 import lifestream
+import CodeFetcher9000
 
 Lifestream = lifestream.Lifestream()
 
@@ -51,9 +53,22 @@ APP_KEY = lifestream.config.get("facebook", "appid")
 APP_SECRET = lifestream.config.get("facebook", "secret")
 
 def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
-    request_token_url = 'https://www.facebook.com/dialog/oauth?client_id=%s&redirect_uri=http://www.nicholasavenell.com/facebook/catch.php&response_type=token&scope=user_posts,user_status' % appid
-    access_token_url = 'http://www.tumblr.com/oauth/access_token'
-    authorize_url = 'http://www.tumblr.com/oauth/authorize'
+
+    try:
+        CodeFetcher9000.are_we_working()
+        redirect_uri=CodeFetcher9000.get_url()
+        UseCodeFetcher = True
+    except CodeFetcher9000.WeSayNotToday:
+        try:
+            redirect_uri='{}/facebook/catch.php'.format(lifestream.config.get("dayze", "base")),
+            UseCodeFetcher = False
+        except ConfigParser.Error:
+            logger.error("Dayze base not configured")
+            print "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
+            sys.exit(32)
+
+
+    request_token_url = 'https://www.facebook.com/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=token&scope=user_posts,user_status' % (appid, redirect_uri)
 
     if not force_reauth:
         try:
@@ -71,19 +86,22 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
         print request_token_url
         print
 
-        accepted = 'n'
-        while accepted.lower() == 'n':
-            accepted = raw_input('Have you authorized me? (y/n) ')
-        access_key = raw_input('What is the access code? ')
-
-        logger.debug(access_key)
-        print "Access key:", access_key
+        if UseCodeFetcher:
+            oauth_redirect = CodeFetcher9000.get_code("access_token")
+            access_key = oauth_redirect['access_token'][0]
+        else:
+            print "If you configure CodeFetcher9000, this is a lot easier."
+            print " - "
+            access_key = raw_input('What is the PIN? ')
 
 	extend_token_url = "https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s" % (appid, secret, access_key)
 	extend_token = requests.get(extend_token_url)
-	oauth_token = urlparse.parse_qs(extend_token.text)
 
-	delta = timedelta(seconds=int(oauth_token['expires'][0]))
+	oauth_token = extend_token.json()
+
+	print oauth_token
+
+	delta = timedelta(seconds=int(oauth_token['expires_in']))
 	oauth_token['expire_dt'] = datetime.now() + delta;
         
 	f = open(OAUTH_FILENAME, "w")
@@ -177,7 +195,7 @@ if delta.days <= 7:
 else:
 	logger.info("Token will expire in {} days!".format(delta.days))
 
-graph = facebook.GraphAPI(credentials['access_token'][0])
+graph = facebook.GraphAPI(credentials['access_token'])
 profile = graph.get_object('me')
 posts = graph.get_object("me/posts", fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time")
 

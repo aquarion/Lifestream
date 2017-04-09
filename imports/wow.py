@@ -10,6 +10,7 @@ import logging
 import pytz
 import hashlib
 import sys
+import ConfigParser # For the exceptions
 
 # Libraries
 from battlenet.oauth2 import BattleNetOAuth2
@@ -18,6 +19,7 @@ from battlenet.community.wow.characters import Character
 
 # Local
 import lifestream
+import CodeFetcher9000
 
 from pprint import pprint
 
@@ -38,7 +40,6 @@ lifestream.arguments.add_argument(
     help="Force sync of all achivements",
     default=False,
     action='store_true')
-
 
 
 args = lifestream.arguments.parse_args()
@@ -71,6 +72,19 @@ def authenticate(OAUTH_FILENAME, consumer_key, consumer_secret, region, force_re
         oauth_token = False
 
 
+    try:
+        CodeFetcher9000.are_we_working()
+        redirect_uri=CodeFetcher9000.get_url()
+        UseCodeFetcher = True
+    except CodeFetcher9000.WeSayNotToday:
+        try:
+            redirect_uri='{}/keyback/wow.py'.format(lifestream.config.get("dayze", "base")),
+            UseCodeFetcher = False
+        except ConfigParser.Error:
+            logger.error("Dayze base not configured")
+            print "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
+            sys.exit(32)
+
     if oauth_token:
 
         expiration_date =  datetime.fromtimestamp(oauth_token['expires_at'])
@@ -87,7 +101,7 @@ def authenticate(OAUTH_FILENAME, consumer_key, consumer_secret, region, force_re
             secret=consumer_secret,
             region=region,
             #scope='sc2.profile',
-            redirect_uri='https://www.nicholasavenell.com/keyback/wow.php',
+            redirect_uri=redirect_uri,
             access_token=oauth_token['access_token']
         )
     
@@ -97,7 +111,7 @@ def authenticate(OAUTH_FILENAME, consumer_key, consumer_secret, region, force_re
         secret=consumer_secret,
         region=region,
         #scope='sc2.profile',
-        redirect_uri='https://www.nicholasavenell.com/keyback/wow.php',
+        redirect_uri=redirect_uri,
     )
 
     url, state = bnet.get_authorization_url()
@@ -111,7 +125,13 @@ def authenticate(OAUTH_FILENAME, consumer_key, consumer_secret, region, force_re
     print url
     print 
 
-    oauth_verifier = raw_input('What is the PIN? ')
+    if UseCodeFetcher:
+        oauth_redirect = CodeFetcher9000.get_code("code")
+        oauth_verifier = oauth_redirect['code'][0]
+    else:
+        print "If you configure CodeFetcher9000, this is a lot easier."
+        print " - "
+        oauth_verifier = raw_input('What is the PIN? ')
 
     data = bnet.retrieve_access_token(oauth_verifier)
     
