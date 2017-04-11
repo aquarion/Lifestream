@@ -59,9 +59,6 @@ api_secret =
 oauth_token = 
 oauth_token_secret = 
 
-[lotro]
-; These are a series of username = my.lotro URLS
-salique  = http://my.lotro.com/home/character/2776943/150307637564913321/activitylog
 
 [flickr]
 api_key    = 
