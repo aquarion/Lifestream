@@ -22,7 +22,11 @@ $ordered = false;
 $title = false;
 $date_point = false;
 
-if (count($split) == 1){ // One Year
+if ($split[0] == 'search'){ // One Year
+	$today = mktime(0,0,0, 1, 1, $split[0]);
+	$format = "/Y/m/d";
+	$display_format = "\Y\e\a\r \o\f Y";
+} elseif (count($split) == 1){ // One Year
 	$today = mktime(0,0,0, 1, 1, $split[0]);
 	$format = "/Y/m/d";
 	$display_format = "\Y\e\a\r \o\f Y";
