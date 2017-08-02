@@ -86,6 +86,10 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 
     for achivement in game.getElementsByTagName("achievement"):
         closed = achivement.getAttribute("closed")
+        if not achivement.getElementsByTagName('name')[0].firstChild:
+            logger.info("         +  (Empty Name)")
+            continue
+
         name = achivement.getElementsByTagName('name')[0].firstChild.data
         if closed == u'0':
             logger.info("         + %s (Not Achieved)" % name)
