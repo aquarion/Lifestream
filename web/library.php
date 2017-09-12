@@ -92,8 +92,8 @@ function niceTime($from, $to = false, $shortform = false)
 function process_lifestream_item($row)
 {
   
-    $row['title'] = str_replace("â€"", "--", $row['title']);
-    $row['title'] = str_replace("â€"", "--", $row['title']);
+    $row['title'] = str_replace("â€“", "--", $row['title']);
+    $row['title'] = str_replace("â€”", "--", $row['title']);
 
     $text = $row['title'];
     $row['originaltext'] = $row['title'];
