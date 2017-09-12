@@ -94,17 +94,17 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             print " - "
             access_key = raw_input('What is the PIN? ')
 
-	extend_token_url = "https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s" % (appid, secret, access_key)
-	extend_token = requests.get(extend_token_url)
+        extend_token_url = "https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s" % (appid, secret, access_key)
+        extend_token = requests.get(extend_token_url)
 
-	oauth_token = extend_token.json()
+        oauth_token = extend_token.json()
 
-	print oauth_token
+        print oauth_token
 
-	delta = timedelta(seconds=int(oauth_token['expires_in']))
-	oauth_token['expire_dt'] = datetime.now() + delta;
+        delta = timedelta(seconds=int(oauth_token['expires_in']))
+        oauth_token['expire_dt'] = datetime.now() + delta;
         
-	f = open(OAUTH_FILENAME, "w")
+        f = open(OAUTH_FILENAME, "w")
         pickle.dump(oauth_token, f)
         f.close()
 
@@ -113,13 +113,11 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
 def some_action(post, graph, profile):
 
-    visible_filters = ['LARP', "Unwork"]
+    visible_filters = lifestream.config.get("facebook", "visible_filters")
 
-    filters = {
-        '15295050107' : "LARP",
-        '10152343976945108' : "Unwork",
-	'10151965973020108' : "LimitList"
-    }
+    filters = {}
+    for key, value in lifestream.config.items("facebook:filters"):
+        filters[key] = value
 
     if 'application' in post and 'namespace' in post['application'] and post['application']['namespace'] == "twitter":
         return
@@ -134,8 +132,8 @@ def some_action(post, graph, profile):
     url = "https://www.facebook.com/%s/posts/%s" % (profile['id'], post['id'].split("_")[1])
 
     if post['privacy']['value'] == "CUSTOM":
-	if not post['privacy']['allow']:
-		logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
+        if not post['privacy']['allow']:
+            logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
         elif post['privacy']['allow'] in filters:
             filter_name = filters[post['privacy']['allow']]
             # print "... That's the %s filter" % filter_name
@@ -160,7 +158,7 @@ def some_action(post, graph, profile):
 
 
     if not 'message' in post:
-	post['message'] = '';
+        post['message'] = '';
 
     # Lifestream.add_entry(
     #     post['type'],
@@ -184,18 +182,18 @@ credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, args.reauth)
 
 
 if datetime.now() > credentials['expire_dt']:
-	logger.error("Token has expired! {} days!".format(delta.days))
-	print "Token has expired!"
+        logger.error("Token has expired! {} days!".format(delta.days))
+        print "Token has expired!"
 
 delta = credentials['expire_dt'] - datetime.now()
 
 if delta.days <= 7:
-	logger.warning("Token will expire in {} days!".format(delta.days))
-	print "Token will expire in {} days!".format(delta.days)
+        logger.warning("Token will expire in {} days!".format(delta.days))
+        print "Token will expire in {} days!".format(delta.days)
 else:
-	logger.info("Token will expire in {} days!".format(delta.days))
+        logger.info("Token will expire in {} days!".format(delta.days))
 
-graph = facebook.GraphAPI(credentials['access_token'])
+graph = facebook.GraphAPI(credentials['access_token'], version="2.7")
 profile = graph.get_object('me')
 posts = graph.get_object("me/posts", fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time")
 
@@ -207,7 +205,7 @@ while True:
     #print "Page ", pagea
     [some_action(post=post,graph=graph,profile=profile) for post in posts['data']]
     if page >= 5:
-	break
+        break
     try:
         # Perform some action on each post in the collection we receive from
         # Facebook.
