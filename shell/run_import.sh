@@ -19,7 +19,7 @@ touch $LOCKFILE
 
 source ~/.virtualenvs/lifestream/bin/activate
 
-python `dirname $0`/../imports/$1.py
+python `dirname $0`/../imports/$1.py $2
 
 # IMPORTANT: Run this first in a terminal or ssh session to go though the oauth keys
 # before you add it to cron.
