@@ -244,7 +244,8 @@ var NicAve = {
 			item.attr("id", 'mapcanvas')
 			item.addClass('map')
 			item.width(288)
-			item.height(288)
+			item.height(288*1.5)
+			item.attr("resized", true);
 			$(container).prepend( item );
 			packeryInstance.prepended( item );
 			NicAve.leaflet_map(data.locations);
@@ -272,7 +273,7 @@ var NicAve = {
 				nearest50 = Math.ceil( width / 50) * 50;
 				item.width(nearest50-12);
 
-				if (item.width()/item.height() < .7 ){
+				if (item.width()/item.height() < .7 && ! item.attr("resized")){
 					item.height(288);
 				}
 				//item.html(item.width()/item.height())
@@ -346,8 +347,9 @@ var NicAve = {
 
 	  try {
 		  var heatmap = new L.webGLHeatmap({ 
-		    size : 10000,
-		    opacity : .7
+		    size : 19,
+		    opacity : .7,
+    		units: 'px'
 		  });
 	  } catch(err) {
 	  	console.warn(err)
