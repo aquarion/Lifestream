@@ -74,10 +74,10 @@ if(!$date_point){
 
 
 	<!-- Map stuff -->
-	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
-	<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
-	<script type="text/javascript" src="/assets/js/webgl-heatmap-leaflet/js/webgl-heatmap.js"></script>
-	<script type="text/javascript" src="/assets/js/webgl-heatmap-leaflet/js/webgl-heatmap-leaflet.js"></script>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css"  crossorigin=""/>
+	<script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" crossorigin=""></script>
+	<script type="text/javascript" src="/assets/js/webgl-heatmap-master/webgl-heatmap.js"></script>
+	<script type="text/javascript" src="/assets/js/leaflet-webgl-heatmap-master/dist/leaflet-webgl-heatmap.min.js"></script>
 	<script type="text/javascript" src="http://maps.stamen.com/js/tile.stamen.js?v1.3.0"></script>
 	<!-- /Map stuff -->
 

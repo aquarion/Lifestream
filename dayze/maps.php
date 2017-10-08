@@ -8,8 +8,9 @@ ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAME
 $query = ORM::for_table('lifestream_locations');
 
 
-$from = time() - A_MONTH;
-//$from = time() - A_YEAR*3;
+$from = time() - A_YEAR;
+$from = time() - A_YEAR*1;
+
 $to   = time();
   $query->where_gt("timestamp", date("Y-m-d 00:00", $from));
   $query->where_lt("timestamp", date("Y-m-d 00:00", $to));
@@ -64,10 +65,11 @@ var locations = <?PHP print json_encode($locations) ?>;
 </script>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 
-<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
-<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
-<script type="text/javascript" src="/assets/js/webgl-heatmap-leaflet/js/webgl-heatmap.js"></script>
-<script type="text/javascript" src="/assets/js/webgl-heatmap-leaflet/js/webgl-heatmap-leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css"  crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js" crossorigin=""></script>
+
+<script type="text/javascript" src="/assets/js/webgl-heatmap-master/webgl-heatmap.js"></script>
+<script type="text/javascript" src="/assets/js/leaflet-webgl-heatmap-master/dist/leaflet-webgl-heatmap.min.js"></script>
 <script type="text/javascript" src="http://maps.stamen.com/js/tile.stamen.js?v1.3.0"></script>
 
     <script type="text/javascript">
@@ -135,7 +137,8 @@ function leaflet_map(){
     point = locations[i]
 
     markerpos = new L.LatLng(point['lat'], point['long']);
-    
+
+    weight = .75 
 
     if (point['icon']){
         image = point['icon'];
@@ -148,6 +151,7 @@ function leaflet_map(){
                   iconSize: [16, 16],
               })
           });
+          weight = 1 
           foursquareMarkers.push(marker)
     } else {
           // marker = new L.Marker(markerpos, {
@@ -161,7 +165,7 @@ function leaflet_map(){
 
     
     //heatmapData.push({'lat': point['lat'], 'lon': point['long'], 'value': 0.4});
-    heatmapData.push([point['lat'], point['long'], .2]);
+    heatmapData.push([point['lat'], point['long'], weight ]);
 
 
   }

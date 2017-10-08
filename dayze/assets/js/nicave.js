@@ -239,8 +239,6 @@ var NicAve = {
 			}
 		})
 
-		console.log(data.locations.length)
-		console.log($('#mapcanvas'))
 		if(data.locations && data.locations.length && !$('#mapcanvas').length ){
 			item = $('<div class="item"></div>');
 			item.attr("id", 'mapcanvas')
@@ -326,10 +324,14 @@ var NicAve = {
 	      zoom: 12
 	  });
 
-	  var watercolorMap = new L.StamenTileLayer("watercolor");
-	  var tonerliteMap = new L.StamenTileLayer("toner-lite");
-	  var tonerMap = new L.StamenTileLayer("toner");
-	  map.addLayer(tonerMap);
+	  // var watercolorMap = new L.StamenTileLayer("watercolor");
+	  // var tonerliteMap = new L.StamenTileLayer("toner-lite");
+	  // var tonerMap = new L.StamenTileLayer("toner");
+	  var mapBoxMap = new L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/light-v9/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYXF1YXJpb24iLCJhIjoiQzRoeUpwZyJ9.gIhABGtR7UMR-LZUJGRW0A")
+	 
+
+	  map.addLayer(mapBoxMap);
+	  // map.addLayer(tonerMap);
 
 	  // var layer = new L.StamenTileLayer("toner-lines");
 	  // map.addLayer(layer);
@@ -344,7 +346,7 @@ var NicAve = {
 
 	  try {
 		  var heatmap = new L.webGLHeatmap({ 
-		    size : 5000,
+		    size : 10000,
 		    opacity : .7
 		  });
 	  } catch(err) {
@@ -358,7 +360,12 @@ var NicAve = {
 
 	    point = locations[i]
 
+	    if(point['lat'] == 0 && point['long'] == 0){
+	    	continue;
+	    }
+
 	    markerpos = new L.LatLng(point['lat'], point['long']);
+	    weight = .7
 	    
 
 	    if (point['icon']){
@@ -373,14 +380,16 @@ var NicAve = {
 	              })
 	          });
 	          foursquareMarkers.push(marker)
+	          weight = 2
 	    }
 
-	    
+
 	    //heatmapData.push({'lat': point['lat'], 'lon': point['long'], 'value': 0.4});
-	    heatmapData.push([point['lat'], point['long'], .3]);
+	    heatmapData.push([point['lat'], point['long'], weight]);
 
 
 	  }
+
 
 	  foursquareLayer = new L.featureGroup(foursquareMarkers)
 	  map.addLayer(foursquareLayer);
@@ -391,21 +400,25 @@ var NicAve = {
 	      "Foursquare": foursquareLayer
 	  };
 
-	  if(heatmap){
+	  if(heatmap && heatmapData.length){
 	  	heatmap.setData(heatmapData)
 	  	map.addLayer(heatmap);
 	  	overlays['Heatmap'] = heatmap
-	  } else {
+	  }
 
+	  if (foursquareMarkers.length + heatmapData.length == 0){
+
+	  	$('#mapcanvas').remove()
 	  }
 	   
-	  var baseLayers = {
-	      //"Marker": marker,
-	      "Toner": tonerMap,
-	      "Watercolor": watercolorMap,
-	      "Toner Lite": tonerliteMap
-	  };
-	  L.control.layers(baseLayers, overlays).addTo(map);
+	  // var baseLayers = {
+	  //     "Terminal": mapBoxMap,
+	  //     //"Marker": marker,
+	  //     "Toner": tonerMap,
+	  //     "Watercolor": watercolorMap,
+	  //     "Toner Lite": tonerliteMap,
+	  // };
+	  // L.control.layers(baseLayers, overlays).addTo(map);
 
 	},
 

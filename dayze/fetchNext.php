@@ -249,12 +249,12 @@ function generate_location_query($location_before_ts, $location_after_ts) {
 
 if (DO_LOCATIONS) {
 	$openpath_query = generate_location_query($location_before_ts, $location_after_ts);
-	$openpath_query->where("source", "openpaths");
+	$openpath_query->where_not_equal("source", "foursquare");
 	$openpath_rows = $openpath_query->find_array();
 	$return['log'][] = ORM::get_last_query();
 
 	$foursquare_query = generate_location_query($location_before_ts, $location_after_ts);
-	$foursquare_query->where_not_equal("source", "openpaths");
+	$foursquare_query->where("source", "foursquare");
 	$foursquare_rows = $foursquare_query->find_array();
 	$return['log'][] = ORM::get_last_query();
 // echo "<pre>";
