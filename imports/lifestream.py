@@ -7,11 +7,21 @@ import codecs
 import simplejson
 import argparse
 import logging
+import pytz
+from datetime import datetime, timedelta
+import hashlib
+import simplejson as json
 
 from logging.handlers import TimedRotatingFileHandler
 
 # Libraries
 import cymysql as MySQLdb
+import oauth2
+from twitter.oauth import write_token_file, read_token_file
+import requests
+from memcache import Client, SERVER_MAX_KEY_LENGTH, SERVER_MAX_VALUE_LENGTH
+from pprint import pprint
+import ipdb
 
 # Local
 
@@ -49,10 +59,10 @@ logfile.setFormatter(formatter)
 logging.getLogger('').addHandler(logfile)
 
 if ('--debug' in sys.argv):
-	console = logging.StreamHandler()
-	console.setLevel(logging.DEBUG)
-	console.setFormatter(formatter)
-	logging.getLogger('').addHandler(console)
+    console = logging.StreamHandler()
+    console.setLevel(logging.DEBUG)
+    console.setFormatter(formatter)
+    logging.getLogger('').addHandler(console)
 
 logger = logging.getLogger(__name__)
 
@@ -125,8 +135,8 @@ def niceTimeDelta(timedelta, format="decimal"):
         days = 0
 
     # if (hours < 48 and years == 0 and days < 3):
-    #	minutes = minutes + (60*hours)
-    #	hours = 0;
+    #   minutes = minutes + (60*hours)
+    #   hours = 0;
 
     if int(days) == 1:
         days_message = "1 day, "
@@ -216,4 +226,80 @@ class Lifestream:
                  source,
                  image,
                  fulldata_json))
+
+    def add_location(self, timestamp, source, lat, lon, title, icon=False):
+        l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s);'
+        time_start = datetime(1970, 1, 1, 0, 0, 0, 0, pytz.UTC)
+        epoch = (timestamp - time_start).total_seconds()
+        self.cursor.execute(
+            l_sql,
+            (epoch,  #`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`,
+             source,
+             lat, 
+             lon,
+             round(lat, 2),
+             round(lon, 2),
+             timestamp,
+             title,
+             icon))
+
+class FoursquareAPI:
+
+
+    url_base = "https://api.foursquare.com/v2/%s" 
+
+    payload = {}
+
+    mc = False
+    mcprefix = False
+
+    def __init__(self, lifestream):
+        OAUTH_FILENAME = lifestream.config.get("foursquare", "secrets_file")
+        CONSUMER_KEY = lifestream.config.get("foursquare", "client_id")
+        CONSUMER_SECRET = lifestream.config.get("foursquare", "secret")
+
+        MEMCACHE_HOST   = lifestream.config.get("memcache", "host")
+        MEMCACHE_PORT   = lifestream.config.get("memcache", "port")
+        self.mcprefix = lifestream.config.get("memcache", "prefix")
+
+        servers = ["%s:%s" % (MEMCACHE_HOST, MEMCACHE_PORT)]
+        self.mc = Client(servers, debug=1)
+
+        if not os.path.exists(OAUTH_FILENAME):
+            logger.error("No OAUTH found at %s" % OAUTH_FILENAME)
+            raise Exception("You need to run foursquare_oauth.py to generate the oauth key")
+
+        oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
+
+        self.payload = {
+            'v': "20170801",
+            'oauth_token' : oauth_token
+        }
+
+    def cache_get(self, url, params):
+        m = hashlib.sha224()
+        m.update(url)
+        m.update(str(params))
+        key = m.hexdigest()
+
+        res = self.mc.get(key)
+        if(res):
+            return json.loads(res)
+
+
+        r = requests.get(self.url_base % "users/self/checkins", params=self.payload)
+        self.mc.set(key, json.dumps(r.json()))
+        return r.json()
+
+
+    def my_checkins(self):
+        return self.cache_get(self.url_base % "users/self/checkins", params=self.payload)
+
+    def search_near(self, lat, lng, intent="checkin", radius=50, limit=10):
+        payload = self.payload
+        payload['ll'] = "%s,%s" % (lat, lng)
+        payload['intent'] = intent
+        payload['radius'] = radius
+        payload['limit'] = limit
+        return self.cache_get(self.url_base % "venues/search", params=self.payload)
 

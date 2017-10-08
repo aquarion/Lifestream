@@ -15,7 +15,6 @@ from urllib2 import URLError
 import socket
 import logging
 import pickle
-from pprint import pprint
 import urlparse
 from datetime import timedelta
 import CodeFetcher9000
@@ -27,8 +26,6 @@ import requests
 # Local
 import lifestream
 
-from pprint import pprint
-
 Lifestream = lifestream.Lifestream()
 
 logger = logging.getLogger('Moves')
@@ -37,6 +34,13 @@ lifestream.arguments.add_argument(
     '--reauth',
     required=False,
     help="Get new token",
+    default=False,
+    action='store_true')
+
+lifestream.arguments.add_argument(
+    '--import-all',
+    required=False,
+    help="Import all data",
     default=False,
     action='store_true')
 
@@ -53,6 +57,7 @@ OAUTH_FILENAME = "%s/moves.oauth" % (
 APP_KEY = lifestream.config.get("moves", "key")
 APP_SECRET = lifestream.config.get("moves", "secret")
 
+FoursquareAPI = lifestream.FoursquareAPI(Lifestream)
 
    #authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
@@ -128,48 +133,6 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     return oauth_token
 
 
-# def old_authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
-#     scope = "activity+location"
-#     request_token_url = 'https://api.moves-app.com/oauth/v1/authorize?response_type=code&client_id=%s&scope=%s' % (appid, scope)
-
-#     if not force_reauth:
-#         try:
-#             f = open(OAUTH_FILENAME, "rb")
-#             oauth_token = pickle.load(f)
-#             f.close()
-#         except:
-#             logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
-#             oauth_token = False
-#     else:
-#         oauth_token = False
-
-#     if(not oauth_token):
-#         print "Go to the following link in your browser:"
-#         print request_token_url
-#         print
-
-#         accepted = 'n'
-#         while accepted.lower() == 'n':
-#             accepted = raw_input('Have you authorized me? (y/n) ')
-#         access_key = raw_input('What is the access code? ')
-
-#         logger.debug(access_key)
-#         print "Access key:", access_key
-
-#     extend_token_url = "https://api.moves-app.com/oauth/v1/access_token?grant_type=authorization_code&code=%s&client_id=%s&client_secret=%s" % (access_key, appid, secret)
-#     extend_token = requests.post(extend_token_url)
-#     oauth_token = extend_token.json()
-
-#     delta = timedelta(seconds=int(oauth_token['expires_in']))
-#     oauth_token['expire_dt'] = datetime.now() + delta;
-        
-#     f = open(OAUTH_FILENAME, "w")
-#         pickle.dump(oauth_token, f)
-#         f.close()
-
-#     return oauth_token
-
-
 credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, args.reauth)
 
 
@@ -183,6 +146,57 @@ if delta.days <= 7:
 else:
     logger.info("Token will expire in {} days!".format(delta.days))
 
+def dt_parse(t):
+    ret = datetime.strptime(t[0:15],'%Y%m%dT%H%M%S')
+
+    if t[15]=='+':
+        ret-=timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
+    elif t[15]=='-':
+        ret+=timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
+    elif t[15]=='Z':
+        pass
+    else:
+        raise Exception("Bad time format %s, %s" % (t, t[15]))
+    return ret.replace(tzinfo=pytz.UTC)
+
+def process_day(day):
+    events_count = 0
+    logger.info('----' + day['date'])
+    if day['segments']:
+        for segment in day['segments']:
+            start = dt_parse(segment[u'startTime'])
+            events_count += 1
+            if 'place' in segment:
+                place = segment['place']
+                name = False
+                if "name" in place:
+                    logger.info( "Moves: %s" % place['name'])
+                    name = place['name']
+                else:
+                    try: 
+                        fsq = FoursquareAPI.search_near(place['location']['lat'], place['location']['lon'])
+                        # ipdb.set_trace()
+                        if 'venues' not in fsq['response']:
+                            if 'checkins' in fsq['response']:
+                                logger.info( "Problem with Foursquare")
+                                raise Exception("Trouble with Foursquare")
+                            else:
+                                logger.info( "Serious Problem with Foursquare")
+                                raise Exception("Trouble with Foursquare")
+                        top_match = fsq['response'][u'venues'][0]
+                        if 'count' in top_match[u'beenHere'] and top_match[u'beenHere']['count'] > 0:
+                            logger.info("Fsq:  %s" % top_match['name'])
+                            name = top_match['name']
+                        else:
+                            raise Exception("Not found")
+                    except:
+                        logger.info( "Moves: %s %s  (Nope)" %  (place['location']['lat'], place['location']['lon']))
+
+                Lifestream.add_location(start, 'Moves', place['location']['lat'], place['location']['lon'], name)
+    if day['summary']:
+        for activity in day['summary']:
+            logger.info( "Activity: %sm %s" % (activity['distance'], activity['activity']))
+    return events_count
 
 payload = { 
     'access_token' : credentials['access_token'],
@@ -192,24 +206,36 @@ payload = {
 
 BASEURL = "https://api.moves-app.com/api/1.1"
 
-url = BASEURL + "/user/storyline/daily"
+if args.import_all:
+    logger.info( "Import All" )
+    no_data_weeks = 0;
+    now = datetime.now()
+    now = datetime(2017,1,8)
+    a_week = timedelta(days=7)
+    while no_data_weeks < 3:
+        week = now.isocalendar()[1]
+        url = "%s/user/storyline/daily/%s-W%s" % (BASEURL, now.year, week)
+        profile = requests.get(url, params=payload).json();
+        events_count = 0
+        for day in profile:
+            if 'date' in day:
+                events = process_day(day)
+                events_count += events
 
-profile = requests.get(url, params=payload).json();
 
-for day in profile:
-    print '----', day['date']
-    for segment in day['segments']:
-        # print "Segment"
-        if 'activities' in segment:
-            for activity in segment['activities']:
-                print activity['group'], activity['distance']
-        if 'place' in segment:
-            place = segment['place']
-            pprint(place)
-            print "https://www.google.com/maps/preview/@%f,%f,15z " % (place['location']['lat'], segment['place']['location']['lon'])
-            #sys.exit(5)
-    print "Summary"
-    # pprint(day['summary']);
-    for activity in day['summary']:
-        print "%sm %s" % (activity['distance'], activity['activity'])
-    # pprint(day)
+        now = now - a_week;
+        if events_count == 0:
+            logger.info( "Nothing this week")
+            no_data_weeks += 1
+        else:
+            no_data_weeks = 0
+
+else: 
+
+    url = BASEURL + "/user/storyline/daily"
+
+    profile = requests.get(url, params=payload).json();
+
+    for day in profile:
+        process_day(day)
+        # datetime(year, month, day[, hour[, minute[, second[, microsecond[,tzinfo]]]]])
