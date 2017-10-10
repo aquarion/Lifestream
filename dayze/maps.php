@@ -30,13 +30,13 @@ foreach ($items as $row){
   $key = $row['lat_vague']."/".$row['long_vague'];
   
     if($row['title']){
-        $title = $row['title'];
+        $title = $row['title'].' - '.$row['timestamp'];
     } else {
         $title = $row['timestamp'];
     }
     
   if($key !== $previous){
-    $newentry = array("lat" => $row['lat_vague'], "long" => $row['long_vague'], 'title' => $title);
+    $newentry = array("lat" => $row['lat_vague'], "long" => $row['long_vague'], 'title' => $title, 'source' => $row['source']);
         if($row['icon']){
             $newentry['icon'] = $row['icon'];
         }
@@ -75,7 +75,7 @@ var locations = <?PHP print json_encode($locations) ?>;
     <script type="text/javascript">
 
 var defaultIcon = L.icon({
-    iconUrl: 'https://phenomsff.com/images/red.png',
+    iconUrl: 'http://nicholasavenell.com/assets/marker.png',
     iconSize: [16, 16],
 });
 
@@ -111,7 +111,10 @@ function leaflet_map(){
 
   var tonerliteMap = new L.StamenTileLayer("toner-lite");
   var tonerMap = new L.StamenTileLayer("toner");
-  map.addLayer(tonerliteMap);
+
+  //
+  var mapBoxMap = new L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYXF1YXJpb24iLCJhIjoiQzRoeUpwZyJ9.gIhABGtR7UMR-LZUJGRW0A")
+  map.addLayer(mapBoxMap);
 
   // var layer = new L.StamenTileLayer("toner-lines");
   // map.addLayer(layer);
@@ -138,7 +141,7 @@ function leaflet_map(){
 
     markerpos = new L.LatLng(point['lat'], point['long']);
 
-    weight = .75 
+    weight = .2 
 
     if (point['icon']){
         image = point['icon'];
@@ -151,15 +154,16 @@ function leaflet_map(){
                   iconSize: [16, 16],
               })
           });
-          weight = 1 
+          weight = .4
           foursquareMarkers.push(marker)
-    } else {
-          // marker = new L.Marker(markerpos, {
-          //   icon: defaultIcon,
-          //   draggable:false,
-          //   title: point['title']
-          // });
-          // marker.addTo(map)
+    // } else if (point['source'] !== "openpaths") {
+    //       marker = new L.Marker(markerpos, {
+    //         icon: defaultIcon,
+    //         draggable:false,
+    //         title: point['title']
+    //       });
+    //       marker.addTo(map)
+    //     console.log(point)
 
     }
 
@@ -187,6 +191,7 @@ function leaflet_map(){
   };
   var baseLayers = {
       //"Marker": marker,
+      "Mapbox": mapBoxMap,
       "Watercolor": watercolorMap,
       "Toner": tonerMap,
       "Toner Lite": tonerliteMap

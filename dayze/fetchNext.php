@@ -114,6 +114,24 @@ if ($split[0] == "search") {
 		$forward = date("/Y/m", $from + A_MONTH + A_DAY);
 		$up = date("/Y", $from);
 
+	} elseif (count($split) == 3 && is_numeric($split[1]) && $split[0] == "*") {
+		// One Day, Any Year
+
+		// mktime ($hour, $minute, $second, $month, $day, $year)
+		$from = mktime(0, 0, 0, intval($split[1]), intval($split[2]), intval($split[0]));
+
+		$query->where_raw('(MONTH(`date_created`) = ? AND DAYOFMONTH(`date_created`) = ?)', array(intval($split[2]), intval($split[1])));
+
+		$location_before_ts = false;
+		$location_after_ts = false;
+
+		$message = sprintf("Day from %s to %s", date("Y-m-d 03:00", $from), date("Y-m-d 03:00", $from + A_DAY));
+		//$message = print_r($split, 1);#sprintf("Month from %s to %s", date("Y-m-d 00:00", $from), date("Y-m-d 00:00", $to));
+
+		$back = date("/Y/m/d", $from - A_DAY);
+		$forward = date("/Y/m/d", $from + A_DAY);
+		$up = date("/Y/\w\kW", $from);
+
 	} elseif (count($split) == 3 && is_numeric($split[1])) {
 		// One Day
 

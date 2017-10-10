@@ -1,7 +1,5 @@
 RewriteEngine On
-RewriteRule ^$	/index.php?search=	[L]
-RewriteRule ^search/(.*)$	/index.php	[L]
-RewriteRule ^(\d{4})/?$	/index.php?year=$1	[L]
-RewriteRule ^(\d{4})/wk(\d{2})?$	/index.php?year=$1&week=$2	[L]
-RewriteRule ^(\d{4})/(\d{2})/?$	/index.php?year=$1&month=$2	[L]
-RewriteRule ^(\d{4})/(\d{1,2})/(\d{1,2})/?$	/index.php?year=$1&month=$2&day=$3	[L]
+RewriteRule assets.*	-	[L]
+RewriteRule index.php	-	[L]
+RewriteRule fetchNext.php	-	[L]
+RewriteRule .*	/index.php	[L]
