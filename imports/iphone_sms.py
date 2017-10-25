@@ -3,7 +3,7 @@ import pickle
 
 # Libraries
 import sqlite3
-from dropbox import client, rest, session
+from dropbox import session
 
 # Local
 

@@ -3,8 +3,6 @@
 from xml.dom import minidom
 import urllib2 as urllib
 import hashlib
-import sys
-import time
 import os
 import pytz
 from xml.parsers.expat import ExpatError

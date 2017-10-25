@@ -2,18 +2,12 @@
 # -*- coding: utf-8 -*-
 # Python
 import sys
-import codecs
-import locale
-from datetime import datetime
-from time import mktime
-import argparse
 import ConfigParser
 import logging
 
 # Libraries
-from wordpress_xmlrpc import Client, WordPressPost
-from wordpress_xmlrpc.methods.posts import GetPosts, NewPost
-from wordpress_xmlrpc.methods.users import GetUserInfo
+from wordpress_xmlrpc import Client
+from wordpress_xmlrpc.methods.posts import GetPosts
 
 # Local
 import lifestream

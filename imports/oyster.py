@@ -11,7 +11,6 @@ from datetime import datetime
 import logging
 
 # Libraries
-from BeautifulSoup import BeautifulSoup
 from mechanize import Browser, RobustFactory
 
 # Local

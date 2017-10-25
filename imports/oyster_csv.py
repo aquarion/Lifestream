@@ -1,13 +1,9 @@
 #!/usr/bin/python
 # Python
-import sys
 import pytz
-import re
 import hashlib
 import csv
-import StringIO
 from datetime import datetime
-from time import sleep
 import logging
 
 # Libraries

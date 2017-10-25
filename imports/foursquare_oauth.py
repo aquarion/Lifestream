@@ -1,5 +1,4 @@
 # Python
-import json
 import pprint
 import os
 import sys

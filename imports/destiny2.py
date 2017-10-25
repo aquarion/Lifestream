@@ -6,23 +6,15 @@
 import dateutil.parser
 import pytz
 import sys
-import os
-import re
 from datetime import datetime
-import calendar
-import rfc822
-from urllib2 import URLError
 import socket
 import logging
 import pickle
-import urlparse
 from datetime import timedelta
-from pprint import pprint
 import time
 import hashlib
 
 # Libraries
-import facebook
 import requests
 
 # Local
@@ -66,7 +58,6 @@ APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
    #authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False):
 
-    scope = "activity+location"
     request_token_url = 'https://www.bungie.net/en/oauth/authorize?client_id=%s&response_type=code&state=6i0mkLx79Hp91nzWVceHrzHG4' % (client_id)
 
     if not force_reauth:
@@ -84,11 +75,11 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
 
     try:
         CodeFetcher9000.are_we_working()
-        redirect_uri=CodeFetcher9000.get_url()
+        CodeFetcher9000.get_url()
         UseCodeFetcher = True
     except CodeFetcher9000.WeSayNotToday:
         try:
-            redirect_uri='{}/keyback/destiny'.format(lifestream.config.get("dayze", "base")),
+            '{}/keyback/destiny'.format(lifestream.config.get("dayze", "base")),
             UseCodeFetcher = False
         except ConfigParser.Error:
             logger.error("Dayze base not configured")

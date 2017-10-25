@@ -2,7 +2,6 @@
 
 # Python
 import logging
-import sys
 from datetime import datetime
 from time import mktime
 # Libraries

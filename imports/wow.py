@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # Python
-import urlparse
 import pickle
-from datetime import timedelta, datetime
+from datetime import datetime
 import socket
 import logging
 import pytz

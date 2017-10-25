@@ -7,8 +7,6 @@ import urlparse
 import cPickle as pickle
 import simplejson
 import datetime
-import dateutil.parser
-from time import mktime
 import logging
 import os
 
@@ -19,7 +17,7 @@ import oauth2 as oauth
 
 # Libraries
 from twitter import Twitter
-from twitter.oauth import OAuth, write_token_file, read_token_file
+from twitter.oauth import OAuth, read_token_file
 from twitter.oauth_dance import oauth_dance
 
 

@@ -1,20 +1,11 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
 # Python
-import dateutil.parser
-import pytz
 import sys
-import os
-import re
 from datetime import datetime
-import calendar
-import rfc822
-from urllib2 import URLError
 import socket
 import logging
 import pickle
-from pprint import pprint
-import urlparse
 from datetime import timedelta
 import ConfigParser # For the exceptions
 import codecs
@@ -157,9 +148,9 @@ def some_action(post, graph, profile):
         return
         
     if 'picture' in post:
-        image = post['picture']
+        post['picture']
     else:
-        image = False
+        pass
 
 
     if not 'message' in post:

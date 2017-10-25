@@ -3,24 +3,16 @@
 
 #!/usr/bin/python
 # Python
-import dateutil.parser
 import pytz
 import sys
-import os
-import re
 from datetime import datetime
-import calendar
-import rfc822
-from urllib2 import URLError
 import socket
 import logging
 import pickle
-import urlparse
 from datetime import timedelta
 import CodeFetcher9000
 
 # Libraries
-import facebook
 import requests
 
 # Local
@@ -79,11 +71,11 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
     try:
         CodeFetcher9000.are_we_working()
-        redirect_uri=CodeFetcher9000.get_url()
+        CodeFetcher9000.get_url()
         UseCodeFetcher = True
     except CodeFetcher9000.WeSayNotToday:
         try:
-            redirect_uri='{}/keyback/wow.py'.format(lifestream.config.get("dayze", "base")),
+            '{}/keyback/wow.py'.format(lifestream.config.get("dayze", "base")),
             UseCodeFetcher = False
         except ConfigParser.Error:
             logger.error("Dayze base not configured")

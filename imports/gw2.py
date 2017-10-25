@@ -1,7 +1,5 @@
 #!/usr/bin/python
 # Python
-import sys
-import hashlib
 from datetime import datetime
 import logging
 import requests

@@ -3,7 +3,6 @@
 import sys
 import pytz
 from datetime import datetime
-from time import sleep
 import hashlib
 import logging
 import signal

@@ -3,7 +3,6 @@
 import dateutil.parser
 import pytz
 import feedparser
-import datetime
 import sys
 import logging
 
@@ -21,7 +20,6 @@ try:
     id = lifestream.config.get("lastfm", "username")
 except:
     id = False
-    pass
 
 if not id:
     logger.error("No Last.fm user found in config file")

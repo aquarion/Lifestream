@@ -3,8 +3,6 @@
 import pytz
 import dateutil.parser
 import logging
-import sys
-import urllib2
 
 # Libraries
 

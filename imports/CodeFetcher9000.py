@@ -1,4 +1,3 @@
-import sys
 import BaseHTTPServer
 import urlparse
 import logging
@@ -104,7 +103,7 @@ def are_we_working():
     return True
 
 def get_code(key_wanted_arg):
-    server_class=BaseHTTPServer.HTTPServer
+    BaseHTTPServer.HTTPServer
     handler_class=MyHandler
 
     global key_wanted

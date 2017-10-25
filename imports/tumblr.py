@@ -1,12 +1,7 @@
 #!/usr/bin/python
 # Python
-from pprint import pprint
-import sys
 import urlparse
 import cPickle as pickle
-import simplejson
-from datetime import datetime
-from time import mktime
 import logging
 
 # Libraries

@@ -1,13 +1,10 @@
 #!/usr/bin/python
 
 # Python
-import sys
 import logging
 import cPickle as pickle
 from datetime import datetime, timedelta
-import os
 import pprint
-import sys
 
 # Libraries
 from fitbit.api import FitbitOauthClient
