@@ -12,16 +12,53 @@ var Formatting = {
 		element.css("background-image", "url('"+object.image+"')");
 		//element.css("background-size", "contain");
 		element.addClass("achivement");
-		
-		newhtml = "<div style=\"position: absolute; top: 2px; width: 100%; text-align: center; overflow: hidden\">"+decodeEntities(object.title).split(" – ")[0]+"</div>"
 
-		if (decodeEntities(object.title).split(" — ")[1]){
-			newhtml = newhtml + "<div style=\"position: absolute; bottom: 2px; text-align: center; width: 100%; overflow: hidden;\">"+decodeEntities(object.title).split(" – ")[1]+"</div>";
+		title = decodeEntities(object.title)
+
+		if ( title.search(" --- ") !== -1 ){
+			delim = " --- "
+		} else {
+			delim = " – "
+		}
+		
+		newhtml = "<div class=\"achievement_top\">"+title.split(delim)[0]+"</div>"
+
+		if (title.split(delim)[1]){
+			newhtml = newhtml + "<div class=\"achievement_bottom\">"+title.split(delim)[1]+"</div>";
 		}
 
 		element.html(newhtml);
 
-		element.attr("title", (object.source+" "+object.type).capitalize()+": "+decodeEntities(object.title))
+		element.attr("title", (object.source+" "+object.type).capitalize()+": "+title)
+
+		element.height(h*2 - 12);
+		element.width(w*1 - 12);
+
+
+		return element;
+	},
+
+	'destiny2_gaming' : function(object, element){
+
+		if(element.hasClass("Raptr")){
+			return element;
+		}
+		element.css("background-image", "url('https://art.istic.net/iconography/games/destiny.png')");
+		element.css("background-size", "contain");
+		element.addClass("achivement");
+
+		title = decodeEntities(object.title)
+		console.log(object)
+
+		delim = " --- "
+		
+		newhtml = "<div class=\"achievement_top\">Destiny 2</div>"
+		newhtml += "<div class=\"achievement_bottom\">"+title.split(delim)[0]+"</div>"
+
+
+		element.html(newhtml);
+
+		element.attr("title", (object.source+" "+object.type).capitalize()+": "+title)
 
 		element.height(h*2 - 12);
 		element.width(w*1 - 12);
@@ -46,6 +83,7 @@ var Formatting = {
         },
 
 	'facebook' : function(object, element){
+
 		//element.height(h*2);
 		element.width(w*3-12);
 		element.data("growthis", true);
@@ -77,10 +115,22 @@ var Formatting = {
 
 	'facebook_photo' : function(object, element){
 		element.html(
-			'<img src="'+object.image+'" style="float: left; clear: right; padding-right: 5px" />'
-			+ '<p>' + object.title + '</p>'
+			'<p>' + object.title + '</p>'
+			+'<img src="'+object.image+'" height="73"/>'
 			);
 		element.removeClass("photo");
+		element.data("growthis", true);
+		return element;
+	},
+
+	'facebook_video' : function(object, element){
+		element.html(
+			'<p>' + object.title + '</p>'
+			+'<img src="'+object.image+'" height="73"/>'
+			);
+		console.log(object)
+		element.removeClass("photo");
+		element.data("growthis", true);
 		return element;
 	},
 

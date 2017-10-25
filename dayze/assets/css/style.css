@@ -271,6 +271,24 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
 	
 }
 
+.achievement_top {
+	left: 0;
+	position: absolute; 
+	top: 2px; 
+	width: 100%; 
+	text-align: center; 
+	overflow: hidden;
+}
+
+.achievement_bottom {
+	left: 0;
+	position: absolute; 
+	bottom: 2px; 
+	text-align: center; 
+	width: 100%; 
+	overflow: hidden;
+}
+
 #music_chart, #music_others {
 	width:  388px;
 	background: rgba(255,255,255,.6);
@@ -303,4 +321,17 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
   position: absolute;
   bottom: .2em;
   right: .2em;
+}
+
+.destiny2_gaming {
+	background: #DDD;
+	color: black;
+}
+
+.facebook_photo {
+	text-align: center;
+}
+
+.facebook_photo p {
+	margin: 0;
 }
