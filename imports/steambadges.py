@@ -34,20 +34,22 @@ s_sql = u'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_crea
 badges = browser.find_elements_by_css_selector("div.badge_row_inner")
 
 for badge in badges:
-    image = badge.find_element_by_css_selector(".badge_info_image img").get_attribute("src")
+    image = badge.find_element_by_css_selector(
+        ".badge_info_image img").get_attribute("src")
     text = badge.find_element_by_class_name("badge_info_title").text.strip()
-    date = badge.find_element_by_class_name("badge_info_unlocked").text.strip()[9:]
+    date = badge.find_element_by_class_name(
+        "badge_info_unlocked").text.strip()[9:]
 
     try:
         parseddate = datetime.strptime(date, "%b %d, %Y @ %I:%M%p")
     except ValueError:
-	try:
-        	parseddate = datetime.strptime(date, "%b %d @ %I:%M%p")
-	except ValueError:
-		print date
-		print URL
-		print text
-		sys.exit(5)
+        try:
+            parseddate = datetime.strptime(date, "%b %d @ %I:%M%p")
+        except ValueError:
+            print date
+            print URL
+            print text
+            sys.exit(5)
     localdate = steamtime.localize(parseddate)
     utcdate = localdate.astimezone(pytz.utc)
 
@@ -66,8 +68,9 @@ for badge in badges:
         image=image)
 
 
-browser.service.process.send_signal(signal.SIGTERM) # kill the specific phantomjs child proc
+# kill the specific phantomjs child proc
+browser.service.process.send_signal(signal.SIGTERM)
 try:
-	browser.quit()                                      # quit the node proc
+    browser.quit()                                      # quit the node proc
 except AttributeError as e:
-	logger.info("Failed to quit: %s" % e )
+    logger.info("Failed to quit: %s" % e)

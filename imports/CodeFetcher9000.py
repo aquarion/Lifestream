@@ -7,19 +7,25 @@ import ConfigParser
 
 logger = logging.getLogger('CodeFetcher')
 
-ServerClass  = BaseHTTPServer.HTTPServer
+ServerClass = BaseHTTPServer.HTTPServer
 port = int(lifestream.config.get("CodeFetcher9000", "port"))
 server_address = ('0.0.0.0', port)
 code = False
 key_wanted = False
 
+
 class WeSayNotToday(Exception):
     pass
 
+
 class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-    def __init__(self,req,client_addr,server):
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self,req,client_addr,server)
+    def __init__(self, req, client_addr, server):
+        BaseHTTPServer.BaseHTTPRequestHandler.__init__(
+            self,
+            req,
+            client_addr,
+            server)
 
     # def do_POST(s):
     #     global code
@@ -43,7 +49,8 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             s.send_header("Content-type", "text/html")
             s.end_headers()
             s.wfile.write("<html><head><title>Code Collector</title></head>")
-            s.wfile.write("<body><h1>New Token collected, you can close this tab</h1>")
+            s.wfile.write(
+                "<body><h1>New Token collected, you can close this tab</h1>")
             s.wfile.write("</body></html>")
             code = params
         else:
@@ -62,7 +69,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 } else {
                     console.log("No Fragment");
                 }
-                
+
             </script>"""
             s.wfile.write(js_fragment)
             s.wfile.write("</body></html>")
@@ -70,6 +77,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 def get_port():
     return server_address[1]
+
 
 def get_url():
     domain = lifestream.config.get("CodeFetcher9000", "domain")
@@ -79,7 +87,7 @@ def get_url():
 
 def are_we_working():
     try:
-        certfile=lifestream.config.get("CodeFetcher9000", "certfile")
+        certfile = lifestream.config.get("CodeFetcher9000", "certfile")
         f = open(certfile, 'rb')
         f.close()
     except IOError:
@@ -90,7 +98,7 @@ def are_we_working():
         raise WeSayNotToday()
 
     try:
-        keyfile=lifestream.config.get("CodeFetcher9000", "keyfile")
+        keyfile = lifestream.config.get("CodeFetcher9000", "keyfile")
         f = open(keyfile, 'rb')
         f.close()
     except IOError:
@@ -102,16 +110,17 @@ def are_we_working():
 
     return True
 
+
 def get_code(key_wanted_arg):
     BaseHTTPServer.HTTPServer
-    handler_class=MyHandler
+    handler_class = MyHandler
 
     global key_wanted
     key_wanted = key_wanted_arg
 
     try:
-        certfile=lifestream.config.get("CodeFetcher9000", "certfile")
-        keyfile=lifestream.config.get("CodeFetcher9000", "keyfile")
+        certfile = lifestream.config.get("CodeFetcher9000", "certfile")
+        keyfile = lifestream.config.get("CodeFetcher9000", "keyfile")
     except IOError:
         logger.error("Could not read file")
         raise WeSayNotToday()
@@ -121,9 +130,9 @@ def get_code(key_wanted_arg):
 
     httpd = ServerClass(server_address, handler_class)
     httpd.socket = ssl.wrap_socket(
-        httpd.socket, 
-        certfile = certfile, 
-        keyfile = keyfile, 
+        httpd.socket,
+        certfile=certfile,
+        keyfile=keyfile,
         server_side=True)
 
     sa = httpd.socket.getsockname()

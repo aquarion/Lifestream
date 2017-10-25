@@ -18,7 +18,9 @@ APIKEY = Lifestream.config.get("guildwars2", "apikey")
 logger = logging.getLogger('GW2')
 args = lifestream.arguments.parse_args()
 
-api = GuildWars2API(user_agent="Lifestream <nicholas@istic.net>", api_key=APIKEY)
+api = GuildWars2API(
+    user_agent="Lifestream <nicholas@istic.net>",
+    api_key=APIKEY)
 
 my_achivements = api.account_achievements.get()
 
@@ -40,9 +42,12 @@ for achivement in response:
     ident = achivement['id']
     achivements_library[ident]['info'] = achivement
 
-category_list = requests.get("https://api.guildwars2.com/v2/achievements/categories/").json()
-category_data = {"ids" : ','.join(str(x) for x in category_list)}
-category_fetch = requests.get("https://api.guildwars2.com/v2/achievements/categories", data=category_data).json()
+category_list = requests.get(
+    "https://api.guildwars2.com/v2/achievements/categories/").json()
+category_data = {"ids": ','.join(str(x) for x in category_list)}
+category_fetch = requests.get(
+    "https://api.guildwars2.com/v2/achievements/categories",
+    data=category_data).json()
 
 for category in category_fetch:
     for achivement_id in category['achievements']:
@@ -60,11 +65,12 @@ for ident, achivement in achivements_library.iteritems():
 
     if not icon:
         logger.warn(achivement['info']['name'], " - has no icon")
-    
-    text = achivement['info']['name'] + " &ndash; " + achivement['info']['requirement']
+
+    text = achivement['info']['name'] + " &ndash; " + \
+        achivement['info']['requirement']
 
 #     id = hashlib.md5()
-# #     id.update(text)
+# id.update(text)
     Lifestream.add_entry(
         "achivement",
         ident,

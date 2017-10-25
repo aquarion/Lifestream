@@ -15,7 +15,6 @@ import requests
 import lifestream
 
 
-
 type = "location"
 username = lifestream.config.get("foursquare", "username")
 url = "http://foursquare.com/%s" % username
@@ -51,12 +50,12 @@ Lifestream = lifestream.Lifestream()
 l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, "foursquare", %s, %s, %s, %s, %s, 1, %s, %s);'
 
 
-URL_BASE = "https://api.foursquare.com/v2/%s" 
+URL_BASE = "https://api.foursquare.com/v2/%s"
 # Get the data
 
 payload = {
-	'v': "20140226",
-	'oauth_token' : oauth_token
+    'v': "20140226",
+    'oauth_token': oauth_token
 }
 
 r = requests.get(URL_BASE % "users/self/checkins", params=payload)
@@ -119,4 +118,3 @@ if 'checkins' in data['response'].keys():
              utcdate,
              location['venue']['name'],
              image))
-

@@ -1,5 +1,5 @@
 
-## 
+##
 
 #!/usr/bin/python
 # Python
@@ -37,7 +37,6 @@ lifestream.arguments.add_argument(
     action='store_true')
 
 
-
 args = lifestream.arguments.parse_args()
 
 
@@ -51,11 +50,14 @@ APP_SECRET = lifestream.config.get("moves", "secret")
 
 FoursquareAPI = lifestream.FoursquareAPI(Lifestream)
 
-   #authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
+# authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
+
+
 def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
     scope = "activity+location"
-    request_token_url = 'https://api.moves-app.com/oauth/v1/authorize?response_type=code&client_id=%s&scope=%s' % (appid, scope)
+    request_token_url = 'https://api.moves-app.com/oauth/v1/authorize?response_type=code&client_id=%s&scope=%s' % (
+        appid, scope)
 
     if not force_reauth:
         try:
@@ -67,7 +69,6 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             oauth_token = False
     else:
         oauth_token = False
-
 
     try:
         CodeFetcher9000.are_we_working()
@@ -84,7 +85,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
     if oauth_token:
 
-        expiration_date =  oauth_token['expire_dt']
+        expiration_date = oauth_token['expire_dt']
         if datetime.now() > expiration_date:
             print "Token has expired!"
 
@@ -94,14 +95,14 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             print "Token will expire in {} days!".format(delta.days)
 
         return oauth_token
-    
-    # Step 2: Redirect to the provider. Since this is a CLI script we do not 
+
+    # Step 2: Redirect to the provider. Since this is a CLI script we do not
     # redirect. In a web application you would redirect the user to the URL
     # below.
 
     print "Go to the following link in your browser:"
     print request_token_url
-    print 
+    print
 
     if UseCodeFetcher:
         oauth_redirect = CodeFetcher9000.get_code("code")
@@ -110,14 +111,15 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
         print "If you configure CodeFetcher9000, this is a lot easier."
         print " - "
         access_key = raw_input('What is the PIN? ')
-    
-    extend_token_url = "https://api.moves-app.com/oauth/v1/access_token?grant_type=authorization_code&code=%s&client_id=%s&client_secret=%s" % (access_key, appid, secret)
+
+    extend_token_url = "https://api.moves-app.com/oauth/v1/access_token?grant_type=authorization_code&code=%s&client_id=%s&client_secret=%s" % (
+        access_key, appid, secret)
     extend_token = requests.post(extend_token_url)
     oauth_token = extend_token.json()
 
     delta = timedelta(seconds=int(oauth_token['expires_in']))
-    oauth_token['expire_dt'] = datetime.now() + delta;
-        
+    oauth_token['expire_dt'] = datetime.now() + delta
+
     f = open(OAUTH_FILENAME, "w")
     pickle.dump(oauth_token, f)
     f.close()
@@ -138,18 +140,20 @@ if delta.days <= 7:
 else:
     logger.info("Token will expire in {} days!".format(delta.days))
 
-def dt_parse(t):
-    ret = datetime.strptime(t[0:15],'%Y%m%dT%H%M%S')
 
-    if t[15]=='+':
-        ret-=timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
-    elif t[15]=='-':
-        ret+=timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
-    elif t[15]=='Z':
+def dt_parse(t):
+    ret = datetime.strptime(t[0:15], '%Y%m%dT%H%M%S')
+
+    if t[15] == '+':
+        ret -= timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
+    elif t[15] == '-':
+        ret += timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
+    elif t[15] == 'Z':
         pass
     else:
         raise Exception("Bad time format %s, %s" % (t, t[15]))
     return ret.replace(tzinfo=pytz.UTC)
+
 
 def process_day(day):
     events_count = 0
@@ -162,72 +166,84 @@ def process_day(day):
                 place = segment['place']
                 name = False
                 if "name" in place:
-                    logger.info( "Moves: %s" % place['name'])
+                    logger.info("Moves: %s" % place['name'])
                     name = place['name']
                 else:
-                    try: 
-                        fsq = FoursquareAPI.search_near(place['location']['lat'], place['location']['lon'])
+                    try:
+                        fsq = FoursquareAPI.search_near(
+                            place['location']['lat'],
+                            place['location']['lon'])
                         # ipdb.set_trace()
                         if 'venues' not in fsq['response']:
                             if 'checkins' in fsq['response']:
-                                logger.info( "Problem with Foursquare")
+                                logger.info("Problem with Foursquare")
                                 raise Exception("Trouble with Foursquare")
                             else:
-                                logger.info( "Serious Problem with Foursquare")
+                                logger.info("Serious Problem with Foursquare")
                                 raise Exception("Trouble with Foursquare")
                         top_match = fsq['response'][u'venues'][0]
-                        if 'count' in top_match[u'beenHere'] and top_match[u'beenHere']['count'] > 0:
+                        if 'count' in top_match[u'beenHere'] and top_match[
+                                u'beenHere']['count'] > 0:
                             logger.info("Fsq:  %s" % top_match['name'])
                             name = top_match['name']
                         else:
                             raise Exception("Not found")
                     except:
-                        logger.info( "Moves: %s %s  (Nope)" %  (place['location']['lat'], place['location']['lon']))
+                        logger.info(
+                            "Moves: %s %s  (Nope)" %
+                            (place['location']['lat'], place['location']['lon']))
 
-                Lifestream.add_location(start, 'Moves', place['location']['lat'], place['location']['lon'], name)
+                Lifestream.add_location(
+                    start,
+                    'Moves',
+                    place['location']['lat'],
+                    place['location']['lon'],
+                    name)
     if day['summary']:
         for activity in day['summary']:
-            logger.info( "Activity: %sm %s" % (activity['distance'], activity['activity']))
+            logger.info(
+                "Activity: %sm %s" %
+                (activity['distance'], activity['activity']))
     return events_count
 
-payload = { 
-    'access_token' : credentials['access_token'],
-    'pastDays'     : 7,
-    'trackPoints'  : "true"
-    }
+payload = {
+    'access_token': credentials['access_token'],
+    'pastDays': 7,
+    'trackPoints': "true"
+}
 
 BASEURL = "https://api.moves-app.com/api/1.1"
 
 if args.import_all:
-    logger.info( "Import All" )
-    no_data_weeks = 0;
+    logger.info("Import All")
+    no_data_weeks = 0
     now = datetime.now()
-    now = datetime(2017,1,8)
+    now = datetime(2017, 1, 8)
     a_week = timedelta(days=7)
     while no_data_weeks < 3:
         week = now.isocalendar()[1]
         url = "%s/user/storyline/daily/%s-W%s" % (BASEURL, now.year, week)
-        profile = requests.get(url, params=payload).json();
+        profile = requests.get(url, params=payload).json()
         events_count = 0
         for day in profile:
             if 'date' in day:
                 events = process_day(day)
                 events_count += events
 
-
-        now = now - a_week;
+        now = now - a_week
         if events_count == 0:
-            logger.info( "Nothing this week")
+            logger.info("Nothing this week")
             no_data_weeks += 1
         else:
             no_data_weeks = 0
 
-else: 
+else:
 
     url = BASEURL + "/user/storyline/daily"
 
-    profile = requests.get(url, params=payload).json();
+    profile = requests.get(url, params=payload).json()
 
     for day in profile:
         process_day(day)
-        # datetime(year, month, day[, hour[, minute[, second[, microsecond[,tzinfo]]]]])
+        # datetime(year, month, day[, hour[, minute[, second[,
+        # microsecond[,tzinfo]]]]])

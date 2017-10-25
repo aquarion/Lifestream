@@ -1,5 +1,5 @@
 
-## 
+##
 
 #!/usr/bin/python
 # Python
@@ -41,7 +41,6 @@ lifestream.arguments.add_argument(
     action='store_true')
 
 
-
 args = lifestream.arguments.parse_args()
 
 
@@ -49,16 +48,23 @@ socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
 OAUTH_FILENAME = "%s/bungie.oauth" % (
-lifestream.config.get("global", "secrets_dir"))
+    lifestream.config.get("global", "secrets_dir"))
 APP_KEY = lifestream.config.get("bungie", "key")
 APP_CLIENT_ID = lifestream.config.get("bungie", "client_id")
 APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
 
+# authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
-   #authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
-def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False):
 
-    request_token_url = 'https://www.bungie.net/en/oauth/authorize?client_id=%s&response_type=code&state=6i0mkLx79Hp91nzWVceHrzHG4' % (client_id)
+def authenticate(
+        OAUTH_FILENAME,
+        api_key,
+        client_id,
+        client_secret,
+        force_reauth=False):
+
+    request_token_url = 'https://www.bungie.net/en/oauth/authorize?client_id=%s&response_type=code&state=6i0mkLx79Hp91nzWVceHrzHG4' % (
+        client_id)
 
     if not force_reauth:
         try:
@@ -72,14 +78,16 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
         logger.info("Forcing reauth")
         oauth_token = False
 
-
     try:
         CodeFetcher9000.are_we_working()
         CodeFetcher9000.get_url()
         UseCodeFetcher = True
     except CodeFetcher9000.WeSayNotToday:
         try:
-            '{}/keyback/destiny'.format(lifestream.config.get("dayze", "base")),
+            '{}/keyback/destiny'.format(
+                lifestream.config.get(
+                    "dayze",
+                    "base")),
             UseCodeFetcher = False
         except ConfigParser.Error:
             logger.error("Dayze base not configured")
@@ -88,28 +96,31 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
 
     if oauth_token:
 
-        expiration_date =  oauth_token['expire_dt']
+        expiration_date = oauth_token['expire_dt']
         if datetime.now() > expiration_date:
             print "-- refresh token --"
-            oauth_token = refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret)
-            expiration_date =  oauth_token['expire_dt']
+            oauth_token = refresh_token(
+                OAUTH_FILENAME,
+                oauth_token,
+                client_id,
+                client_secret)
+            expiration_date = oauth_token['expire_dt']
 
-
-        refresh_expiration_date =  oauth_token['refresh_expire_dt']
+        refresh_expiration_date = oauth_token['refresh_expire_dt']
         delta = refresh_expiration_date - datetime.now()
 
         if delta.days <= 7:
             print "Refresh token will expire in {}!".format(lifestream.niceTimeDelta(delta))
 
         return oauth_token
-    
-    # Step 2: Redirect to the provider. Since this is a CLI script we do not 
+
+    # Step 2: Redirect to the provider. Since this is a CLI script we do not
     # redirect. In a web application you would redirect the user to the URL
     # below.
 
     print "Go to the following link in your browser:"
     print request_token_url
-    print 
+    print
 
     if UseCodeFetcher:
         oauth_redirect = CodeFetcher9000.get_code("code")
@@ -118,30 +129,31 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
         print "If you configure CodeFetcher9000, this is a lot easier."
         print " - "
         access_key = raw_input('What is the PIN? ')
-    
+
     access_token_url = "https://www.bungie.net/platform/app/oauth/token/"
 
     payload = {
-        'grant_type' : 'authorization_code',
-        'code' : access_key,
-        'client_id' : client_id,
-        'client_secret' : client_secret
+        'grant_type': 'authorization_code',
+        'code': access_key,
+        'client_id': client_id,
+        'client_secret': client_secret
     }
     access_token = requests.post(access_token_url, data=payload)
     print access_token.text
     oauth_token = access_token.json()
 
     delta = timedelta(seconds=int(oauth_token['expires_in']))
-    oauth_token['expire_dt'] = datetime.now() + delta;
+    oauth_token['expire_dt'] = datetime.now() + delta
 
     refresh_delta = timedelta(seconds=int(oauth_token['refresh_expires_in']))
-    oauth_token['refresh_expire_dt'] = datetime.now() + refresh_delta;
-        
+    oauth_token['refresh_expire_dt'] = datetime.now() + refresh_delta
+
     f = open(OAUTH_FILENAME, "w")
     pickle.dump(oauth_token, f)
     f.close()
 
     return oauth_token
+
 
 def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
     logger.info("Refreshing token...")
@@ -149,21 +161,23 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
     access_token_url = "https://www.bungie.net/platform/app/oauth/token/"
 
     payload = {
-        'grant_type' : 'refresh_token',
-        'refresh_token' : oauth_token['refresh_token'],
-        'client_id' : client_id,
-        'client_secret' : client_secret
+        'grant_type': 'refresh_token',
+        'refresh_token': oauth_token['refresh_token'],
+        'client_id': client_id,
+        'client_secret': client_secret
     }
     extend_token = requests.post(access_token_url, data=payload)
     oauth_token = extend_token.json()
 
     delta = timedelta(seconds=int(oauth_token['expires_in']))
-    oauth_token['expire_dt'] = datetime.now() + delta;
-    logger.info("New token expires in {}".format(lifestream.niceTimeDelta(delta)))
+    oauth_token['expire_dt'] = datetime.now() + delta
+    logger.info(
+        "New token expires in {}".format(
+            lifestream.niceTimeDelta(delta)))
 
     refresh_delta = timedelta(seconds=int(oauth_token['refresh_expires_in']))
-    oauth_token['refresh_expire_dt'] = datetime.now() + refresh_delta;
-        
+    oauth_token['refresh_expire_dt'] = datetime.now() + refresh_delta
+
     f = open(OAUTH_FILENAME, "w")
     pickle.dump(oauth_token, f)
     f.close()
@@ -171,7 +185,12 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
     return oauth_token
 
 
-credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_CLIENT_ID, APP_CLIENT_SECRET, args.reauth)
+credentials = authenticate(
+    OAUTH_FILENAME,
+    APP_KEY,
+    APP_CLIENT_ID,
+    APP_CLIENT_SECRET,
+    args.reauth)
 
 
 if datetime.now() > credentials['expire_dt']:
@@ -184,30 +203,36 @@ logger.info("Token will expire in {}!".format(lifestream.niceTimeDelta(delta)))
 
 delta = credentials['refresh_expire_dt'] - datetime.now()
 if delta.days <= 7:
-    logger.warning("Refresh Token will expire in {}!".format(lifestream.niceTimeDelta(delta)))
+    logger.warning(
+        "Refresh Token will expire in {}!".format(
+            lifestream.niceTimeDelta(delta)))
 else:
-    logger.info("Refresh Token will expire in {}!".format(lifestream.niceTimeDelta(delta)))
+    logger.info(
+        "Refresh Token will expire in {}!".format(
+            lifestream.niceTimeDelta(delta)))
 
 NEXT_REQUEST = datetime.now()
+
 
 def destinyCall(path, payload={}):
 
     logger.info("Making a call to {}".format(path))
     global NEXT_REQUEST
-    
+
     delta = datetime.now() - NEXT_REQUEST
 
     if delta.seconds > 0:
-        logger.warning( "throttled, waiting {}".format(delta.seconds) )
+        logger.warning("throttled, waiting {}".format(delta.seconds))
         time.sleep(delta.seconds)
 
     ROOT = 'https://www.bungie.net/Platform'
-    url = "{}/{}".format(ROOT,path)
+    url = "{}/{}".format(ROOT, path)
 
     headers = {
-        'X-API-Key' : APP_KEY,
-        "Authorization" : '{} {}'.format(credentials['token_type'], credentials["access_token"])
-    }
+        'X-API-Key': APP_KEY,
+        "Authorization": '{} {}'.format(
+            credentials['token_type'],
+            credentials["access_token"])}
 
     result = requests.get(url, headers=headers, params=payload).json()
 
@@ -219,37 +244,40 @@ def destinyCall(path, payload={}):
             raise DestinyException(result['ErrorStatus'])
 
     request_delta = timedelta(seconds=result['ThrottleSeconds'])
-    NEXT_REQUEST = datetime.now();
+    NEXT_REQUEST = datetime.now()
 
     return result['Response']
 
+
 def destinyEntity(entityType, hashIdentifier):
-    path = '/Destiny2/Manifest/{entityType}/{hashIdentifier}/'.format(entityType=entityType,hashIdentifier=hashIdentifier)
+    path = '/Destiny2/Manifest/{entityType}/{hashIdentifier}/'.format(
+        entityType=entityType,
+        hashIdentifier=hashIdentifier)
     return destinyCall(path)
 
 memberships = destinyCall('User/GetMembershipsForCurrentUser/')
 
-IMAGE_BASE = 'https://www.bungie.net';
+IMAGE_BASE = 'https://www.bungie.net'
 
 MEMBERSHIP_TYPES = {
-    0 : 'None',
-    1 : 'TigerXbox',
-    2 : 'TigerPsn',
-    4 : 'TigerBlizzard',
-    10 : 'TigerDemon',
-    254 : 'BungieNext',
-    -1 : 'All',
+    0: 'None',
+    1: 'TigerXbox',
+    2: 'TigerPsn',
+    4: 'TigerBlizzard',
+    10: 'TigerDemon',
+    254: 'BungieNext',
+    -1: 'All',
 }
 
 
 def dt_parse(t):
-    ret = datetime.strptime(t[0:15],'%Y%m%dT%H%M%S')
+    ret = datetime.strptime(t[0:15], '%Y%m%dT%H%M%S')
 
-    if t[15]=='+':
-        ret-=timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
-    elif t[15]=='-':
-        ret+=timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
-    elif t[15]=='Z':
+    if t[15] == '+':
+        ret -= timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
+    elif t[15] == '-':
+        ret += timedelta(hours=int(t[16:18]), minutes=int(t[18:]))
+    elif t[15] == 'Z':
         pass
     else:
         raise Exception("Bad time format %s, %s" % (t, t[15]))
@@ -261,67 +289,76 @@ for member_data in memberships['destinyMemberships']:
         #     u'membershipId': u'4611686018428725676',
         #     u'membershipType': 2},
         # member_data['membershipType'] = MEMBERSHIP_TYPES[member_data['membershipType']]
-        try:
-            membership = destinyCall('Destiny2/{membershipType}/Profile/{membershipId}/'.format(**member_data), {'components': 'Characters'})
-        except destiny_exceptions.DestinyAccountNotFound:
-            logger.info("Membership for {} doesn't have D2".format( MEMBERSHIP_TYPES[member_data['membershipType']] ) )
-            continue
-        
-        character_list = membership['characters']['data'].keys()
-        for character_id in character_list:
-            character_data = membership['characters']['data'][character_id]
+    try:
+        membership = destinyCall(
+            'Destiny2/{membershipType}/Profile/{membershipId}/'.format(**member_data), {'components': 'Characters'})
+    except destiny_exceptions.DestinyAccountNotFound:
+        logger.info(
+            "Membership for {} doesn't have D2".format(
+                MEMBERSHIP_TYPES[
+                    member_data['membershipType']]))
+        continue
 
-            # Useful bits of character data: 
-            #   u'emblemPath': u'/common/destiny2_content/icons/5dc023c8be5d682eae90be7f5d420f69.jpg',
-            #   u'emblemBackgroundPath': u'/common/destiny2_content/icons/e452c62485491a02fbc0e36f06d301d2.jpg',
-            #   u'levelProgression'/'level'
+    character_list = membership['characters']['data'].keys()
+    for character_id in character_list:
+        character_data = membership['characters']['data'][character_id]
 
-            path_params = {
-                'membershipType' : member_data['membershipType'],
-                'membershipId' : member_data['membershipId'],
-                'characterId' : character_id
+        # Useful bits of character data:
+        #   u'emblemPath': u'/common/destiny2_content/icons/5dc023c8be5d682eae90be7f5d420f69.jpg',
+        #   u'emblemBackgroundPath': u'/common/destiny2_content/icons/e452c62485491a02fbc0e36f06d301d2.jpg',
+        #   u'levelProgression'/'level'
+
+        path_params = {
+            'membershipType': member_data['membershipType'],
+            'membershipId': member_data['membershipId'],
+            'characterId': character_id
+        }
+
+        path = '/Destiny2/{membershipType}/Account/{membershipId}/Character/{characterId}/Stats/Activities/'.format(
+            **path_params)
+        query_params = {
+            'count': 100,
+            'mode': 'None',
+            'page': 0
+        }
+
+        activities = destinyCall(path, query_params)
+
+        for instance in activities['activities']:
+            activity = destinyEntity(
+                'DestinyActivityDefinition',
+                instance['activityDetails']['directorActivityHash'])
+
+            id = hashlib.md5()
+            id.update(
+                "%s-destiny2" %
+                instance['activityDetails']['instanceId'])
+
+            display = activity['displayProperties']
+
+            text = u"%s --- %s" % (display['name'], display['description'])
+
+            localdate = dateutil.parser.parse(instance['period'])
+            utcdate = localdate.astimezone(pytz.utc)
+
+            if display['hasIcon']:
+                image = IMAGE_BASE + display['icon']
+            else:
+                image = IMAGE_BASE + character_data['emblemPath']
+
+            item = {
+                'instance_info': instance,
+                'activity_info': activity
             }
 
-            path = '/Destiny2/{membershipType}/Account/{membershipId}/Character/{characterId}/Stats/Activities/'.format(**path_params);
-            query_params = {
-                'count' : 100,
-                'mode'  : 'None',
-                'page'  : 0
-            }
+            # print text, image, utcdate, item['accountWide']
 
-            activities = destinyCall(path, query_params)
-
-            for instance in activities['activities']:
-                activity = destinyEntity('DestinyActivityDefinition', instance['activityDetails']['directorActivityHash'])
-
-                id = hashlib.md5()
-                id.update("%s-destiny2" % instance['activityDetails']['instanceId'])
-
-                display = activity['displayProperties']
-
-                text = u"%s --- %s" % (display['name'], display['description'])
-
-                localdate = dateutil.parser.parse(instance['period'])
-                utcdate = localdate.astimezone(pytz.utc)
-
-                if display['hasIcon']:
-                    image = IMAGE_BASE + display['icon']
-                else:
-                    image = IMAGE_BASE + character_data['emblemPath']
-
-                item = {
-                    'instance_info' : instance,
-                    'activity_info' : activity
-                }
-
-                # print text, image, utcdate, item['accountWide']
-
-                Lifestream.add_entry(
-                    "gaming",
-                    id.hexdigest(),
-                    text,
-                    "destiny2",
-                    utcdate,
-                    url=False,
-                    image=image,
-                    fulldata_json=item)
+            Lifestream.add_entry(
+                "gaming",
+                id.hexdigest(),
+                text,
+                "destiny2",
+                utcdate,
+                url=False,
+                image=image,
+                fulldata_json=item)

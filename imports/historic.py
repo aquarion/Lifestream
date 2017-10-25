@@ -89,7 +89,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         oauth_token['oauth_token'],
         oauth_token['oauth_token_secret'])
 
-############ Setup Twitter
+# Setup Twitter
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
@@ -120,7 +120,7 @@ twitter = Twitter(
     domain='api.twitter.com')
 
 
-############ Start the engines
+# Start the engines
 
 def cursor(dbcxn):
     dbc = dbcxn.cursor()
@@ -160,16 +160,16 @@ for post in cursor:
     contenttype = post[6]
 
     if not title:
-	logger.info("Skipping, no content");
-	continue;
+        logger.info("Skipping, no content")
+        continue
 
-    title = title.replace("@", u"💬");
+    title = title.replace("@", u"💬")
 
     logger.info(title)
 
     if fulldata:
         data = simplejson.loads(fulldata)
-    
+
     logger.info(date_created)
     logger.info(date_created + four_years)
     logger.info('---')
@@ -179,10 +179,10 @@ for post in cursor:
             "aquarions-of-history",
             id=systemid,
             reblog_key=data['reblog_key'],
-    	state="queue",
-	date = date_created + four_years
+            state="queue",
+            date=date_created + four_years
         )
     elif contenttype == 'twitter':
-        twitter.statuses.update(status=title,in_reply_to=systemid)
+        twitter.statuses.update(status=title, in_reply_to=systemid)
 
 dbcxn.close()

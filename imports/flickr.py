@@ -8,7 +8,7 @@ import flickrapi
 # Local
 import lifestream
 
-logging.root.handlers.pop(0) # remove Flickrapi's log handler
+logging.root.handlers.pop(0)  # remove Flickrapi's log handler
 
 max_pages = False
 per_page = 100
@@ -102,4 +102,3 @@ for page in range(1, pages + 1):
             image=image)
 
 dbcxn.close()
-

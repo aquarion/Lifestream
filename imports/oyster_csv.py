@@ -29,7 +29,7 @@ data = open(args.filename, 'rb')
 dataReader = csv.reader(data)
 for row in dataReader:
     if not row:
-	continue
+        continue
     if not headers:
         headers = row
     else:
