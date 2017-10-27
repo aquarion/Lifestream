@@ -290,6 +290,10 @@ for member_data in memberships['destinyMemberships']:
         #     u'membershipType': 2},
         # member_data['membershipType'] = MEMBERSHIP_TYPES[member_data['membershipType']]
     try:
+        logger.info(
+            "Looking at membership for {}".format(
+                MEMBERSHIP_TYPES[
+                    member_data['membershipType']]))
         membership = destinyCall(
             'Destiny2/{membershipType}/Profile/{membershipId}/'.format(**member_data), {'components': 'Characters'})
     except destiny_exceptions.DestinyAccountNotFound:
@@ -302,6 +306,7 @@ for member_data in memberships['destinyMemberships']:
     character_list = membership['characters']['data'].keys()
     for character_id in character_list:
         character_data = membership['characters']['data'][character_id]
+        logger.info("Hello character {}".format(character_id))
 
         # Useful bits of character data:
         #   u'emblemPath': u'/common/destiny2_content/icons/5dc023c8be5d682eae90be7f5d420f69.jpg',
@@ -325,16 +330,25 @@ for member_data in memberships['destinyMemberships']:
         activities = destinyCall(path, query_params)
 
         for instance in activities['activities']:
+            logger.info("Hello instance {}".format(instance['activityDetails']['directorActivityHash']))
+            if instance['values']['completed']['basic']['value'] == 0:
+                logger.info("...I do not care about your failure")
+                continue;
+
             activity = destinyEntity(
                 'DestinyActivityDefinition',
                 instance['activityDetails']['directorActivityHash'])
 
+
+
             id = hashlib.md5()
-            id.update(
-                "%s-destiny2" %
-                instance['activityDetails']['instanceId'])
+            id.update("destiny2")
+            id.update(character_id)
+            id.update(str(instance['activityDetails']['directorActivityHash']))
 
             display = activity['displayProperties']
+
+            logger.info("Completed instance {name} at {period}".format(name=display['name'], period=instance['period']) )
 
             text = u"%s --- %s" % (display['name'], display['description'])
 

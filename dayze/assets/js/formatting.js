@@ -43,17 +43,25 @@ var Formatting = {
 		if(element.hasClass("Raptr")){
 			return element;
 		}
-		element.css("background-image", "url('https://art.istic.net/iconography/games/destiny.png')");
-		element.css("background-size", "contain");
-		element.addClass("achivement");
 
 		title = decodeEntities(object.title)
-		console.log(object)
+		fulldata = JSON.parse(object.fulldata_json)
+		console.log(fulldata)
+		// console.log(object)
+		
+
+		// element.css("background-image", "url('https://art.istic.net/iconography/games/destiny.png')");
+		element.css("background-image", "url('https://www.bungie.net/" + fulldata.activity_info.pgcrImage + "')");
+		element.css("background-size", "cover");
+		element.addClass("achivement");
+
 
 		delim = " --- "
 		
-		newhtml = "<div class=\"achievement_top\">Destiny 2</div>"
+		newhtml = "<div class=\"frame\">"
+		newhtml += "<div class=\"achievement_top\">Destiny 2</div>"
 		newhtml += "<div class=\"achievement_bottom\">"+title.split(delim)[0]+"</div>"
+		newhtml += "</div>"
 
 
 		element.html(newhtml);
@@ -61,7 +69,8 @@ var Formatting = {
 		element.attr("title", (object.source+" "+object.type).capitalize()+": "+title)
 
 		element.height(h*2 - 12);
-		element.width(w*1 - 12);
+		element.width(w*2 - 12);
+
 
 
 		return element;

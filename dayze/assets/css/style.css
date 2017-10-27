@@ -327,6 +327,32 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
 	background: #DDD;
 	color: black;
 }
+.destiny2_gaming .frame {
+	background-image: url('https://art.istic.net/iconography/games/destiny.png');
+	background-size: contain;
+	background-repeat: no-repeat;
+	height: 100%;
+	width: 100%;
+	background-position: center center;
+	background-repeat: no-repeat;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+}
+
+.destiny2_gaming .frame .achievement_top, .destiny2_gaming .frame .achievement_bottom {
+	background: rgba(225, 225, 225, .7);
+	left: 0;
+	right: 0;
+}
+.destiny2_gaming .frame .achievement_top{
+	top: 0;
+}
+
+.destiny2_gaming .frame .achievement_bottom{
+	bottom: 0;
+}
 
 .facebook_photo {
 	text-align: center;
