@@ -241,7 +241,7 @@ def destinyCall(path, payload={}):
         try:
             raise getattr(destiny_exceptions, result['ErrorStatus'])
         except AttributeError:
-            raise DestinyException(result['ErrorStatus'])
+            raise destiny_exceptions.DestinyException(result['ErrorStatus'])
 
     request_delta = timedelta(seconds=result['ThrottleSeconds'])
     NEXT_REQUEST = datetime.now()
