@@ -64,12 +64,12 @@ if(!$date_point){
 ?><!DOCTYPE>
 <html>
 <head>
-	<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+	<script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
 	<script src="/assets/js/packery.pkgd.min.js"></script>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
 	<script src="/assets/libs/md5-min.js"></script>
 
-	<link href='http://fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
+	<link href='//fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
 	<link rel="stylesheet" href="/assets/css/style.css">
 
 
