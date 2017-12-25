@@ -8,12 +8,17 @@ ORM::configure('driver_options', array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAME
 $query = ORM::for_table('lifestream_locations');
 
 
-$from = time() - A_YEAR;
-$from = time() - A_YEAR*1;
+if(isset($_GET['year'])){
+	$to   = mktime(23,59,59,12,31,intval($_GET['year']));
+	$from = $to - A_YEAR*1;
+} else {
+	$to   = time();
+	$from = $to - A_DAY * 30;
+}
 
-$to   = time();
-  $query->where_gt("timestamp", date("Y-m-d 00:00", $from));
-  $query->where_lt("timestamp", date("Y-m-d 00:00", $to));
+ 
+$query->where_gt("timestamp", date("Y-m-d 00:00", $from));
+$query->where_lt("timestamp", date("Y-m-d 00:00", $to));
 $items = $query->find_array();
 
 
@@ -46,16 +51,27 @@ foreach ($items as $row){
   $previous = $key;
 }
 
+$title = "Heatmap of locations". ( isset($_GET['year']) ? ' for '.$_GET['year'] : ' last 30 days' );
 
 ?><html>
 <!DOCTYPE html>
 <html>
   <head>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+  
+   <title><?PHP echo $title ?></title>
+<meta property="og:title" content="<?PHP echo $title ?>" />
+<meta property="og:image" content="https://nicholasavenell.com/assets/map-icon.png">
+
     <style type="text/css">
       html { height: 100% }
       body { height: 100%; margin: 0; padding: 0 }
       #map-canvas { height: 100% }
+	.leaflet-container {
+	    background: rgb(2,50,54) !important;
+	}
+
+
     </style>
 
 <script type="text/javascript">
@@ -70,12 +86,12 @@ var locations = <?PHP print json_encode($locations) ?>;
 
 <script type="text/javascript" src="/assets/js/webgl-heatmap-master/webgl-heatmap.js"></script>
 <script type="text/javascript" src="/assets/js/leaflet-webgl-heatmap-master/dist/leaflet-webgl-heatmap.min.js"></script>
-<script type="text/javascript" src="http://maps.stamen.com/js/tile.stamen.js?v1.3.0"></script>
+<script type="text/javascript" src="https://stamen-maps.a.ssl.fastly.net/js/tile.stamen.js?v1.3.0"></script>
 
     <script type="text/javascript">
 
 var defaultIcon = L.icon({
-    iconUrl: 'http://nicholasavenell.com/assets/marker.png',
+    iconUrl: 'https://nicholasavenell.com/assets/marker.png',
     iconSize: [16, 16],
 });
 
@@ -113,8 +129,12 @@ function leaflet_map(){
   var tonerMap = new L.StamenTileLayer("toner");
 
   //
-  var mapBoxMap = new L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYXF1YXJpb24iLCJhIjoiQzRoeUpwZyJ9.gIhABGtR7UMR-LZUJGRW0A")
-  map.addLayer(mapBoxMap);
+  var sataliteMap = new L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYXF1YXJpb24iLCJhIjoiQzRoeUpwZyJ9.gIhABGtR7UMR-LZUJGRW0A")
+  //map.addLayer(sataliteMap);
+
+  
+  var metropolisMap = new L.tileLayer("https://api.mapbox.com/styles/v1/aquarion/cjbj6ztf70vro2sl4y09909bg/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYXF1YXJpb24iLCJhIjoiQzRoeUpwZyJ9.gIhABGtR7UMR-LZUJGRW0A");
+  map.addLayer(metropolisMap);
 
   // var layer = new L.StamenTileLayer("toner-lines");
   // map.addLayer(layer);
@@ -179,7 +199,7 @@ function leaflet_map(){
 
 
   map.addLayer(heatmap);
-  map.addLayer(foursquareLayer);
+  //map.addLayer(foursquareLayer);
 
 
    
@@ -191,7 +211,8 @@ function leaflet_map(){
   };
   var baseLayers = {
       //"Marker": marker,
-      "Mapbox": mapBoxMap,
+      "Metropolis": metropolisMap,
+      "Satellite-9": sataliteMap,
       "Watercolor": watercolorMap,
       "Toner": tonerMap,
       "Toner Lite": tonerliteMap

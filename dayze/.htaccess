@@ -2,5 +2,7 @@ RewriteEngine On
 RewriteRule assets.*	-	[L]
 RewriteRule index.php	-	[L]
 RewriteRule plex.php	-	[L]
+RewriteRule maps.php	-	[L]
 RewriteRule fetchNext.php	-	[L]
+RewriteRule annual.* -	[L]
 RewriteRule .*	/index.php	[L]
