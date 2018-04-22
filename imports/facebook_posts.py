@@ -10,6 +10,7 @@ import logging
 import pickle
 from datetime import timedelta
 import ConfigParser  # For the exceptions
+from pprint import pprint
 
 # Libraries
 import facebook
@@ -30,11 +31,18 @@ lifestream.arguments.add_argument(
     default=False,
     action='store_true')
 
+lifestream.arguments.add_argument(
+    '--pages',
+    required=False,
+    type=int,
+    help="Number of pages to go back. 0 to go forever",
+    default=5)
+
 
 args = lifestream.arguments.parse_args()
 
 
-socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
+socket.setdefaulttimeout(60)  # Force a timeout if facebook doesn't respond
 
 
 OAUTH_FILENAME = "%s/facebook.oauth" % (
@@ -106,7 +114,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     return oauth_token
 
 
-def some_action(post, graph, profile):
+def some_action(post, graph, profile, friendlists):
 
     visible_filters = lifestream.config.get("facebook", "visible_filters")
 
@@ -121,36 +129,6 @@ def some_action(post, graph, profile):
     if post['privacy']['value'] == "SELF":
         return
 
-    # pprint(post)
-
-    show = True
-
-    url = "https://www.facebook.com/%s/posts/%s" % (
-        profile['id'], post['id'].split("_")[1])
-
-    if post['privacy']['value'] == "CUSTOM":
-        if not post['privacy']['allow']:
-            logger.info(
-                "Ignoring post %s due to an ad-hoc privacy filter" %
-                url)
-        elif post['privacy']['allow'] in filters:
-            filter_name = filters[post['privacy']['allow']]
-            # print "... That's the %s filter" % filter_name
-            if filter_name in visible_filters:
-                # print "... Keep that"
-                show = True
-            else:
-                # print "... hide that"
-                show = False
-        else:
-            logger.error(
-                "[ERROR] on %s - List ID %s not known" %
-                (url, post['privacy']['allow']))
-            show = False
-
-    if not show:
-        return
-
     if 'picture' in post:
         image = post['picture']
     else:
@@ -158,6 +136,47 @@ def some_action(post, graph, profile):
 
     if not 'message' in post:
         post['message'] = ''
+
+    show = True
+
+    url = "https://www.facebook.com/%s/posts/%s" % (
+        profile['id'], post['id'].split("_")[1])
+
+    post_filter_ids = set(post['privacy']['allow'].split(","))
+    filter_ids = set(filters.keys())
+    
+    logger.info( "New Post: %s " % post['message'][0:60] )
+
+    if post['privacy']['value'] == "CUSTOM":
+        if not post['privacy']['allow']:
+            logger.info(
+                "Ignoring post %s due to an ad-hoc privacy filter" %
+                url)
+        elif len(filter_ids.intersection(post_filter_ids)):
+            for filter_id in list(post_filter_ids):
+                if filter_id not in filters:
+                    logger.info( "... Filter ID %s unidentified" % filter_id )
+
+                elif filters[filter_id] in visible_filters:
+                    logger.info( "... [%s] filter post, vote KEEP" % filters[filter_id] )
+                    # show = True
+                    pass
+                else:
+                    logger.info( "... [%s] filter post, vote HIDE" % filters[filter_id] )
+                    show = False
+        else:
+            logger.error(
+                "[ERROR] on %s - List ID %s not known" %
+                (url, post['privacy']['allow']))
+            show = False
+    else:
+        logger.info( '... %s privacy post, vote KEEP' %  post['privacy']['value'] )
+
+    if show:
+        logger.info( "... KEEP carries" )
+    else:
+        logger.info( "... HIDE carries" )
+        return
 
     # Lifestream.add_entry(
     #     post['type'],
@@ -196,7 +215,10 @@ graph = facebook.GraphAPI(credentials['access_token'], version="2.7")
 profile = graph.get_object('me')
 posts = graph.get_object(
     "me/posts",
-    fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time")
+fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time")
+friendlists = graph.get_object(
+    "me/friendlists",
+    fields="id,list_type,name")
 
 # Wrap this block in a while loop so we can keep paginating requests until
 # finished.
@@ -204,9 +226,11 @@ page = 0
 while True:
     page += 1
     # print "Page ", pagea
-    [some_action(post=post, graph=graph, profile=profile)
-     for post in posts['data']]
-    if page >= 5:
+    [some_action(post=post, graph=graph, profile=profile, friendlists=friendlists)
+        for post in posts['data']]
+
+    logger.info("Page %d of %d" % (page, args.pages) )
+    if args.pages != 0 and page >= args.pages:
         break
     try:
         # Perform some action on each post in the collection we receive from
