@@ -1,6 +1,3 @@
-[submodule "dayze/assets/js/jqplot"]
-	path = dayze/assets/js/jqplot
-	url = https://github.com/aquarion/jqplot.git
 [submodule "lib/python-oauth2"]
 	path = lib/python-oauth2
 	url = https://github.com/simplegeo/python-oauth2
