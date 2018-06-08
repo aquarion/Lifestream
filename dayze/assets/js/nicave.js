@@ -1,5 +1,5 @@
 
-google.load("visualization", "1", {packages:["corechart"]});
+// google.load("visualization", "1", {packages:["corechart"]});
 
 var packeryInstance = false;
 var mostRecent      = 0;
@@ -99,7 +99,7 @@ var NicAve = {
         var data = google.visualization.arrayToDataTable(data);
         NicAve.music_chart = new google.visualization.PieChart(document.getElementById('music_chart'));
 
-        height = Math.ceil( (total*.75) / 50) * 50;
+        height = Math.ceil( (total*.75) / 56) * 56;
         width  = Math.ceil( (total) / 100) * 100
         maxwidth = $(container).width();
 
@@ -177,6 +177,8 @@ var NicAve = {
             item.addClass(this['source'].replace(/\s/g, "_"))
             item.addClass(this['type'].replace(/\s/g, "_"))
             item.addClass((this['source']+'_'+this['type']).replace(/\s/g," "));
+            // item.height((56));
+            item.width(200);
 
             if(!this['title'] && !this['image']){
                 return;
@@ -202,13 +204,13 @@ var NicAve = {
                 item.attr("href", this.url);
             }
 
-            if( Formatting[this['source']] ){
+            if( item && Formatting[this['source']] ){
                 item = Formatting[this['source']](this, item)
             }
-            if( Formatting[this['type']] ){
+            if( item && Formatting[this['type']] ){
                 item = Formatting[this['type']](this, item)
             }
-            if( Formatting[this['source']+'_'+this['type']] ){
+            if( item && Formatting[this['source']+'_'+this['type']] ){
                 item = Formatting[this['source']+'_'+this['type']](this, item)
             }
 
@@ -243,8 +245,8 @@ var NicAve = {
             item = $('<div class="item"></div>');
             item.attr("id", 'mapcanvas')
             item.addClass('map')
-            item.width(288)
-            item.height(288*1.5)
+            item.width(500)
+            item.height(56*6)
             item.attr("resized", true);
             $(container).prepend( item );
             packeryInstance.prepended( item );
@@ -255,9 +257,24 @@ var NicAve = {
 
         $(".item").each(function(){
             item = $(this);
-            if(!item.hasClass("photo") && !item.hasClass("achivement")){
-                height = $(item).height()+12;
-                width  = $(item).width()+12;
+            if (item.attr('id') == 'mapcanvas'){
+                // item.html(item.outerHeight()+'x'+item.outerWidth());
+                // return;
+            }
+            // if(!item.hasClass("photo") && !item.hasClass("achivement")){
+
+                h = Formatting.h();
+                w = Formatting.w();
+
+                height = $(item).outerHeight();
+                width  = $(item).outerWidth();
+
+                inner_height = $(item).height();
+                inner_width  = $(item).width();
+
+                margin_height = height - inner_height;
+                margin_width  = width  - inner_width;
+
                 if($("img", item).length){
                     imgheight = $("img", item).height();
                     imgwidth = $("img", item).width();
@@ -268,16 +285,23 @@ var NicAve = {
                         width = imgwidth;
                     }
                 }
-                nearest50 = Math.ceil( height / 50) * 50;
-                item.height(nearest50-12);
-                nearest50 = Math.ceil( width / 50) * 50;
-                item.width(nearest50-12);
+
+                nearest50_h = Math.ceil( (inner_height) / h) * h;
+                item.height(nearest50_h-margin_height);
+                nearest50_w = Math.ceil( inner_width / w) * w;
+                item.width(nearest50_w-margin_width);
 
                 if (item.width()/item.height() < .7 && ! item.attr("resized")){
-                    item.height(288);
+                    item.height(h*2);
                 }
                 //item.html(item.width()/item.height())
-            }
+            // }
+            // item.html(
+            //     item.outerWidth()+'x'+item.outerHeight()
+            //     +'<br/>'+(item.outerWidth()/100)+' x '+(item.outerHeight()/56)
+            //     +'<br/>'+(nearest50_w)+' x '+(nearest50_h)
+            //     +'<br/>'+(nearest50_w-margin_width)+' x '+(nearest50_w-margin_height)
+            //     );
         });
 
 

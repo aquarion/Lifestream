@@ -110,6 +110,19 @@ header .buttons {
 	width:  388px;
 }
 
+.tumblr a {
+	color: white;
+}
+
+.tumblr_text blockquote {
+	font-style: italic;
+}
+
+.tumblr_video figure, .tumblr_video iframe {
+	max-width: 100%;
+	max-height: auto;
+}
+
 .item img {
 	max-width: 100%;
 }
@@ -122,8 +135,16 @@ header .buttons {
 }
 
 .tumblr blockquote {
-	padding-left: 0;
-	margin-left: 0;
+	margin-left: .1em;
+	padding-left: .1em;
+	padding-right: 0;
+	margin-right: 0;
+	border-left: 2px solid rgba(16,125,158, .8);
+}
+
+.tumblr_text .frame {
+	bottom: 0;
+	overflow: hidden;
 }
 
 .twitter {
@@ -327,10 +348,28 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
 	background: #DDD;
 	color: black;
 }
+
+.achivement {
+	background-image: url('https://live.art.istic.net/iconography/tile_backgrounds/swirl.jpg');
+	background-size: cover;
+	background-position: top center;
+}
+
 .destiny2_gaming .frame {
 	background-image: url('https://art.istic.net/iconography/games/destiny.png');
 	background-size: contain;
 	background-repeat: no-repeat;
+}
+
+.blizzard_wow {
+	background-image: url('https://art.istic.net/iconography/games/world_of_warcraft.jpg');
+	background-size: cover;
+	background-position: top center;
+}
+
+.achivement .frame {
+	/*background-image: url('https://art.istic.net/iconography/games/destiny.png');*/
+	/*background-size: contain;*/
 	height: 100%;
 	width: 100%;
 	background-position: center center;
@@ -341,18 +380,19 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
 	left: 0;
 }
 
-.destiny2_gaming .frame .achievement_top, .destiny2_gaming .frame .achievement_bottom {
-	background: rgba(225, 225, 225, .7);
+.achivement .frame .achievement_top, .achivement .frame .achievement_bottom {
+	/*background: rgba(225, 225, 225, .7);*/
 	left: 0;
 	right: 0;
 }
-.destiny2_gaming .frame .achievement_top{
+.achivement .frame .achievement_top{
 	top: 0;
 }
 
-.destiny2_gaming .frame .achievement_bottom{
+.achivement .frame .achievement_bottom{
 	bottom: 0;
 }
+
 
 .facebook_photo {
 	text-align: center;
@@ -360,4 +400,46 @@ border-image: url(//art.istic.net/images/lt_teal_frame_wide.gif) 17 17 17 17 fil
 
 .facebook_photo p {
 	margin: 0;
+	bottom: 5px;
+	position: absolute;
+}
+
+.facebook p {
+	background: rgba(0,0,0,.5);
+	margin-right: 5px;
+	padding: 3px;
+	border-radius: 5px;
+	width: 93%;
+}
+
+.facebook_link p {
+	bottom: 0;
+	position: absolute;
+}
+
+.facebook_status p {
+	background: none;
+}
+
+
+.years {
+    position: relative;
+    margin: 1em;
+    overflow: hidden;
+}
+.years ul {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-left: -1px;
+}
+.years li {
+    flex-grow: 1;
+    flex-basis: auto;
+    margin: .25em 0;
+    padding: 0 .5em;
+    text-align: center;
+    border-left: 1px solid #EEE;
+    list-style: none;
 }

@@ -67,6 +67,7 @@ if(!$date_point){
 	<script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
 	<script src="/assets/js/packery.pkgd.min.js"></script>
 	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script src="//twemoji.maxcdn.com/2/twemoji.min.js?2.7"></script>
 	<script src="/assets/libs/md5-min.js"></script>
 
 	<link href='//fonts.googleapis.com/css?family=PT+Mono|Raleway|Comfortaa' rel='stylesheet' type='text/css'>
@@ -122,7 +123,7 @@ if(!$date_point){
 </p>
 <p id="years">
 	<?PHP 
-	$template = '<a href="%s" title="%s">%s</a>';
+	$template = '<li><a href="%s" title="%s">%s</a></li>';
 	$this_year = date("Y", $today);
 	$years = array();
 	
@@ -139,7 +140,7 @@ if(!$date_point){
 		$date = $this_date->format($format);
 		$years[] = sprintf($template, $date, $this_date->format($display_format), $i);
 	}
-	print implode(" | ", $years);
+	print '<div class="years"><ul>'.implode("\n", $years).'</ul></div>';
 	?>
 </p>
 
