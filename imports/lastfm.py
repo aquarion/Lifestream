@@ -27,7 +27,7 @@ if not id:
 
 Lifestream = lifestream.Lifestream()
 
-url = "http://ws.audioscrobbler.com/1.0/user/%s/recenttracks.rss" % id
+url = "https://xiffy.nl/lastfmrss.php?user=%s" % id
 logging.info('Grabbing %s' % url)
 fp = feedparser.parse(url)
 type = "lastfm"
