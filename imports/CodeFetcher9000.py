@@ -4,8 +4,11 @@ import logging
 import ssl
 import lifestream
 import ConfigParser
+import os
 
 logger = logging.getLogger('CodeFetcher')
+
+os.chdir(os.path.dirname(__file__)+'/..')
 
 ServerClass = BaseHTTPServer.HTTPServer
 port = int(lifestream.config.get("CodeFetcher9000", "port"))
@@ -36,6 +39,36 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     #     postVars = s.rfile.read(varLen)
     #     print postVars
 
+    def success(s, params):
+
+        f = open('templates/success.html', 'rb')
+
+        s.send_response(200)
+        s.send_header("Content-type", "text/html")
+        s.end_headers()
+        while True:
+            file_data = f.read(32768) # use an appropriate chunk size
+            if file_data is None or len(file_data) == 0:
+                break
+            s.wfile.write(file_data) 
+        f.close()
+
+    def failure(s, params):
+
+        f = open('templates/failure.html', 'rb')
+
+        s.send_response(200)
+        s.send_header("Content-type", "text/html")
+        s.end_headers()
+        while True:
+            file_data = f.read(32768) # use an appropriate chunk size
+            if file_data is None or len(file_data) == 0:
+                break
+            file_data = file_data.replace('[[params]]', str(params))
+            file_data = file_data.replace('[[key_wanted]]', str(key_wanted))
+            s.wfile.write(file_data) 
+        f.close()
+
     def do_GET(s):
         global code
         # varLen = int(s.headers['Content-Length'])
@@ -45,34 +78,16 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         params = urlparse.parse_qs(parsed.query)
 
         if key_wanted in params:
-            s.send_response(200)
-            s.send_header("Content-type", "text/html")
-            s.end_headers()
-            s.wfile.write("<html><head><title>Code Collector</title></head>")
-            s.wfile.write(
-                "<body><h1>New Token collected, you can close this tab</h1>")
-            s.wfile.write("</body></html>")
+            s.success(params)
             code = params
+            return
+        elif s.path == '/test/success':
+            s.success(params)
+
+        elif s.path == '/test/failure':
+            s.failure(params)
         else:
-            s.send_response(200)
-            s.send_header("Content-type", "text/html")
-            s.end_headers()
-            s.wfile.write("<html><head><title>Code Collector</title></head>")
-            s.wfile.write("<body><h1>Access Code Not Found</h1>")
-            s.wfile.write("<p>I got the parameters: %s</p>" % params)
-            s.wfile.write("<p>I am looking for: %s</p>" % key_wanted)
-
-            js_fragment = """<script type="text/javascript">
-                if (window.location.hash) {
-                    paramstring = window.location.hash.substring(1);
-                    window.location = '/keyback/?'+paramstring;
-                } else {
-                    console.log("No Fragment");
-                }
-
-            </script>"""
-            s.wfile.write(js_fragment)
-            s.wfile.write("</body></html>")
+            s.failure(params)
 
 
 def get_port():
