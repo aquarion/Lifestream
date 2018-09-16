@@ -5,6 +5,7 @@ import pytz
 import feedparser
 import sys
 import logging
+import hashlib
 
 # Libraries
 
@@ -34,7 +35,10 @@ type = "lastfm"
 
 for i in range(1, len(fp['entries'])):
     o_item = fp['entries'][i]
-    id = o_item['guid']
+
+    id = hashlib.md5()
+    id.update(o_item['guid'])
+
     title = o_item.title  # .encode("utf_8")
     localdate = dateutil.parser.parse(o_item.updated)
     updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
@@ -42,7 +46,7 @@ for i in range(1, len(fp['entries'])):
     logger.info(title)
     Lifestream.add_entry(
         type,
-        id,
+        id.hexdigest(),
         title,
         "lastfm",
         updated,
