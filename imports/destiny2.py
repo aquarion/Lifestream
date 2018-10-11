@@ -330,16 +330,15 @@ for member_data in memberships['destinyMemberships']:
         activities = destinyCall(path, query_params)
 
         for instance in activities['activities']:
-            logger.info("Hello instance {}".format(instance['activityDetails']['directorActivityHash']))
+            logger.info("Hello instance {}".format(
+                instance['activityDetails']['directorActivityHash']))
             if instance['values']['completed']['basic']['value'] == 0:
                 logger.info("...I do not care about your failure")
-                continue;
+                continue
 
             activity = destinyEntity(
                 'DestinyActivityDefinition',
                 instance['activityDetails']['directorActivityHash'])
-
-
 
             id = hashlib.md5()
             id.update("destiny2")
@@ -348,7 +347,8 @@ for member_data in memberships['destinyMemberships']:
 
             display = activity['displayProperties']
 
-            logger.info("Completed instance {name} at {period}".format(name=display['name'], period=instance['period']) )
+            logger.info("Completed instance {name} at {period}".format(
+                name=display['name'], period=instance['period']))
 
             text = u"%s --- %s" % (display['name'], display['description'])
 

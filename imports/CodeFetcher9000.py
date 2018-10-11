@@ -8,7 +8,7 @@ import os
 
 logger = logging.getLogger('CodeFetcher')
 
-os.chdir(os.path.dirname(__file__)+'/..')
+os.chdir(os.path.dirname(__file__) + '/..')
 
 ServerClass = BaseHTTPServer.HTTPServer
 port = int(lifestream.config.get("CodeFetcher9000", "port"))
@@ -47,10 +47,10 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         s.send_header("Content-type", "text/html")
         s.end_headers()
         while True:
-            file_data = f.read(32768) # use an appropriate chunk size
+            file_data = f.read(32768)  # use an appropriate chunk size
             if file_data is None or len(file_data) == 0:
                 break
-            s.wfile.write(file_data) 
+            s.wfile.write(file_data)
         f.close()
 
     def failure(s, params):
@@ -61,12 +61,12 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         s.send_header("Content-type", "text/html")
         s.end_headers()
         while True:
-            file_data = f.read(32768) # use an appropriate chunk size
+            file_data = f.read(32768)  # use an appropriate chunk size
             if file_data is None or len(file_data) == 0:
                 break
             file_data = file_data.replace('[[params]]', str(params))
             file_data = file_data.replace('[[key_wanted]]', str(key_wanted))
-            s.wfile.write(file_data) 
+            s.wfile.write(file_data)
         f.close()
 
     def do_GET(s):

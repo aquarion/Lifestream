@@ -144,8 +144,8 @@ def some_action(post, graph, profile, friendlists):
 
     post_filter_ids = set(post['privacy']['allow'].split(","))
     filter_ids = set(filters.keys())
-    
-    logger.info( "New Post: %s " % post['message'][0:60] )
+
+    logger.info("New Post: %s " % post['message'][0:60])
 
     if post['privacy']['value'] == "CUSTOM":
         if not post['privacy']['allow']:
@@ -155,14 +155,16 @@ def some_action(post, graph, profile, friendlists):
         elif len(filter_ids.intersection(post_filter_ids)):
             for filter_id in list(post_filter_ids):
                 if filter_id not in filters:
-                    logger.info( "... Filter ID %s unidentified" % filter_id )
+                    logger.info("... Filter ID %s unidentified" % filter_id)
 
                 elif filters[filter_id] in visible_filters:
-                    logger.info( "... [%s] filter post, vote KEEP" % filters[filter_id] )
+                    logger.info(
+                        "... [%s] filter post, vote KEEP" % filters[filter_id])
                     # show = True
                     pass
                 else:
-                    logger.info( "... [%s] filter post, vote HIDE" % filters[filter_id] )
+                    logger.info(
+                        "... [%s] filter post, vote HIDE" % filters[filter_id])
                     show = False
         else:
             logger.error(
@@ -170,12 +172,13 @@ def some_action(post, graph, profile, friendlists):
                 (url, post['privacy']['allow']))
             show = False
     else:
-        logger.info( '... %s privacy post, vote KEEP' %  post['privacy']['value'] )
+        logger.info('... %s privacy post, vote KEEP' %
+                    post['privacy']['value'])
 
     if show:
-        logger.info( "... KEEP carries" )
+        logger.info("... KEEP carries")
     else:
-        logger.info( "... HIDE carries" )
+        logger.info("... HIDE carries")
         return
 
     # Lifestream.add_entry(
@@ -215,7 +218,7 @@ graph = facebook.GraphAPI(credentials['access_token'], version="3.0")
 profile = graph.get_object('me')
 posts = graph.get_object(
     "me/posts",
-fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time")
+    fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time")
 friendlists = graph.get_object(
     "me/friendlists",
     fields="id,list_type,name")
@@ -229,7 +232,7 @@ while True:
     [some_action(post=post, graph=graph, profile=profile, friendlists=friendlists)
         for post in posts['data']]
 
-    logger.info("Page %d of %d" % (page, args.pages) )
+    logger.info("Page %d of %d" % (page, args.pages))
     if args.pages != 0 and page >= args.pages:
         break
     try:
