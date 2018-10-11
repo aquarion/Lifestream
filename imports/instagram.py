@@ -42,7 +42,7 @@ if (api.login()):
         feed = api.getSelfUserFeed()  # get self user feed
 
     if not feed:
-        logging.error('Failed to get feed')
+        logger.error('Failed to get feed')
         sys.exit(5)
 
     if feed == True:
@@ -66,7 +66,7 @@ if (api.login()):
             else:
                 raise Exception("No image thumbnail found")
 
-            logging.info(
+            logger.info(
                 '{}: {}'.format(timestamp, caption.encode("ascii", "ignore")))
 
             Lifestream.add_entry(
@@ -82,4 +82,4 @@ if (api.login()):
             pprint(item)
             raise e
 else:
-    logging.error("Can't login!")
+    logger.error("Can't login!")
