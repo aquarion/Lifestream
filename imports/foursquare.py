@@ -54,13 +54,18 @@ URL_BASE = "https://api.foursquare.com/v2/%s"
 # Get the data
 
 payload = {
-    'v': "20140226",
+    'v': "20180226",
     'oauth_token': oauth_token
 }
 
 r = requests.get(URL_BASE % "users/self/checkins", params=payload)
 
-data = r.json()
+try:
+	data = r.json()
+except Exception as e:
+	print URL_BASE, "users/self/checkins" , payload
+	print r.text
+	sys.exit(5)
 
 checkins = data['response']['checkins']['items']
 
