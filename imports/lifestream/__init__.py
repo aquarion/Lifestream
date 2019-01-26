@@ -57,11 +57,14 @@ logfile.setLevel(logging.DEBUG)
 logfile.setFormatter(formatter)
 logging.getLogger('').addHandler(logfile)
 
+console = logging.StreamHandler()
+console.setFormatter(formatter)
+logging.getLogger('').addHandler(console)
+
 if ('--debug' in sys.argv):
-    console = logging.StreamHandler()
     console.setLevel(logging.DEBUG)
-    console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
+else:
+    console.setLevel(logging.ERROR)
 
 logger = logging.getLogger(__name__)
 
