@@ -338,7 +338,7 @@ for member_data in memberships['destinyMemberships']:
 
             activity = destinyEntity(
                 'DestinyActivityDefinition',
-                instance['activityDetails']['directorActivityHash'])
+                instance['activityDetails']['referenceId'])
 
             id = hashlib.md5()
             id.update("destiny2")
@@ -346,6 +346,10 @@ for member_data in memberships['destinyMemberships']:
             id.update(str(instance['activityDetails']['directorActivityHash']))
 
             display = activity['displayProperties']
+
+            if 'name' not in display:
+		logger.error("Event doesn't have name? Skipping")
+		continue
 
             logger.info("Completed instance {name} at {period}".format(
                 name=display['name'], period=instance['period']))
