@@ -237,7 +237,7 @@ def destinyCall(path, payload={}):
     result = requests.get(url, headers=headers, params=payload).json()
 
     if result['ErrorCode'] != 1:
-        logger.error(result['Message'])
+        logger.warn(result['Message'])
         try:
             raise getattr(destiny_exceptions, result['ErrorStatus'])
         except AttributeError:
@@ -348,8 +348,8 @@ for member_data in memberships['destinyMemberships']:
             display = activity['displayProperties']
 
             if 'name' not in display:
-		logger.error("Event doesn't have name? Skipping")
-		continue
+                logger.warn("Event doesn't have name? Skipping")
+                continue
 
             logger.info("Completed instance {name} at {period}".format(
                 name=display['name'], period=instance['period']))
