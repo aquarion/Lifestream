@@ -46,7 +46,7 @@ arguments.add_argument(
 
 LOG_DIR = config.get('global', 'log_location')
 
-LOG_FORMAT = '%(asctime)s [%(name)s] %(message)s'
+LOG_FORMAT = '%(asctime)s [%(levelname)s] [%(name)s] %(message)s'
 
 logging.getLogger('').setLevel(logging.DEBUG)
 
