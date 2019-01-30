@@ -103,10 +103,11 @@ def fetch_new_code():
             'grant_type' : 'authorization_code',
             'code' : oauth_verifier }
 
-    pprint( data)
     r = requests.post('{}/oauth/token'.format(BASE_OAUTH_URL), data=data, auth=auth)
 
     token = r.json()
+
+    token['created_at'] = datetime.now()
 
 
     f = open(OAUTH_FILENAME, "w")
@@ -142,6 +143,12 @@ except:
     logger.error("Couldn't open %s, reloading..." % CLIENT_AUTH_FILENAME)
     client_token = False
 
+if client_token:
+    expiration_date = datetime.fromtimestamp(client_token[u'expires_at'])
+    if datetime.now() > expiration_date:
+        logger.warn("App token has expired! Getting new one")
+        client_token = False
+    
 if not client_token:
     client = BackendApplicationClient(client_id=APP_KEY)
     oauth = OAuth2Session(client=client)
@@ -169,7 +176,6 @@ class BlizzardAPI:
         data={'token':self.user_key}
         r = requests.post(URL,data=data)
         return r.json()
-
 
     def get_profile(self):
         try:
@@ -211,6 +217,7 @@ class BlizzardAPI:
         URL=u'{url}/wow/character/{realm}/{character}'.format(url=BASE_API_URL, realm=realm, character=name)
         data={'fields': ' '.join(fields)}
         headers={'Authorization': 'Bearer {}'.format(self.app_key)}
+        #headers={}
         r = requests.get(URL,headers=headers,params=data)
         if r.ok:
             return r.json()
@@ -225,7 +232,7 @@ class BlizzardAPI:
         if r.ok:
             return r.json()
         else:
-            print r.text
+            logger.warn('Achivement not found: ' + r.text)
             raise BlizzardAchivementNotFound('on {}'.format(id))
 
 
@@ -274,24 +281,22 @@ class BlizzardForceRefreshProfile(Exception):
 
 api = BlizzardAPI(oauth_token, client_token)
 
-validation = api.check_token()
-
-expiration_date = datetime.fromtimestamp(validation['exp'])
-if datetime.now() > expiration_date:
-    logger.warn("Token has expired!")
-
-
-delta = expiration_date - datetime.now()
-logger.info("Token expires in {} hours".format(delta.seconds / (60*60)))
+########### check age of oauth
+creation_date = oauth_token['created_at']
+delta = datetime.now() - creation_date
 
 if delta.days >= 28:
-    logger.error("User access token is elderly, please run with --reauth to refresh")
+    logger.error("User access token is {} days old, please run with --reauth to refresh".format(delta.days))
+else:
+    logger.info("User access token is {} days old".format(delta.days))
 
 profile = api.get_profile()
 
-sys.exit(5)
+########### Check age of app
 
 
+
+########## 
 for character in profile['characters']:
     # print "%s L%d %s" % (character['name'], character['level'], character['class'])
     # pprint(character)
