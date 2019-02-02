@@ -98,7 +98,7 @@ def authenticate(
 
         expiration_date = oauth_token['expire_dt']
         if datetime.now() > expiration_date:
-            logger.error("Refreshing access token with refresh token")
+            logger.info("Refreshing access token with refresh token")
             oauth_token = refresh_token(
                 OAUTH_FILENAME,
                 oauth_token,
