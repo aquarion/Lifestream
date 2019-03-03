@@ -187,19 +187,27 @@ class BlizzardAPI:
             else:
                 logger.info("Oauth: {} Cache: {}, not refreshing".format(datetime.fromtimestamp(oauthfile.st_mtime), datetime.fromtimestamp(cachefile.st_mtime)))
 
-            f = open(CHARACTER_CACHE, "rb")
-            profile = pickle.load(f)
-            f.close()
+            try:
+                f = open(CHARACTER_CACHE, "rb")
+                profile = pickle.load(f)
+                f.close()
+            except OSError as e:
+                raise BlizzardForceRefreshProfile('Cache file not found')
+
 
             if 'error' in profile:
                 raise BlizzardForceRefreshProfile('Error in cache file')
 
             return profile
-        except Exception as e:
+        except (BlizzardForceRefreshProfile, OSError) as e:
             logger.info("Refreshing profile because {}".format(e))
             URL=u'{}/wow/user/characters'.format(BASE_API_URL)
             headers={'Authorization': 'Bearer {}'.format(self.user_key)}
             r = requests.get(URL,headers=headers)
+
+            if not r.ok:
+                logger.error('Error getting characters: ' + r.text)
+                sys.exit(5)
 
             profile = r.json()
 
@@ -292,13 +300,12 @@ else:
 
 profile = api.get_profile()
 
+
 ########### Check age of app
-
-
 
 ########## 
 for character in profile['characters']:
-    # print "%s L%d %s" % (character['name'], character['level'], character['class'])
+    logger.info("%s L%d %s" % (character['name'], character['level'], character['class']))
     # pprint(character)
     #Achievement( apikey='Your key', region='us',achievement="" )
 
@@ -309,8 +316,8 @@ for character in profile['characters']:
 
         try:
             character_data = api.get_character(character['name'],character['realm'],['achievements', "feed"])
-            pprint(character_data)
         except BlizzardCharacterNotFound:
+            logger.warning("404 getting %s L%d %s" % (character['name'], character['level'], character['class']))
             continue
         
         completed = character_data['achievements']['achievementsCompleted']
@@ -318,11 +325,15 @@ for character in profile['characters']:
             'achievementsCompletedTimestamp']
         for index in range(0, len(completed)):
             # print index, completed[index], completed_ts[index]
-            achievement = api.get_achievement(completed[index])
-            log_achievement(achievement, completed_ts[index], character)
+            try:
+                achievement = api.get_achievement(completed[index])
+                log_achievement(achievement, completed_ts[index], character)
+            except BlizzardAchivementNotFound as e:
+                logger.warning("Achievement {} not found".format(achievement))
     else:
 
         if since_login > 7:
+            logger.debug('> 7 days since login, skipping')
             continue
 
         character_data = api.get_character(character['name'],character['realm'],['achievements', "feed"])
