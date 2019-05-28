@@ -35,7 +35,6 @@ for achivement in my_achivements:
         achivements_library[ident] = {}
         achivements_library[ident]['progress'] = achivement
 
-
 response = api.achievements.get(ids=fetch_list)
 
 for achivement in response:
@@ -55,6 +54,9 @@ for category in category_fetch:
             achivements_library[achivement_id]['category'] = category
 
 for ident, achivement in achivements_library.iteritems():
+    if not 'info' in achivement:
+        continue
+
     icon = False
     if 'icon' in achivement['info']:
         icon = achivement['info']['icon']
