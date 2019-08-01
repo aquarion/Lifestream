@@ -1,7 +1,6 @@
-
-##
-
 #!/usr/bin/python
+
+
 # Python
 import sys
 from datetime import datetime
@@ -114,7 +113,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     return oauth_token
 
 
-def some_action(post, graph, profile, friendlists):
+def some_action(post, graph, profile):
 
     visible_filters = lifestream.config.get("facebook", "visible_filters")
 
@@ -219,9 +218,6 @@ profile = graph.get_object('me')
 posts = graph.get_object(
     "me/posts",
     fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time")
-friendlists = graph.get_object(
-    "me/friendlists",
-    fields="id,list_type,name")
 
 # Wrap this block in a while loop so we can keep paginating requests until
 # finished.
@@ -229,7 +225,7 @@ page = 0
 while True:
     page += 1
     # print "Page ", pagea
-    [some_action(post=post, graph=graph, profile=profile, friendlists=friendlists)
+    [some_action(post=post, graph=graph, profile=profile)
         for post in posts['data']]
 
     logger.info("Page %d of %d" % (page, args.pages))
