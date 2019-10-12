@@ -1,6 +1,3 @@
-
-##
-
 #!/usr/bin/python
 # Python
 import dateutil.parser
@@ -246,6 +243,10 @@ def destinyCall(path, payload={}):
     request_delta = timedelta(seconds=result['ThrottleSeconds'])
     NEXT_REQUEST = datetime.now()
 
+    if 'Response' not in result:
+        logger.error(result)
+        return False
+
     return result['Response']
 
 
@@ -263,6 +264,7 @@ MEMBERSHIP_TYPES = {
     0: 'None',
     1: 'TigerXbox',
     2: 'TigerPsn',
+    3: 'TigerSteam',
     4: 'TigerBlizzard',
     10: 'TigerDemon',
     254: 'BungieNext',
@@ -339,6 +341,10 @@ for member_data in memberships['destinyMemberships']:
             activity = destinyEntity(
                 'DestinyActivityDefinition',
                 instance['activityDetails']['referenceId'])
+
+            if not activity:
+                logger.warn("Activity was empty? Skipping")
+                continue
 
             id = hashlib.md5()
             id.update("destiny2")
