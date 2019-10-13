@@ -145,6 +145,7 @@ except:
 
 if client_token:
     expiration_date = datetime.fromtimestamp(client_token[u'expires_at'])
+    logger.info("Token expires {}".format(expiration_date))
     if datetime.now() > expiration_date:
         logger.warn("App token has expired! Getting new one")
         client_token = False
@@ -181,7 +182,11 @@ class BlizzardAPI:
         try:
             cachefile=os.stat(CHARACTER_CACHE)
             oauthfile=os.stat(OAUTH_FILENAME)
-            if oauthfile.st_mtime > cachefile.st_mtime:
+            modified = datetime.fromtimestamp(cachefile.st_mtime)
+            profile_age = (datetime.now() - modified).days
+
+            logger.info("Profile data is {} days old".format(profile_age))
+            if oauthfile.st_mtime > cachefile.st_mtime or profile_age > 2:
                 logger.info("Forcing a refresh of the profiles")
                 raise BlizzardForceRefreshProfile('Token updated')
             else:
@@ -193,6 +198,7 @@ class BlizzardAPI:
                 f.close()
             except OSError as e:
                 raise BlizzardForceRefreshProfile('Cache file not found')
+
 
 
             if 'error' in profile:
@@ -305,7 +311,7 @@ profile = api.get_profile()
 
 ########## 
 for character in profile['characters']:
-    logger.info("%s L%d %s" % (character['name'], character['level'], character['class']))
+    logger.info("%s!%s L%d %s" % (character['realm'], character['name'], character['level'], character['class']))
     # pprint(character)
     #Achievement( apikey='Your key', region='us',achievement="" )
 
@@ -333,7 +339,7 @@ for character in profile['characters']:
     else:
 
         if since_login > 7:
-            logger.debug('> 7 days since login, skipping')
+            logger.debug('{} is > 7 days since login, skipping'.format(since_login))
             continue
 
         character_data = api.get_character(character['name'],character['realm'],['achievements', "feed"])
