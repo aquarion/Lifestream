@@ -212,7 +212,7 @@ class BlizzardAPI:
             r = requests.get(URL,headers=headers)
 
             if not r.ok:
-                logger.error('Error getting characters: ' + r.text)
+                logger.error('Error {} getting characters: {}'.format(r.status_code, r.text))
                 sys.exit(5)
 
             profile = r.json()
