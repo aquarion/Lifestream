@@ -13,7 +13,7 @@ from requests_oauthlib import OAuth2Session
 from oauthlib.oauth2 import BackendApplicationClient
 from pprint import pprint
 import pickle
-from datetime import datetime
+from datetime import datetime, timedelta
 from ipdb import set_trace
 import pytz
 import hashlib
@@ -299,10 +299,13 @@ api = BlizzardAPI(oauth_token, client_token)
 creation_date = oauth_token['created_at']
 delta = datetime.now() - creation_date
 
-if delta.days >= 28:
-    logger.error("User access token is {} days old, please run with --reauth to refresh".format(delta.days))
+expiry = timedelta(seconds=oauth_token['expires_in'])
+
+if datetime.now() >= creation_date + expiry:
+    logger.info("User access token is {} days old, please run with --reauth to refresh".format(delta.days))
 else:
     logger.info("User access token is {} days old".format(delta.days))
+    logger.info("User access expires at ".format(creation_date + expiry))
 
 profile = api.get_profile()
 
