@@ -9,12 +9,24 @@ from xml.parsers.expat import ExpatError
 from datetime import datetime
 import logging
 
+from pprint import pprint
+
 # Libraries
 
 # Local
 import lifestream
 
 logger = logging.getLogger('Steam')
+
+
+lifestream.arguments.add_argument(
+    '--catchup',
+    required=False,
+    help="Get all achivements, not just last fortnight",
+    default=False,
+    action='store_true')
+
+
 args = lifestream.arguments.parse_args()
 
 Lifestream = lifestream.Lifestream()
@@ -55,13 +67,23 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
     statspage = game.getElementsByTagName('statsLink')
     gamename = game.getElementsByTagName('name')[0].firstChild.data
 
+    hoursFortnight = game.getElementsByTagName('hoursLast2Weeks')
+    hoursEver      = game.getElementsByTagName('hoursOnRecord')
+
     logger.info("% 3d % 3d %s" % (foundGames, thisGame, gamename))
 
     if len(statspage) == 0:
         logger.info("       + Skipping %s (No stats page)" % gamename)
         continue
-    else:
-        logger.info("       + Keeping %s" % gamename)
+        
+    if not hoursEver:
+        logger.info("       + Skipping %s (Not played)" % gamename)
+        continue
+
+    if not args.catchup and not hoursFortnight:
+        logger.info("       + Skipping %s (Not in last fortnight)" % gamename)
+        continue
+
 
     # If we found a statspage, carry on. Iterate foundGames
 
