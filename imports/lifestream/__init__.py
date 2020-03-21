@@ -15,7 +15,7 @@ import simplejson as json
 from logging.handlers import TimedRotatingFileHandler
 
 # Libraries
-import cymysql as MySQLdb
+import pymysql as MySQLdb
 import oauth2
 from twitter.oauth import write_token_file, read_token_file
 import requests
