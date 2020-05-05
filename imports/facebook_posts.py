@@ -11,6 +11,8 @@ from datetime import timedelta
 import ConfigParser  # For the exceptions
 from pprint import pprint
 
+import pymysql
+
 # Libraries
 import facebook
 import requests
@@ -18,6 +20,8 @@ import requests
 # Local
 import lifestream
 import CodeFetcher9000
+
+from dateutil import parser as dtparser
 
 Lifestream = lifestream.Lifestream()
 
@@ -144,6 +148,9 @@ def some_action(post, graph, profile):
     post_filter_ids = set(post['privacy']['allow'].split(","))
     filter_ids = set(filters.keys())
 
+    #'2020-03-17T10:27:08+0000    
+    dt = dtparser.parse(post['created_time'])
+
     logger.info("New Post: %s " % post['message'][0:60])
 
     if post['privacy']['value'] == "CUSTOM":
@@ -188,15 +195,24 @@ def some_action(post, graph, profile):
     #     post['created_time'],
     #     url=url,
     #     fulldata_json=o_item)
-    Lifestream.add_entry(
-        post['type'],
-        post['id'],
-        post['message'],
-        "facebook",
-        post['created_time'],
-        url=url,
-        image=image,
-        fulldata_json=post)
+
+    try:
+        Lifestream.add_entry(
+            post['type'],
+            post['id'],
+            post[u'message'],
+            "facebook",
+            dt,
+            url=url,
+            image=image,
+            fulldata_json=post)
+    except pymysql.err.InternalError as e:
+	if e[0] == 1366:
+		logger.info(e)
+	else:
+        	logger.error(e)
+
+
 
 credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, args.reauth)
 
