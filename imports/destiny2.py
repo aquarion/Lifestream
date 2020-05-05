@@ -244,8 +244,8 @@ def destinyCall(path, payload={}):
     NEXT_REQUEST = datetime.now()
 
     if 'Response' not in result:
-        logger.error(path)
-        logger.error(result)
+        logger.warn(path)
+        logger.warn(result)
         return False
 
     return result['Response']
