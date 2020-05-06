@@ -79,7 +79,7 @@ def getDatabaseConnection():
         passwd=db['password'],
         db=db['database'],
         host=db['hostname'],
-        charset='utf8')
+        charset='utf8mb4')
     # dbcxn.set_character_set('utf8')
     return dbcxn
 
