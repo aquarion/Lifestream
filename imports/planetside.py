@@ -12,6 +12,8 @@ import requests
 # Local
 import lifestream
 
+from pprint import pprint
+import sys
 
 logger = logging.getLogger('Planetside2')
 args = lifestream.arguments.parse_args()
@@ -26,7 +28,7 @@ try:
 except ConfigParser.NoOptionError:
     api_key = ''
 
-url_base = "https://census.daybreakgames.com"
+url_base = "http://census.daybreakgames.com"
 
 api_base = "%s/%s/get/ps2:v2" % (url_base, api_key)
 
@@ -37,16 +39,21 @@ Lifestream = lifestream.Lifestream()
 
 for character_name in characters:
     logger.info("Data for %s" % character_name)
+  
     charac = requests.get(
         "%s/character/?name.first_lower=%s&c:resolve=faction" %
         (api_base, character_name))
+
 
     character = charac.json()
 
     character_id = character['character_list'][0]['character_id']
 
+
     profile = character['character_list'][0]
+
     br = profile['battle_rank']
+    faction_id = profile['faction_id']
     faction = profile['faction']['code_tag'].lower()
     character_name = name = profile['name']['first']
 
@@ -54,6 +61,7 @@ for character_name in characters:
     ranki = requests.get(
         "%s/experience_rank?rank=%s" %
         (api_base, br['value']))
+
     rank = ranki.json()['experience_rank_list'][0][faction]['title']['en']
     text = "In Planetside 2, %s achieved the rank %s" % (name, rank)
     url = "https://players.planetside2.com/#!/%s" % character_id
