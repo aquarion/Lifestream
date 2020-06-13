@@ -86,9 +86,9 @@ def getDatabaseConnection():
 
 def cursor(dbcxn):
     dbc = dbcxn.cursor()
-    dbc.execute('SET NAMES utf8;')
-    dbc.execute('SET CHARACTER SET utf8;')
-    dbc.execute('SET character_set_connection=utf8;')
+    dbc.execute('SET NAMES utf8mb4;')
+    dbc.execute('SET CHARACTER SET utf8mb4;')
+    dbc.execute('SET character_set_connection=utf8mb4;')
 
     return dbc
 
