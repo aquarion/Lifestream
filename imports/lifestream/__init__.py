@@ -17,7 +17,7 @@ from logging.handlers import TimedRotatingFileHandler
 # Libraries
 import pymysql as MySQLdb
 import oauth2
-from twitter.oauth import write_token_file, read_token_file
+from oauth_utils import write_token_file, read_token_file
 import requests
 from memcache import Client, SERVER_MAX_KEY_LENGTH, SERVER_MAX_VALUE_LENGTH
 from pprint import pprint
