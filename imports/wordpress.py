@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Python
 import sys
-import ConfigParser
+import configparser
 import logging
 
 # Libraries
@@ -46,10 +46,10 @@ for site in sites:
         url = lifestream.config.get("wordpress:%s" % source, "url")
         user = lifestream.config.get("wordpress:%s" % source, "username")
         passwd = lifestream.config.get("wordpress:%s" % source, "password")
-    except ConfigParser.NoSectionError:
+    except configparser.NoSectionError:
         logger.error("No [wordpress:%s] section found in config" % source)
         sys.exit(5)
-    except ConfigParser.NoOptionError as e:
+    except configparser.NoOptionError as e:
         logger.error(e.message)
         sys.exit(5)
 

@@ -9,6 +9,7 @@ import signal
 
 # Libraries
 from selenium import webdriver
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
 # Local
 import lifestream
@@ -21,15 +22,17 @@ USERNAME = lifestream.config.get("steam", "username")
 steamtime = pytz.timezone('US/Pacific')
 Lifestream = lifestream.Lifestream()
 
-browser = webdriver.PhantomJS()
+options = FirefoxOptions()
+options.headless = True
+browser = webdriver.Firefox(options=options)
 
 # Login
 
-URL = "http://steamcommunity.com/id/%s/badges?xml=1" % USERNAME
+URL = "https://steamcommunity.com/id/%s/badges?xml=1" % USERNAME
 
 browser.get(URL)
 
-s_sql = u'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, %s, %s, %s, %s);'
+s_sql = 'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, %s, %s, %s, %s);'
 
 badges = browser.find_elements_by_css_selector("div.badge_row_inner")
 
@@ -46,15 +49,15 @@ for badge in badges:
         try:
             parseddate = datetime.strptime(date, "%b %d @ %I:%M%p")
         except ValueError:
-            print date
-            print URL
-            print text
+            print(date)
+            print(URL)
+            print(text)
             sys.exit(5)
     localdate = steamtime.localize(parseddate)
     utcdate = localdate.astimezone(pytz.utc)
 
     id = hashlib.md5()
-    id.update(text)
+    id.update(text.encode('utf8'))
 
     logger.info(text)
 
@@ -69,8 +72,8 @@ for badge in badges:
 
 
 # kill the specific phantomjs child proc
-browser.service.process.send_signal(signal.SIGTERM)
 try:
-    browser.quit()                                      # quit the node proc
+    if browser:
+        browser.quit()                                      # quit the node proc
 except AttributeError as e:
     logger.info("Failed to quit: %s" % e)

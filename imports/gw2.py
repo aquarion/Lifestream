@@ -29,7 +29,7 @@ fetch_list = []
 achivements_library = {}
 
 for achivement in my_achivements:
-    if achivement[u'done']:
+    if achivement['done']:
         ident = achivement['id']
         fetch_list.append(ident)
         achivements_library[ident] = {}
@@ -53,7 +53,7 @@ for category in category_fetch:
         if achivement_id in achivements_library:
             achivements_library[achivement_id]['category'] = category
 
-for ident, achivement in achivements_library.iteritems():
+for ident, achivement in achivements_library.items():
     if not 'info' in achivement:
         continue
 

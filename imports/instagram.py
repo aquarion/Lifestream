@@ -10,7 +10,7 @@ import pytz
 import hashlib
 import sys
 import codecs
-import ConfigParser  # For the exceptions
+import configparser  # For the exceptions
 from pprint import pprint
 
 # Local
@@ -51,7 +51,7 @@ if (api.login()):
     for item in feed:
 
         try:
-            caption = item[u'caption'][u'text']
+            caption = item['caption']['text']
         except TypeError:
             caption = ""
 
@@ -59,10 +59,10 @@ if (api.login()):
             timestamp = datetime.fromtimestamp(item['taken_at'])
             url = 'https://instagram.com/p/{}'.format(item['code'])
             if 'image_versions2' in item:
-                image = item[u'image_versions2'][u'candidates'][0]['url']
+                image = item['image_versions2']['candidates'][0]['url']
             elif 'carousel_media' in item:
                 image = item['carousel_media'][0][
-                    u'image_versions2'][u'candidates'][0]['url']
+                    'image_versions2']['candidates'][0]['url']
             else:
                 raise Exception("No image thumbnail found")
 

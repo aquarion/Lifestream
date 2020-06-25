@@ -4,11 +4,11 @@
 import sys
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 # Libraries
-from twitter.oauth import read_token_file
+from lifestream.oauth_utils import read_token_file
 import requests
 
 # Local
@@ -37,7 +37,7 @@ CONSUMER_SECRET = lifestream.config.get("foursquare", "secret")
 
 if not os.path.exists(OAUTH_FILENAME):
     logger.error("No OAUTH found at %s" % OAUTH_FILENAME)
-    print "You need to run foursquare_oauth.py to generate the oauth key"
+    print("You need to run foursquare_oauth.py to generate the oauth key")
     sys.exit(5)
 
 oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
@@ -46,9 +46,6 @@ oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
 # Loop setup
 
 Lifestream = lifestream.Lifestream()
-
-l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, "foursquare", %s, %s, %s, %s, %s, 1, %s, %s);'
-
 
 URL_BASE = "https://api.foursquare.com/v2/%s"
 # Get the data
@@ -61,36 +58,37 @@ payload = {
 r = requests.get(URL_BASE % "users/self/checkins", params=payload)
 
 try:
-	data = r.json()
+    data = r.json()
 except Exception as e:
-	print URL_BASE, "users/self/checkins" , payload
-	print r.text
-	sys.exit(5)
+    print(URL_BASE, "users/self/checkins", payload)
+    print(r.text)
+    sys.exit(5)
 
 checkins = data['response']['checkins']['items']
 
-if 'checkins' in data['response'].keys():
+if 'checkins' in list(data['response'].keys()):
     for location in checkins:
         source = "Foursquare"
-        if "isMayor" in location.keys() and location['isMayor']:
+        if "isMayor" in list(location.keys()) and location['isMayor']:
             source = "Foursquare-Mayor"
 
         image = ""
 
         source = re.sub(r'<[^>]*?>', '', source)
 
-        if "venue" in location.keys():
+        if "venue" in list(location.keys()):
             message = location['venue']['name']
             if len(location['venue']['categories']):
                 for category in location['venue']['categories']:
-                    if "primary" in category.keys():
+                    if "primary" in list(category.keys()):
                         image = category['icon']
                         image = image['prefix'] + "64.png"
         else:
             message = location['location']['name']
 
         epoch = location['createdAt']
-        utctime = datetime.utcfromtimestamp(epoch)
+        # utctime = datetime.utcfromtimestamp(epoch)
+        utctime = datetime.fromtimestamp(epoch, tz=timezone.utc)
         utcdate = utctime.strftime("%Y-%m-%d %H:%M")
 
         id = location['id']
@@ -112,14 +110,5 @@ if 'checkins' in data['response'].keys():
 
         logger.info("Checkin %s@%s" % (utcdate, location['venue']['name']))
 
-        #                     (`id`,  `lat`,            `long`, `lat_vague`, `long_vague`, `timestamp`, `title`, `icon`)
-        cursor.execute(
-            l_sql,
-            (epoch,
-             coordinates['lat'],
-             coordinates['lng'],
-             coordinates['lat'],
-             coordinates['lng'],
-             utcdate,
-             location['venue']['name'],
-             image))
+        Lifestream.add_location(
+            utctime, "foursquare", coordinates['lat'], coordinates['lng'], message, image)

@@ -37,7 +37,7 @@ for i in range(1, len(fp['entries'])):
     o_item = fp['entries'][i]
 
     id = hashlib.md5()
-    id.update(o_item['guid'])
+    id.update(o_item['guid'].encode('utf-8'))
 
     title = o_item.title  # .encode("utf_8")
     localdate = dateutil.parser.parse(o_item.updated)

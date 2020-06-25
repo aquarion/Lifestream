@@ -25,7 +25,7 @@ londontime = pytz.timezone("Europe/London")
 
 headers = False
 
-data = open(args.filename, 'rb')
+data = open(args.filename, 'rt')
 dataReader = csv.reader(data)
 for row in dataReader:
     if not row:
@@ -54,8 +54,8 @@ for row in dataReader:
         utcdate = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
         id = hashlib.md5()
-        id.update(utcdate)
-        id.update(action)
+        id.update(utcdate.encode('utf-8'))
+        id.update(action.encode('utf-8'))
 
         logger.info("%s: %s" % (action, utcdate))
         #add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False)

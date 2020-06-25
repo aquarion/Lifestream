@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # Python
+import simplejson as json
+import requests
 import pytz
 import dateutil.parser
 import logging
@@ -23,9 +25,6 @@ ls_source = "github"
 logger = logging.getLogger('Github')
 args = lifestream.arguments.parse_args()
 
-import requests
-import simplejson as json
-
 
 def github_call(path, token, page=1, perpage=100):
     logger.debug("Calling %s" % path)
@@ -34,12 +33,13 @@ def github_call(path, token, page=1, perpage=100):
     headers = {"Authorization": "token %s" % token}
     r = requests.get(gh_url, headers=headers)
     if not r.status_code == 200:
-        print r.status_code
-        print r.url
-        print r.text
+        print(r.status_code)
+        print(r.url)
+        print(r.text)
         raise Exception
     else:
         return json.loads(r.text)
+
 
 repos = github_call("user/repos", TOKEN)
 

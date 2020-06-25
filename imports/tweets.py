@@ -5,7 +5,7 @@ import pytz
 import sys
 import os
 import re
-from urllib2 import URLError
+from urllib.error import URLError
 import socket
 import logging
 
@@ -16,9 +16,6 @@ from lifestream.oauth_utils import read_token_file
 
 # Local
 import lifestream
-
-from pprint import pprint
-import ipdb
 
 Lifestream = lifestream.Lifestream()
 
@@ -50,7 +47,6 @@ CONSUMER_KEY = lifestream.config.get("twitter", "consumer_key")
 CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
 
 
-
 ACCOUNTS = lifestream.config.get("twitter", "accounts")
 
 if not ACCOUNTS:
@@ -60,37 +56,36 @@ if not ACCOUNTS:
 oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
 
 api = twitter.Api(consumer_key=CONSUMER_KEY,
-                consumer_secret=CONSUMER_SECRET,
-                access_token_key=oauth_token,
-                access_token_secret=oauth_token_secret,
-                tweet_mode='extended')
-
+                  consumer_secret=CONSUMER_SECRET,
+                  access_token_key=oauth_token,
+                  access_token_secret=oauth_token_secret,
+                  tweet_mode='extended')
 
 
 def process_tweet(account, status):
 
-        id = status.id_str
-        image =  status.user.profile_image_url_https
-        message = status.full_text
-        source = status.source
-        logger.debug(" -  %s" % status.full_text)
+    id = status.id_str
+    image = status.user.profile_image_url_https
+    message = status.full_text
+    source = status.source
+    logger.debug(" -  %s" % status.full_text)
 
-        source = re.sub(r'<[^>]*?>', '', source)
+    source = re.sub(r'<[^>]*?>', '', source)
 
-        url = "http://twitter.com/%s/status/%s" % (account, id)
+    url = "http://twitter.com/%s/status/%s" % (account, id)
 
-        localdate = dateutil.parser.parse(status.created_at)
-        utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
+    localdate = dateutil.parser.parse(status.created_at)
+    utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
-        Lifestream.add_entry(
-            "twitter",
-            id,
-            message,
-            source,
-            utcdate,
-            url=url,
-            image=image,
-            fulldata_json=status.AsDict())
+    Lifestream.add_entry(
+        "twitter",
+        id,
+        message,
+        source,
+        utcdate,
+        url=url,
+        image=image,
+        fulldata_json=status.AsDict())
 
 
 for account in ACCOUNTS.split(","):
@@ -125,7 +120,6 @@ for account in ACCOUNTS.split(","):
             break
         else:
             earliest_tweet = new_earliest
-            logger.debug("getting tweets before: %s" % earliest_tweet )
+            logger.debug("getting tweets before: %s" % earliest_tweet)
             for status in tweets:
                 process_tweet(account, status)
-

@@ -46,8 +46,8 @@ sess.set_token(token['key'], token['secret'])
 
 cxn = sqlite3.connect(MESSAGES_DATABASE_CACHE)
 
-print "HellO"
-print cxn
+print("HellO")
+print(cxn)
 
 # Get the data
 
@@ -72,6 +72,6 @@ exclude = ("86444",  # Twitter
            )
 
 for message in messages:
-    if message[3]in exclude:
+    if message[3] in exclude:
         continue
-    print message[3], message[1]
+    print(message[3], message[1])

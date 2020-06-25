@@ -3,8 +3,8 @@
 
 # Python
 import sys
-import urlparse
-import cPickle as pickle
+import urllib.parse
+import pickle as pickle
 import simplejson
 import datetime
 import logging
@@ -12,14 +12,12 @@ import os
 
 # Libraries
 import socket
+import twitter
 from pytumblr import TumblrRestClient
 import oauth2 as oauth
 
 # Libraries
-from twitter import Twitter
-from twitter.oauth import OAuth, read_token_file
-from twitter.oauth_dance import oauth_dance
-
+from lifestream.oauth_utils import read_token_file
 
 # Local
 import lifestream
@@ -55,15 +53,16 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         if resp['status'] != '200':
             raise Exception("Invalid response %s." % resp['status'])
 
-        request_token = dict(urlparse.parse_qsl(content))
-        print "Go to the following link in your browser:"
-        print "%s?oauth_token=%s" % (authorize_url, request_token['oauth_token'])
-        print
+        request_token = dict(urllib.parse.parse_qsl(content))
+        print("Go to the following link in your browser:")
+        print("%s?oauth_token=%s" %
+              (authorize_url, request_token['oauth_token']))
+        print()
 
         accepted = 'n'
         while accepted.lower() == 'n':
-            accepted = raw_input('Have you authorized me? (y/n) ')
-        oauth_verifier = raw_input('What is the PIN? ')
+            accepted = input('Have you authorized me? (y/n) ')
+        oauth_verifier = input('What is the PIN? ')
 
         token = oauth.Token(
             request_token['oauth_token'],
@@ -72,12 +71,12 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         client = oauth.Client(consumer, token)
 
         resp, content = client.request(access_token_url, "POST")
-        oauth_token = dict(urlparse.parse_qsl(content))
+        oauth_token = dict(urllib.parse.parse_qsl(content))
 
         logger.debug(resp)
         logger.debug(oauth_token)
-        print "Access key:", oauth_token['oauth_token']
-        print "Access Secret:", oauth_token['oauth_token_secret']
+        print("Access key:", oauth_token['oauth_token'])
+        print("Access Secret:", oauth_token['oauth_token_secret'])
 
         f = open(OAUTH_TUMBLR, "w")
         pickle.dump(oauth_token, f)
@@ -88,6 +87,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         consumer_secret,
         oauth_token['oauth_token'],
         oauth_token['oauth_token_secret'])
+
 
 # Setup Twitter
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
@@ -112,15 +112,15 @@ if not os.path.exists(OAUTH_FILENAME):
 
 oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
 
-twitter = Twitter(
-    auth=OAuth(
-        oauth_token, oauth_token_secret, CONSUMER_KEY, CONSUMER_SECRET),
-    secure=True,
-    api_version='1.1',
-    domain='api.twitter.com')
 
+api = twitter.Api(consumer_key=CONSUMER_KEY,
+                  consumer_secret=CONSUMER_SECRET,
+                  access_token_key=oauth_token,
+                  access_token_secret=oauth_token_secret,
+                  tweet_mode='extended')
 
 # Start the engines
+
 
 def cursor(dbcxn):
     dbc = dbcxn.cursor()
@@ -129,6 +129,7 @@ def cursor(dbcxn):
     dbc.execute('SET character_set_connection=utf8;')
 
     return dbc
+
 
 to_blog = "aquarions-of-history"
 
@@ -163,7 +164,7 @@ for post in cursor:
         logger.info("Skipping, no content")
         continue
 
-    title = title.replace("@", u"💬")
+    title = title.replace("@", "💬")
 
     logger.info(title)
 
@@ -183,6 +184,6 @@ for post in cursor:
             date=date_created + four_years
         )
     elif contenttype == 'twitter':
-        twitter.statuses.update(status=title, in_reply_to=systemid)
+        api.PostUpdate(title, in_reply_to_status_id=systemid)
 
 dbcxn.close()

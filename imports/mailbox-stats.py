@@ -15,7 +15,7 @@ import lifestreamutils
 
 
 if (len(sys.argv) < 2):
-    print "Usage: %s statistic filename" % (sys.argv[0])
+    print("Usage: %s statistic filename" % (sys.argv[0]))
     sys.exit(5)
 
 STATISTIC = sys.argv[1]
@@ -35,10 +35,10 @@ length = len(inbox)
 count = 0.0
 
 if DEBUG:
-    print FILENAME
-    print "0%"
+    print(FILENAME)
+    print("0%")
 
-for key in inbox.iterkeys():
+for key in inbox.keys():
     count += 1
     msg = inbox[key]
     if not msg or not msg['From']:
@@ -68,10 +68,10 @@ for key in inbox.iterkeys():
         sys.stdout.flush()
 
 if DEBUG:
-    print "100%"
-    print "Databasing...."
+    print("100%")
+    print("Databasing....")
 
-for date in dates.keys():
+for date in list(dates.keys()):
     lifestreamutils.newstat(date, STATISTIC, dates[date]['total'])
 
 dbcxn.close()

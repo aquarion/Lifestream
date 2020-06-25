@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # Python
 import hashlib
-import ConfigParser
+import configparser
 from datetime import datetime
 import pytz
 import logging
@@ -25,7 +25,7 @@ characters = characters.split(",")
 
 try:
     api_key = "/s:%s" % lifestream.config.get("planetside", "service_key")
-except ConfigParser.NoOptionError:
+except configparser.NoOptionError:
     api_key = ''
 
 url_base = "http://census.daybreakgames.com"
@@ -39,16 +39,14 @@ Lifestream = lifestream.Lifestream()
 
 for character_name in characters:
     logger.info("Data for %s" % character_name)
-  
+
     charac = requests.get(
         "%s/character/?name.first_lower=%s&c:resolve=faction" %
         (api_base, character_name))
 
-
     character = charac.json()
 
     character_id = character['character_list'][0]['character_id']
-
 
     profile = character['character_list'][0]
 
@@ -70,7 +68,7 @@ for character_name in characters:
     image = image_base + ranki.json()['experience_rank_list'][0][image_key]
 
     id = hashlib.md5()
-    id.update(text)
+    id.update(text.encode('utf-8'))
 
     logger.info(text)
 
@@ -100,7 +98,7 @@ for character_name in characters:
             achivement['achievement_id_join_achievement']['image_path']
         date = achivement['finish_date']
         id = hashlib.md5()
-        id.update(text + date)
+        id.update(str(text + date).encode('utf-8'))
 
         logger.info(text)
 

@@ -88,7 +88,8 @@ def authenticate(
             UseCodeFetcher = False
         except ConfigParser.Error:
             logger.error("Dayze base not configured")
-            print "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
+            print(
+                "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini")
             sys.exit(32)
 
     if oauth_token:
@@ -107,7 +108,8 @@ def authenticate(
         delta = refresh_expiration_date - datetime.now()
 
         if delta.days <= 7:
-            print "Refresh token will expire in {}!".format(lifestream.niceTimeDelta(delta))
+            print("Refresh token will expire in {}!".format(
+                lifestream.niceTimeDelta(delta)))
 
         return oauth_token
 
@@ -115,17 +117,17 @@ def authenticate(
     # redirect. In a web application you would redirect the user to the URL
     # below.
 
-    print "Go to the following link in your browser:"
-    print request_token_url
-    print
+    print("Go to the following link in your browser:")
+    print(request_token_url)
+    print()
 
     if UseCodeFetcher:
         oauth_redirect = CodeFetcher9000.get_code("code")
         access_key = oauth_redirect['code'][0]
     else:
-        print "If you configure CodeFetcher9000, this is a lot easier."
-        print " - "
-        access_key = raw_input('What is the PIN? ')
+        print("If you configure CodeFetcher9000, this is a lot easier.")
+        print(" - ")
+        access_key = input('What is the PIN? ')
 
     access_token_url = "https://www.bungie.net/platform/app/oauth/token/"
 
@@ -136,7 +138,7 @@ def authenticate(
         'client_secret': client_secret
     }
     access_token = requests.post(access_token_url, data=payload)
-    print access_token.text
+    print(access_token.text)
     oauth_token = access_token.json()
 
     delta = timedelta(seconds=int(oauth_token['expires_in']))
@@ -145,7 +147,7 @@ def authenticate(
     refresh_delta = timedelta(seconds=int(oauth_token['refresh_expires_in']))
     oauth_token['refresh_expire_dt'] = datetime.now() + refresh_delta
 
-    f = open(OAUTH_FILENAME, "w")
+    f = open(OAUTH_FILENAME, "wb")
     pickle.dump(oauth_token, f)
     f.close()
 
@@ -175,7 +177,7 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
     refresh_delta = timedelta(seconds=int(oauth_token['refresh_expires_in']))
     oauth_token['refresh_expire_dt'] = datetime.now() + refresh_delta
 
-    f = open(OAUTH_FILENAME, "w")
+    f = open(OAUTH_FILENAME, "wb")
     pickle.dump(oauth_token, f)
     f.close()
 
@@ -200,7 +202,7 @@ logger.info("Token will expire in {}!".format(lifestream.niceTimeDelta(delta)))
 
 delta = credentials['refresh_expire_dt'] - datetime.now()
 if delta.days <= 7:
-    logger.warning(
+    logger.warninging(
         "Refresh Token will expire in {}!".format(
             lifestream.niceTimeDelta(delta)))
 else:
@@ -219,7 +221,7 @@ def destinyCall(path, payload={}):
     delta = datetime.now() - NEXT_REQUEST
 
     if delta.seconds > 0:
-        logger.warning("throttled, waiting {}".format(delta.seconds))
+        logger.warninging("throttled, waiting {}".format(delta.seconds))
         time.sleep(delta.seconds)
 
     ROOT = 'https://www.bungie.net/Platform'
@@ -234,7 +236,7 @@ def destinyCall(path, payload={}):
     result = requests.get(url, headers=headers, params=payload).json()
 
     if result['ErrorCode'] != 1:
-        logger.warn(result['Message'])
+        logger.warning(result['Message'])
         try:
             raise getattr(destiny_exceptions, result['ErrorStatus'])
         except AttributeError:
@@ -244,8 +246,8 @@ def destinyCall(path, payload={}):
     NEXT_REQUEST = datetime.now()
 
     if 'Response' not in result:
-        logger.warn(path)
-        logger.warn(result)
+        logger.warning(path)
+        logger.warning(result)
         return False
 
     return result['Response']
@@ -256,6 +258,7 @@ def destinyEntity(entityType, hashIdentifier):
         entityType=entityType,
         hashIdentifier=hashIdentifier)
     return destinyCall(path)
+
 
 memberships = destinyCall('User/GetMembershipsForCurrentUser/')
 
@@ -286,12 +289,13 @@ def dt_parse(t):
         raise Exception("Bad time format %s, %s" % (t, t[15]))
     return ret.replace(tzinfo=pytz.UTC)
 
+
 for member_data in memberships['destinyMemberships']:
-        # [{u'displayName': u'Aquarionic',
-        #     u'iconPath': u'/img/theme/destiny/icons/icon_psn.png',
-        #     u'membershipId': u'4611686018428725676',
-        #     u'membershipType': 2},
-        # member_data['membershipType'] = MEMBERSHIP_TYPES[member_data['membershipType']]
+    # [{u'displayName': u'Aquarionic',
+    #     u'iconPath': u'/img/theme/destiny/icons/icon_psn.png',
+    #     u'membershipId': u'4611686018428725676',
+    #     u'membershipType': 2},
+    # member_data['membershipType'] = MEMBERSHIP_TYPES[member_data['membershipType']]
     try:
         logger.info(
             "Looking at membership for {}".format(
@@ -306,7 +310,7 @@ for member_data in memberships['destinyMemberships']:
                     member_data['membershipType']]))
         continue
 
-    character_list = membership['characters']['data'].keys()
+    character_list = list(membership['characters']['data'].keys())
     for character_id in character_list:
         character_data = membership['characters']['data'][character_id]
         logger.info("Hello character {}".format(character_id))
@@ -344,24 +348,25 @@ for member_data in memberships['destinyMemberships']:
                 instance['activityDetails']['referenceId'])
 
             if not activity:
-                logger.warn("Activity was empty? Skipping")
+                logger.warning("Activity was empty? Skipping")
                 continue
 
             id = hashlib.md5()
-            id.update("destiny2")
-            id.update(character_id)
-            id.update(str(instance['activityDetails']['directorActivityHash']))
+            id.update("destiny2".encode('utf-8'))
+            id.update(character_id.encode('utf-8'))
+            id.update(str(instance['activityDetails']
+                          ['directorActivityHash']).encode('utf-8'))
 
             display = activity['displayProperties']
 
             if 'name' not in display:
-                logger.warn("Event doesn't have name? Skipping")
+                logger.warning("Event doesn't have name? Skipping")
                 continue
 
             logger.info("Completed instance {name} at {period}".format(
                 name=display['name'], period=instance['period']))
 
-            text = u"%s --- %s" % (display['name'], display['description'])
+            text = "%s --- %s" % (display['name'], display['description'])
 
             localdate = dateutil.parser.parse(instance['period'])
             utcdate = localdate.astimezone(pytz.utc)

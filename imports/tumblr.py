@@ -1,8 +1,10 @@
 #!/usr/bin/python
 # Python
-import urlparse
-import cPickle as pickle
+import urllib.parse
+import pickle as pickle
 import logging
+import dateutil.parser
+import pytz
 
 # Libraries
 from pytumblr import TumblrRestClient
@@ -47,7 +49,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         oauth_token = pickle.load(f)
         f.close()
     except:
-        print "Couldn't open %s, reloading..." % OAUTH_TUMBLR
+        print("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 
     if(not oauth_token):
@@ -57,15 +59,16 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         if resp['status'] != '200':
             raise Exception("Invalid response %s." % resp['status'])
 
-        request_token = dict(urlparse.parse_qsl(content))
-        print "Go to the following link in your browser:"
-        print "%s?oauth_token=%s" % (authorize_url, request_token['oauth_token'])
-        print
+        request_token = dict(urllib.parse.parse_qsl(content))
+        print("Go to the following link in your browser:")
+        print("%s?oauth_token=%s" %
+              (authorize_url, request_token['oauth_token']))
+        print()
 
         accepted = 'n'
         while accepted.lower() == 'n':
-            accepted = raw_input('Have you authorized me? (y/n) ')
-        oauth_verifier = raw_input('What is the PIN? ')
+            accepted = input('Have you authorized me? (y/n) ')
+        oauth_verifier = input('What is the PIN? ')
 
         token = oauth.Token(
             request_token['oauth_token'],
@@ -74,12 +77,12 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         client = oauth.Client(consumer, token)
 
         resp, content = client.request(access_token_url, "POST")
-        oauth_token = dict(urlparse.parse_qsl(content))
-        print resp
+        oauth_token = dict(urllib.parse.parse_qsl(content))
+        print(resp)
 
-        print oauth_token
-        print "Access key:", oauth_token['oauth_token']
-        print "Access Secret:", oauth_token['oauth_token_secret']
+        print(oauth_token)
+        print("Access key:", oauth_token['oauth_token'])
+        print("Access Secret:", oauth_token['oauth_token_secret'])
 
         f = open(OAUTH_TUMBLR, "w")
         pickle.dump(oauth_token, f)
@@ -90,6 +93,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         consumer_secret,
         oauth_token['oauth_token'],
         oauth_token['oauth_token_secret'])
+
 
 tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 
@@ -123,6 +127,9 @@ for blog in blogs:
             url = post['post_url']
             image = False
 
+            localdate = dateutil.parser.parse(post['date'])
+            utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
+
             if "title" in post and post['title']:
                 title = post['title']
             elif "caption" in post:
@@ -146,7 +153,7 @@ for blog in blogs:
                 id,
                 title,
                 "tumblr",
-                post['date'],
+                utcdate,
                 url=url,
                 image=image,
                 fulldata_json=post)

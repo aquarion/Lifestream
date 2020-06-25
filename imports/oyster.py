@@ -5,7 +5,7 @@ import pytz
 import re
 import hashlib
 import csv
-import StringIO
+import io
 from time import sleep
 from datetime import datetime
 import logging
@@ -23,7 +23,7 @@ args = lifestream.arguments.parse_args()
 Lifestream = lifestream.Lifestream()
 
 if (len(sys.argv) < 3):
-    print "Usage: %s class oystercard_number" % sys.argv[0]
+    print("Usage: %s class oystercard_number" % sys.argv[0])
     sys.exit(5)
 
 TYPE = sys.argv[1]
@@ -75,11 +75,11 @@ data = br.response().read()
 
 # Date,Start Time,End Time,Journey/Action,Charge,Credit,Balance,Note
 
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
+s_sql = 'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
 
 headers = False
 
-dataReader = csv.reader(StringIO.StringIO(data))
+dataReader = csv.reader(io.StringIO(data))
 for row in dataReader:
     if not headers:
         headers = row

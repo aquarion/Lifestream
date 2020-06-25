@@ -2,7 +2,7 @@
 
 # Python
 import logging
-import cPickle as pickle
+import pickle as pickle
 from datetime import datetime, timedelta
 import pprint
 
@@ -51,13 +51,13 @@ def fitbitAuth(config, OAUTH_SECRETS):
 
         print('* Authorize the request token in your browser\n')
 
-        print client.authorize_token_url()
+        print(client.authorize_token_url())
 
         try:
-            verifier = raw_input('Verifier: ')
+            verifier = input('Verifier: ')
         except NameError:
             # Python 3.x
-            verifier = input('Verifier: ')
+            verifier = eval(input('Verifier: '))
 
         # get access token
         print('\n* Obtain an access token ...\n')
@@ -66,9 +66,9 @@ def fitbitAuth(config, OAUTH_SECRETS):
         pp.pprint(token)
         print('')
 
-        print token
-        print "Access key:", token['oauth_token']
-        print "Access Secret:", token['oauth_token_secret']
+        print(token)
+        print("Access key:", token['oauth_token'])
+        print("Access Secret:", token['oauth_token_secret'])
 
         f = open(OAUTH_SECRETS, "w")
         pickle.dump(token, f)
@@ -79,6 +79,7 @@ def fitbitAuth(config, OAUTH_SECRETS):
         CLIENT_SECRET,
         resource_owner_key=token['oauth_token'],
         resource_owner_secret=token['oauth_token_secret'])
+
 
 fbcxn = fitbitAuth(lifestream.config, OAUTH_SECRETS)
 

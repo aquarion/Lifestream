@@ -80,19 +80,19 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             UseCodeFetcher = False
         except ConfigParser.Error:
             logger.error("Dayze base not configured")
-            print "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
+            print("To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini")
             sys.exit(32)
 
     if oauth_token:
 
         expiration_date = oauth_token['expire_dt']
         if datetime.now() > expiration_date:
-            print "Token has expired!"
+            print("Token has expired!")
 
         delta = expiration_date - datetime.now()
 
         if delta.days <= 7:
-            print "Token will expire in {} days!".format(delta.days)
+            print("Token will expire in {} days!".format(delta.days))
 
         return oauth_token
 
@@ -100,17 +100,17 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     # redirect. In a web application you would redirect the user to the URL
     # below.
 
-    print "Go to the following link in your browser:"
-    print request_token_url
-    print
+    print("Go to the following link in your browser:")
+    print(request_token_url)
+    print()
 
     if UseCodeFetcher:
         oauth_redirect = CodeFetcher9000.get_code("code")
         access_key = oauth_redirect['code'][0]
     else:
-        print "If you configure CodeFetcher9000, this is a lot easier."
-        print " - "
-        access_key = raw_input('What is the PIN? ')
+        print("If you configure CodeFetcher9000, this is a lot easier.")
+        print(" - ")
+        access_key = input('What is the PIN? ')
 
     extend_token_url = "https://api.moves-app.com/oauth/v1/access_token?grant_type=authorization_code&code=%s&client_id=%s&client_secret=%s" % (
         access_key, appid, secret)
@@ -160,7 +160,7 @@ def process_day(day):
     logger.info('----' + day['date'])
     if day['segments']:
         for segment in day['segments']:
-            start = dt_parse(segment[u'startTime'])
+            start = dt_parse(segment['startTime'])
             events_count += 1
             if 'place' in segment:
                 place = segment['place']
@@ -181,9 +181,9 @@ def process_day(day):
                             else:
                                 logger.info("Serious Problem with Foursquare")
                                 raise Exception("Trouble with Foursquare")
-                        top_match = fsq['response'][u'venues'][0]
-                        if 'count' in top_match[u'beenHere'] and top_match[
-                                u'beenHere']['count'] > 0:
+                        top_match = fsq['response']['venues'][0]
+                        if 'count' in top_match['beenHere'] and top_match[
+                                'beenHere']['count'] > 0:
                             logger.info("Fsq:  %s" % top_match['name'])
                             name = top_match['name']
                         else:

@@ -2,8 +2,8 @@
 from datetime import datetime
 import oauth2
 import time
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import json
 import logging
 import sys
@@ -47,15 +47,15 @@ A_DAY = 24 * 60 * 60;
 params = {
     'start_time': now - A_DAY,
     'end_time': now}    # get the last 24 hours
-query = "%s?%s" % (URL, urllib.urlencode(params))
+query = "%s?%s" % (URL, urllib.parse.urlencode(params))
 
 try:
     logger.debug('Grabbing %s' % URL)
-    request = urllib2.Request(query)
+    request = urllib.request.Request(query)
     request.headers = build_auth_header(URL, 'GET')
-    connection = urllib2.urlopen(request)
+    connection = urllib.request.urlopen(request)
     data = json.loads(''.join(connection.readlines()))
-except urllib2.HTTPError as e:
+except urllib.error.HTTPError as e:
     logger.error(e.read())
     sys.exit(5)
 
@@ -81,7 +81,7 @@ for datum in data:
     altitude_best = datum['alt']
     altitude_vague = round(datum['alt'], 2)
 
-    s_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `alt`, `lat_vague`, `long_vague`, `alt_vague`, `timestamp`, `accuracy`) values (%s, "openpaths", %s, %s, %s, %s, %s, %s, %s, %s);'
+    s_sql = 'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `alt`, `lat_vague`, `long_vague`, `alt_vague`, `timestamp`, `accuracy`) values (%s, "openpaths", %s, %s, %s, %s, %s, %s, %s, %s);'
     # {u'latitude': 51.552821000000002, u'kind': u'latitude#location', u'accuracy': 1414, u'longitude': 0.0070299999999999998, u'timestampMs': u'1333465871161'}
 
     timestamp = datetime.fromtimestamp(datum['t'])

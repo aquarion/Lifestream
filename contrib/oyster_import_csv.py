@@ -20,7 +20,7 @@ londontime = pytz.timezone("Europe/London")
 dataReader = csv.reader(open('oyster.csv', 'rb'))
 
 
-s_sql = u'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
+s_sql = 'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
 
 
 headers = False
@@ -54,7 +54,7 @@ for row in dataReader:
         id.update(utcdate)
         id.update(action)
 
-        print action, utcdate
+        print(action, utcdate)
         cursor.execute(
             s_sql,
             ("oyster",

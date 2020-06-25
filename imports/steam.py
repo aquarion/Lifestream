@@ -1,14 +1,14 @@
 #!/usr/bin/python
 # Python
 from xml.dom import minidom
-import urllib2 as urllib
 import hashlib
 import os
 import pytz
 from xml.parsers.expat import ExpatError
 from datetime import datetime
 import logging
-
+import requests
+from io import BytesIO
 from pprint import pprint
 
 # Libraries
@@ -36,18 +36,18 @@ steamtime = pytz.timezone('US/Pacific')
 user = lifestream.config.get("steam", "username")
 
 logger.info(
-    "Opening http://steamcommunity.com/id/%s/games?tab=recent&xml=1" %
+    "Opening https://steamcommunity.com/id/%s/games?tab=recent&xml=1" %
     user)
 
 try:
-    gameslist_xml = urllib.urlopen(
-        "http://steamcommunity.com/id/%s/games?tab=recent&xml=1" %
+    gameslist_xml = requests.get(
+        "https://steamcommunity.com/id/%s/games?tab=recent&xml=1" %
         user)
 except IOError:
     #print >> sys.stderr, "Got socket error fetching games list"
     os._exit(5)
 
-games = minidom.parse(gameslist_xml)
+games = minidom.parse(BytesIO(gameslist_xml.content))
 
 gamesList = games.getElementsByTagName('game')
 
@@ -68,14 +68,14 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
     gamename = game.getElementsByTagName('name')[0].firstChild.data
 
     hoursFortnight = game.getElementsByTagName('hoursLast2Weeks')
-    hoursEver      = game.getElementsByTagName('hoursOnRecord')
+    hoursEver = game.getElementsByTagName('hoursOnRecord')
 
     logger.info("% 3d % 3d %s" % (foundGames, thisGame, gamename))
 
     if len(statspage) == 0:
         logger.info("       + Skipping %s (No stats page)" % gamename)
         continue
-        
+
     if not hoursEver:
         logger.info("       + Skipping %s (Not played)" % gamename)
         continue
@@ -83,7 +83,6 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
     if not args.catchup and not hoursFortnight:
         logger.info("       + Skipping %s (Not in last fortnight)" % gamename)
         continue
-
 
     # If we found a statspage, carry on. Iterate foundGames
 
@@ -94,7 +93,8 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
 
     try:
         logger.info("       + Getting Stats: %s" % statspagexml)
-        game = minidom.parse(urllib.urlopen(statspagexml))
+        response = requests.get(statspagexml)
+        game = minidom.parse(BytesIO(response.content))
     except IOError:
         logger.info(
             "       + Got socket error fetching %s achievement list" %
@@ -111,7 +111,7 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
             continue
 
         name = achivement.getElementsByTagName('name')[0].firstChild.data
-        if closed == u'0':
+        if closed == '0':
             logger.info("         + %s (Not Achieved)" % name)
             continue
 

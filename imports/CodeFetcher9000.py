@@ -1,16 +1,16 @@
-import BaseHTTPServer
-import urlparse
+import http.server
+import urllib.parse
 import logging
 import ssl
 import lifestream
-import ConfigParser
+import configparser
 import os
 
 logger = logging.getLogger('CodeFetcher')
 
 os.chdir(os.path.dirname(__file__) + '/..')
 
-ServerClass = BaseHTTPServer.HTTPServer
+ServerClass = http.server.HTTPServer
 port = int(lifestream.config.get("CodeFetcher9000", "port"))
 server_address = ('0.0.0.0', port)
 code = False
@@ -21,10 +21,10 @@ class WeSayNotToday(Exception):
     pass
 
 
-class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class MyHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, req, client_addr, server):
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(
+        http.server.BaseHTTPRequestHandler.__init__(
             self,
             req,
             client_addr,
@@ -55,7 +55,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def failure(s, params):
 
-        f = open('templates/failure.html', 'rb')
+        f = open('templates/failure.html', 'rt')
 
         s.send_response(200)
         s.send_header("Content-type", "text/html")
@@ -66,7 +66,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 break
             file_data = file_data.replace('[[params]]', str(params))
             file_data = file_data.replace('[[key_wanted]]', str(key_wanted))
-            s.wfile.write(file_data)
+            s.wfile.write(file_data.encode("utf8"))
         f.close()
 
     def do_GET(s):
@@ -74,8 +74,8 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # varLen = int(s.headers['Content-Length'])
         # postVars = s.rfile.read(varLen)
         # params = parse_qs(s.path[2:])
-        parsed = urlparse.urlparse(s.path)
-        params = urlparse.parse_qs(parsed.query)
+        parsed = urllib.parse.urlparse(s.path)
+        params = urllib.parse.parse_qs(parsed.query)
 
         if key_wanted in params:
             s.success(params)
@@ -108,7 +108,7 @@ def are_we_working():
     except IOError:
         logger.error("Could not read certificate file: {}".format(certfile))
         raise WeSayNotToday()
-    except ConfigParser.Error:
+    except configparser.Error:
         logger.error("Certfile not defined in config")
         raise WeSayNotToday()
 
@@ -119,7 +119,7 @@ def are_we_working():
     except IOError:
         logger.error("Could not read key file: {}".format(keyfile))
         raise WeSayNotToday()
-    except ConfigParser.Error:
+    except configparser.Error:
         logger.error("Keyfile not defined in config")
         raise WeSayNotToday()
 
@@ -127,7 +127,7 @@ def are_we_working():
 
 
 def get_code(key_wanted_arg):
-    BaseHTTPServer.HTTPServer
+    http.server.HTTPServer
     handler_class = MyHandler
 
     global key_wanted
@@ -139,7 +139,7 @@ def get_code(key_wanted_arg):
     except IOError:
         logger.error("Could not read file")
         raise WeSayNotToday()
-    except ConfigParser.Error:
+    except configparser.Error:
         logger.error("Could not find config")
         raise WeSayNotToday()
 
@@ -151,7 +151,7 @@ def get_code(key_wanted_arg):
         server_side=True)
 
     sa = httpd.socket.getsockname()
-    print "Waiting on {}:{}".format(sa[0], sa[1])
+    print("Waiting on {}:{}".format(sa[0], sa[1]))
 
     while not code:
         httpd.handle_request()

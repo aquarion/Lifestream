@@ -1,8 +1,6 @@
 
-from __future__ import print_function
 
-
-#From https://github.com/sixohsix/twitter/blob/master/twitter/oauth.py
+# From https://github.com/sixohsix/twitter/blob/master/twitter/oauth.py
 
 def write_token_file(filename, oauth_token, oauth_token_secret):
     """
@@ -12,6 +10,7 @@ def write_token_file(filename, oauth_token, oauth_token_secret):
     print(oauth_token, file=oauth_file)
     print(oauth_token_secret, file=oauth_file)
     oauth_file.close()
+
 
 def read_token_file(filename):
     """

@@ -1,6 +1,6 @@
 # Python
 import site
-import ConfigParser
+import configparser
 import os
 import sys
 import codecs
@@ -17,20 +17,22 @@ from logging.handlers import TimedRotatingFileHandler
 # Libraries
 import pymysql as MySQLdb
 import oauth2
-from oauth_utils import write_token_file, read_token_file
+from .oauth_utils import write_token_file, read_token_file
 import requests
 from memcache import Client, SERVER_MAX_KEY_LENGTH, SERVER_MAX_VALUE_LENGTH
 from pprint import pprint
-
+import warnings
 # Local
 
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(basedir + "/../lib")
 
+warnings.filterwarnings('error', category=MySQLdb.Warning)
+
 #sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 try:
     config.readfp(open(basedir + '/../config.ini'))
 except IOError:
@@ -68,6 +70,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
+
 def getDatabaseConnection():
 
     db = {}
@@ -101,15 +104,15 @@ def convertNiceTime(number, format):
         return Denary2Binary(number)
 
     if format == "hex" or format == "hexadecimal":
-        print "Converting %s to hex" % number
+        print("Converting %s to hex" % number)
         return hex(int(number))
 
     if format == "oct" or format == "octal":
-        print "Converting %s to oct" % number
+        print("Converting %s to oct" % number)
         return oct(int(number))
 
     if format == "roman" or format == "roman":
-        print "Converting %s to roman" % number
+        print("Converting %s to roman" % number)
         return int_to_roman(int(number))
 
     return False
@@ -122,11 +125,13 @@ def yearsago(years, from_date=None):
         return from_date.replace(year=from_date.year - years)
     except ValueError:
         # Must be 2/29!
-        assert from_date.month == 2 and from_date.day == 29 # can be removed
+        assert from_date.month == 2 and from_date.day == 29  # can be removed
         return from_date.replace(month=2, day=28, year=from_date.year-years)
+
 
 class AnAttributeError(Exception):
     pass
+
 
 def niceTimeDelta(timedelta, format="decimal"):
 
@@ -134,7 +139,7 @@ def niceTimeDelta(timedelta, format="decimal"):
         years = 0
         days = timedelta.days
         hours = timedelta.seconds//3600
-        minutes = (timedelta.seconds//60)%60
+        minutes = (timedelta.seconds//60) % 60
         if days > 365:
             years = int(days / 365)
             days = int(days % 365)
@@ -221,14 +226,15 @@ class Lifestream:
             fulldata_json = simplejson.dumps(fulldata_json)
 
         sql = 'select date_created from lifestream where type = %s and systemid = %s order by date_created desc limit 1 '
-        self.cursor.execute(sql, (type, id))
+
+        self.cursor.execute(sql, (type, str(id)))
         if self.cursor.fetchone():
             if not update:
                 # print "Ignore - %s" % title
                 return False
             else:
                 # print "Update - %s" % title
-                s_sql = u'UPDATE lifestream set `title`=%s, `url`=%s, `date_created`=%s, `source`=%s, `image`=%s, `fulldata_json`=%s where `systemid`=%s and `type`=%s'
+                s_sql = 'UPDATE lifestream set `title`=%s, `url`=%s, `date_created`=%s, `source`=%s, `image`=%s, `fulldata_json`=%s where `systemid`=%s and `type`=%s'
                 self.cursor.execute(
                     s_sql,
                     (title,
@@ -240,10 +246,10 @@ class Lifestream:
                      id,
                      type))
                 if debug:
-                    print self.cursor._executed
+                    print(self.cursor._executed)
         else:
             # print "Insert - %s" % title
-            s_sql = u'INSERT INTO lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
+            s_sql = 'INSERT INTO lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
             self.cursor.execute(
                 s_sql,
                 (type,
@@ -255,17 +261,17 @@ class Lifestream:
                  image,
                  fulldata_json))
             if debug:
-                print self.cursor._executed
+                print(self.cursor._executed)
 
-    def add_location(self, timestamp, source, lat, lon, title, icon=False):
-        l_sql = u'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s);'
+    def add_location(self, timestamp, source, lat, lon, title, icon=False, fulldata=False):
+        l_sql = 'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s, "");'
         time_start = datetime(1970, 1, 1, 0, 0, 0, 0, pytz.UTC)
         epoch = (timestamp - time_start).total_seconds()
         self.cursor.execute(
             l_sql,
-            (epoch,  #`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`,
+            (epoch,  # `id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`,
              source,
-             lat, 
+             lat,
              lon,
              round(lat, 2),
              round(lon, 2),
@@ -273,10 +279,10 @@ class Lifestream:
              title,
              icon))
 
+
 class FoursquareAPI:
 
-
-    url_base = "https://api.foursquare.com/v2/%s" 
+    url_base = "https://api.foursquare.com/v2/%s"
 
     payload = {}
 
@@ -288,8 +294,8 @@ class FoursquareAPI:
         CONSUMER_KEY = lifestream.config.get("foursquare", "client_id")
         CONSUMER_SECRET = lifestream.config.get("foursquare", "secret")
 
-        MEMCACHE_HOST   = lifestream.config.get("memcache", "host")
-        MEMCACHE_PORT   = lifestream.config.get("memcache", "port")
+        MEMCACHE_HOST = lifestream.config.get("memcache", "host")
+        MEMCACHE_PORT = lifestream.config.get("memcache", "port")
         self.mcprefix = lifestream.config.get("memcache", "prefix")
 
         servers = ["%s:%s" % (MEMCACHE_HOST, MEMCACHE_PORT)]
@@ -297,13 +303,14 @@ class FoursquareAPI:
 
         if not os.path.exists(OAUTH_FILENAME):
             logger.error("No OAUTH found at %s" % OAUTH_FILENAME)
-            raise Exception("You need to run foursquare_oauth.py to generate the oauth key")
+            raise Exception(
+                "You need to run foursquare_oauth.py to generate the oauth key")
 
         oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
 
         self.payload = {
             'v': "20170801",
-            'oauth_token' : oauth_token
+            'oauth_token': oauth_token
         }
 
     def cache_get(self, url, params):
@@ -316,11 +323,10 @@ class FoursquareAPI:
         if(res):
             return json.loads(res)
 
-
-        r = requests.get(self.url_base % "users/self/checkins", params=self.payload)
+        r = requests.get(self.url_base %
+                         "users/self/checkins", params=self.payload)
         self.mc.set(key, json.dumps(r.json()))
         return r.json()
-
 
     def my_checkins(self):
         return self.cache_get(self.url_base % "users/self/checkins", params=self.payload)
@@ -332,4 +338,3 @@ class FoursquareAPI:
         payload['radius'] = radius
         payload['limit'] = limit
         return self.cache_get(self.url_base % "venues/search", params=self.payload)
-
