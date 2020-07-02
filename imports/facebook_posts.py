@@ -229,7 +229,7 @@ if delta.days <= 7:
 else:
     logger.info("Token will expire in {} days!".format(delta.days))
 
-graph = facebook.GraphAPI(credentials['access_token'], version="3.0")
+graph = facebook.GraphAPI(credentials['access_token'], version="3.1")
 profile = graph.get_object('me')
 posts = graph.get_object(
     "me/posts",
