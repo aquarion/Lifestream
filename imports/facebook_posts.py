@@ -241,11 +241,13 @@ page = 0
 while True:
     page += 1
     # print "Page ", pagea
+    logger.info("Page {}".format(page))
     [some_action(post=post, graph=graph, profile=profile)
         for post in posts['data']]
 
     logger.info("Page %d of %d" % (page, args.pages))
     if args.pages != 0 and page >= args.pages:
+        logger.info("I've hit the page limit. Buhbye")
         break
     try:
         # Perform some action on each post in the collection we receive from
@@ -256,5 +258,5 @@ while True:
     except KeyError:
         # When there are no more pages (['paging']['next']), break from the
         # loop and end the script.
-        print("No next")
+        logger.info("No more pages. Buhbye")
         break
