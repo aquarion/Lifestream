@@ -9,6 +9,7 @@ import simplejson
 import datetime
 import logging
 import os
+from dateutil.relativedelta import relativedelta
 
 # Libraries
 import socket
@@ -141,12 +142,13 @@ sql = "select title, date_created,url,fulldata_json, systemid, source, type from
 now = datetime.datetime.utcnow()
 
 a_day = datetime.timedelta(days=1)
-four_years = datetime.timedelta(days=365 * 4)
+four_years = relativedelta(years=4);
+ten_years = relativedelta(years=10);
 an_hour = datetime.timedelta(minutes=60)
 quarter_hour = datetime.timedelta(minutes=15)
 
-datefrom = now - four_years
-dateto = now - four_years + quarter_hour
+datefrom = now - ten_years
+dateto = now - ten_years + quarter_hour
 
 tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 
@@ -172,7 +174,7 @@ for post in cursor:
         data = simplejson.loads(fulldata)
 
     logger.info(date_created)
-    logger.info(date_created + four_years)
+    logger.info(date_created + ten_years)
     logger.info('---')
 
     if source == 'tumblr':
@@ -181,7 +183,7 @@ for post in cursor:
             id=systemid,
             reblog_key=data['reblog_key'],
             state="queue",
-            date=date_created + four_years
+            date=date_created + ten_years
         )
     elif contenttype == 'twitter':
         api.PostUpdate(title, in_reply_to_status_id=systemid)
