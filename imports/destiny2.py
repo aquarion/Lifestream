@@ -202,7 +202,7 @@ logger.info("Token will expire in {}!".format(lifestream.niceTimeDelta(delta)))
 
 delta = credentials['refresh_expire_dt'] - datetime.now()
 if delta.days <= 7:
-    logger.warninging(
+    logger.warning(
         "Refresh Token will expire in {}!".format(
             lifestream.niceTimeDelta(delta)))
 else:
@@ -221,7 +221,7 @@ def destinyCall(path, payload={}):
     delta = datetime.now() - NEXT_REQUEST
 
     if delta.seconds > 0:
-        logger.warninging("throttled, waiting {}".format(delta.seconds))
+        logger.warning("throttled, waiting {}".format(delta.seconds))
         time.sleep(delta.seconds)
 
     ROOT = 'https://www.bungie.net/Platform'
