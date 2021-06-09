@@ -15,3 +15,4 @@ logs
 ghostdriver.log
 dayze/annual
 .direnv
+crontab

@@ -17,9 +17,11 @@ trap "{ rm -f $LOCKFILE; exit 255; }" 15
 trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
-source ~/.virtualenvs/lifestream/bin/activate
+DIRNAME=`dirname $0`/../
+cd $DIRNAME
+eval "$(direnv export bash)"
 
-python `dirname $0`/../imports/$1.py $2
+python imports/$1.py $2
 
 # IMPORTANT: Run this first in a terminal or ssh session to go though the oauth keys
 # before you add it to cron.

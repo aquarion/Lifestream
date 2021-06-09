@@ -73,7 +73,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
                 "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini")
             sys.exit(32)
 
-    request_token_url = 'https://www.facebook.com/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=token&scope=user_posts,user_status' % (
+    request_token_url = 'https://www.facebook.com/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=token&scope=user_posts' % (
         appid, redirect_uri)
 
     if not force_reauth:
