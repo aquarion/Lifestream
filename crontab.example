@@ -1,0 +1,20 @@
+#Lifestream
+LIFESTREAMDIR=/home/aquarion/Development/lifestream
+45      * * * *         $LIFESTREAMDIR/bin/mailbox-istic.sh
+48      * * * *         $LIFESTREAMDIR/bin/mailbox-aqcom.sh
+#4       4  * * *        $LIFESTREAMDIR/bin/oyster_csv.sh
+*/10    * * * *         $LIFESTREAMDIR/bin/run_import.sh tweets
+*/12    * * * *         $LIFESTREAMDIR/bin/run_import.sh lastfm
+*/15      * * * *       $LIFESTREAMDIR/bin/run_import.sh historic
+16      */2 * * *       $LIFESTREAMDIR/bin/run_import.sh destiny2
+55      2 * * *         $LIFESTREAMDIR/bin/run_import.sh planetside
+37      */2 * * *       $LIFESTREAMDIR/bin/run_import.sh tumblr
+##25      * * * *         $LIFESTREAMDIR/bin/run_import.sh gw2
+##18      */2  * * *      $LIFESTREAMDIR/bin/run_import.sh wow
+25      *  * * *        $LIFESTREAMDIR/bin/run_import.sh foursquare
+34      *  * * *        $LIFESTREAMDIR/bin/run_import.sh github_commits
+45      */6 * * *       $LIFESTREAMDIR/bin/run_import.sh steam
+45      1 * * *         $LIFESTREAMDIR/bin/run_import.sh steambadges
+2,2    * * * *          $LIFESTREAMDIR/bin/run_import.sh wordpress
+*/18    * * * *         $LIFESTREAMDIR/bin/run_import.sh facebook_posts
+42     7 * * *         find /home/aquarion/code/lifestream/logs -name lifestream.log\* -ctime +180 -delete
