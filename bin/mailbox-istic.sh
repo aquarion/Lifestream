@@ -17,9 +17,12 @@ trap "{ rm -f $LOCKFILE; exit 255; }" 15
 trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
-source ~/.virtualenvs/lifestream/bin/activate
+export DIRENV_LOG_FORMAT=""
+DIRNAME=`dirname $0`/../
+cd $DIRNAME
+eval "$(direnv export bash)"
 
-python `dirname $0`/../imports/mailbox-stats.py istic-email-recieved /home/aquarion/mail-archive/istic-backup.mbox
+python imports/mailbox-stats.py istic-email-recieved /home/aquarion/mail-archive/istic-backup.mbox
 
 
 # IMPORTANT: Run this first in a terminal or ssh session to go though the oauth keys

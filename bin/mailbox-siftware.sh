@@ -17,7 +17,10 @@ trap "{ rm -f $LOCKFILE; exit 255; }" 15
 trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
-source ~/.virtualenvs/lifestream/bin/activate
+export DIRENV_LOG_FORMAT=""
+DIRNAME=`dirname $0`/../
+cd $DIRNAME
+eval "$(direnv export bash)"
 
 python `dirname $0`/../imports/mailbox-stats.py siftware-email-recieved /home/aquarion/mail-archive/siftware-backup.mbox
 
