@@ -24,11 +24,11 @@ characters = lifestream.config.get("planetside", "characters")
 characters = characters.split(",")
 
 try:
-    api_key = "/s:%s" % lifestream.config.get("planetside", "service_key")
+    api_key = "s:%s" % lifestream.config.get("planetside", "service_key")
 except configparser.NoOptionError:
     api_key = ''
 
-url_base = "http://census.daybreakgames.com"
+url_base = "https://census.daybreakgames.com"
 
 api_base = "%s/%s/get/ps2:v2" % (url_base, api_key)
 
@@ -40,6 +40,9 @@ Lifestream = lifestream.Lifestream()
 for character_name in characters:
     logger.info("Data for %s" % character_name)
 
+    logger.info(
+        "%s/character/?name.first_lower=%s&c:resolve=faction" %
+        (api_base, character_name))
     charac = requests.get(
         "%s/character/?name.first_lower=%s&c:resolve=faction" %
         (api_base, character_name))
