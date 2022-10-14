@@ -12,7 +12,7 @@ dayze/lib
 *.oauth
 .vagrant
 logs
-ghostdriver.log
 dayze/annual
 .direnv
 crontab
+*.log
