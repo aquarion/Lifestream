@@ -55,6 +55,7 @@ logging.getLogger('').setLevel(logging.DEBUG)
 formatter = logging.Formatter(LOG_FORMAT)
 filename = "%s/lifestream.log" % LOG_DIR
 logfile = TimedRotatingFileHandler(filename, when='W0', interval=1, utc=True)
+logfile.namer = lambda name: name.replace(".log", "") + ".log"
 logfile.setLevel(logging.DEBUG)
 logfile.setFormatter(formatter)
 logging.getLogger('').addHandler(logfile)
@@ -128,6 +129,30 @@ def yearsago(years, from_date=None):
         assert from_date.month == 2 and from_date.day == 29  # can be removed
         return from_date.replace(month=2, day=28, year=from_date.year-years)
 
+def is_jsonable(x):
+    try:
+        json.dumps(x)
+        return True
+    except:
+        return False
+
+def force_json(incoming):
+    if incoming is dict:
+        outgoing = {}     
+        for key, value in incoming:
+            outgoing[key] = force_json(incoming)
+        return outgoing
+    elif incoming is tuple or incoming is list:
+        outgoing = []
+        for value in incoming:
+            outgoing.append(force_json(incoming))
+        return outgoing
+    else:
+        if is_jsonable(incoming):
+            return force_json(incoming)
+        else:
+            return str(incoming)
+    raise Exception("Logic failure")
 
 class AnAttributeError(Exception):
     pass
