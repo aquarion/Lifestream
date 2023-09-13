@@ -228,10 +228,15 @@ class Lifestream:
     cursor = False
     config = False
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        self.config = config
+        
+    
+    def init_db(self):
+        if self.dbcxn:
+            return
         self.dbcxn = getDatabaseConnection()
         self.cursor = cursor(self.dbcxn)
-        self.config = config
 
     # Lifestream.add_entry(type, id, title, source, date, url='', image='', fulldata_json=False)
     def add_entry(
@@ -246,6 +251,8 @@ class Lifestream:
             fulldata_json=False,
             update=False,
             debug=False):
+
+        self.init_db()
 
         if fulldata_json:
             fulldata_json = simplejson.dumps(fulldata_json)
@@ -289,6 +296,7 @@ class Lifestream:
                 print(self.cursor._executed)
 
     def add_location(self, timestamp, source, lat, lon, title, icon=False, fulldata=False):
+        self.init_db()
         l_sql = 'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s, "");'
         time_start = datetime(1970, 1, 1, 0, 0, 0, 0, pytz.UTC)
         epoch = (timestamp - time_start).total_seconds()
