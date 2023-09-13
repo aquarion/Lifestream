@@ -1,27 +1,30 @@
 # Python
-import site
-import configparser
-import os
-import sys
-import codecs
-import simplejson
-import argparse
-import logging
-import pytz
 from datetime import datetime, timedelta
-import hashlib
-import simplejson as json
-
 from logging.handlers import TimedRotatingFileHandler
+import argparse
+import codecs
+import configparser
+import hashlib
+import logging
+import os
+import pickle
+import pytz
+import simplejson
+import simplejson as json
+import site
+import sys
+import time
+
 
 # Libraries
-import pymysql as MySQLdb
-import oauth2
 from .oauth_utils import write_token_file, read_token_file
-import requests
 from memcache import Client, SERVER_MAX_KEY_LENGTH, SERVER_MAX_VALUE_LENGTH
 from pprint import pprint
+import oauth2
+import pymysql as MySQLdb
+import requests
 import warnings
+
 # Local
 
 
@@ -312,6 +315,41 @@ class Lifestream:
              title,
              icon))
 
+        
+    def cache_this(self, cache_id, maxage):
+        """
+        A function that creates a decorator which will use "cachefile" for caching the results of the decorated function "fn".
+        """
+        def decorator(fn):  # define a decorator for a function "fn"
+            def wrapped(*args, **kwargs):   # define a wrapper that will finally call "fn" with all arguments  
+                cachefile = "/tmp/" + cache_id
+                logger = logging.getLogger('cache_this')
+                # if cache exists -> load it and return its content
+                if os.path.exists(cachefile):
+                    modified = os.path.getmtime(cachefile)
+                    logger.debug("Found cache file at '{}'".format(cachefile))
+                    now = time.time()
+                    if now > (modified + maxage):
+                        logger.debug("Ignoring old cache file {}'".format(cachefile))
+                    else:
+                        with open(cachefile, 'rb') as cachehandle:
+                            logger.info("using cached result from '{}'".format(cachefile))
+                            return pickle.load(cachehandle)
+
+                # execute the function with all arguments passed
+                res = fn(*args, **kwargs)
+
+                # write to cache file
+                with open(cachefile, 'wb') as cachehandle:
+                    logger.info("saving result to cache '{}'".format(cachefile))
+                    pickle.dump(res, cachehandle)
+
+                return res
+
+            return wrapped
+
+        return decorator   # return this "customized" decorator that uses "cachefile"
+    
 
 class FoursquareAPI:
 
