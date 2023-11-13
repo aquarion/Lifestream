@@ -10,6 +10,7 @@ import signal
 # Libraries
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.common.by import By
 
 # Local
 import lifestream
@@ -34,13 +35,14 @@ browser.get(URL)
 
 s_sql = 'INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`, `image`) values (%s, %s, %s, %s, %s, %s, %s);'
 
-badges = browser.find_elements_by_css_selector("div.badge_row_inner")
+#badges = browser.find_elements_by_css_selector("div.badge_row_inner")
+badges = browser.find_elements(By.CSS_SELECTOR, "div.badge_row_inner")
 
 for badge in badges:
-    image = badge.find_element_by_css_selector(
+    image = badge.find_element(By.CSS_SELECTOR, 
         ".badge_info_image img").get_attribute("src")
-    text = badge.find_element_by_class_name("badge_info_title").text.strip()
-    date = badge.find_element_by_class_name(
+    text = badge.find_element(By.CLASS_NAME, "badge_info_title").text.strip()
+    date = badge.find_element(By.CLASS_NAME, 
         "badge_info_unlocked").text.strip()[9:]
 
     try:
