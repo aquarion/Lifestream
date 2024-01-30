@@ -38,8 +38,15 @@ lifestream.arguments.add_argument(
     '--pages',
     required=False,
     type=int,
-    help="Number of pages to go back. 0 to go forever",
+    help="Number of pages to go back. 0 (or --all) to go forever",
     default=5)
+
+lifestream.arguments.add_argument(
+    '--all',
+    required=False,
+    help="Get all posts",
+    default=False,
+    action='store_true')
 
 
 args = lifestream.arguments.parse_args()
@@ -216,12 +223,12 @@ def some_action(post, graph, profile):
 
 credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, args.reauth)
 
+delta = credentials['expire_dt'] - datetime.now()
 
 if datetime.now() > credentials['expire_dt']:
     logger.error("Token has expired! {} days!".format(delta.days))
     print("Token has expired!")
 
-delta = credentials['expire_dt'] - datetime.now()
 
 if delta.days <= 7:
     logger.warning("Token will expire in {} days!".format(delta.days))
@@ -237,6 +244,13 @@ posts = graph.get_object(
 
 # Wrap this block in a while loop so we can keep paginating requests until
 # finished.
+
+if args.pages == 0 or args.all:
+	INFINITE=True
+else:
+	INFINITE=False
+
+
 page = 0
 while True:
     page += 1
@@ -246,7 +260,7 @@ while True:
         for post in posts['data']]
 
     logger.info("Page %d of %d" % (page, args.pages))
-    if args.pages != 0 and page >= args.pages:
+    if not INFINITE and page >= args.pages:
         logger.info("I've hit the page limit. Buhbye")
         break
     try:
