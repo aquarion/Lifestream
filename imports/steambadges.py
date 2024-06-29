@@ -24,7 +24,7 @@ steamtime = pytz.timezone('US/Pacific')
 Lifestream = lifestream.Lifestream()
 
 options = FirefoxOptions()
-options.headless = True
+options.add_argument('-headless')
 browser = webdriver.Firefox(options=options)
 
 # Login
