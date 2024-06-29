@@ -106,6 +106,10 @@ for blog in blogs:
     details = tumblr.posts(blog)
     startat = 0.0
 
+    if 'errors' in details:
+        logger.error("Error in tumbling {}:  {} ".format(blog, details['meta']['msg']))
+        continue
+
     if FULL_IMPORT:
         max_posts = details['blog']['posts']
     else:
@@ -114,6 +118,7 @@ for blog in blogs:
     while startat < max_posts:
         details = tumblr.posts(blog, offset=startat, limit=20)
         startat += 20
+	
 
         posts = details['posts']
 
