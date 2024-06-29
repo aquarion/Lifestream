@@ -256,6 +256,10 @@ while True:
     page += 1
     # print "Page ", pagea
     logger.info("Page {}".format(page))
+    if "data" not in posts:
+        pprint(posts)
+        raise Exception("Err...")
+
     [some_action(post=post, graph=graph, profile=profile)
         for post in posts['data']]
 
