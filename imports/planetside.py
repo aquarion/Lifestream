@@ -87,11 +87,11 @@ for character_name in characters:
 
     # Achivements
 
-    achivements = requests.get(
+    achievements = requests.get(
         "%s/characters_achievement/?character_id=%s&c:join=achievement&c:limit=100" %
         (api_base, character_id))
 
-    for achivement in achivements.json()['characters_achievement_list']:
+    for achivement in achievements.json()['characters_achievement_list']:
         if achivement['finish'] == "0":
             continue
 

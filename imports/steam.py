@@ -22,7 +22,7 @@ logger = logging.getLogger('Steam')
 lifestream.arguments.add_argument(
     '--catchup',
     required=False,
-    help="Get all achivements, not just last fortnight",
+    help="Get all achievements, not just last fortnight",
     default=False,
     action='store_true')
 

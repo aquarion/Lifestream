@@ -46,19 +46,19 @@ def get_categories():
     return category_fetch
 
 
-def get_all_my_achivements(api):
-    my_achivements = api.account_achievements.get()
+def get_all_my_achievements(api):
+    my_achievements = api.account_achievements.get()
 
     fetch_list = []
 
-    achivements_library = {}
+    achievements_library = {}
 
-    for achivement in my_achivements:
+    for achivement in my_achievements:
         if achivement['done']:
             ident = achivement['id']
             fetch_list.append(ident)
-            achivements_library[ident] = {}
-            achivements_library[ident]['progress'] = achivement
+            achievements_library[ident] = {}
+            achievements_library[ident]['progress'] = achivement
 
 
     # Chunk 
@@ -77,21 +77,21 @@ def get_all_my_achivements(api):
 
         for achivement in response:
             ident = achivement['id']
-            achivements_library[ident]['info'] = achivement
+            achievements_library[ident]['info'] = achivement
 
-    return achivements_library
+    return achievements_library
 
 
 
-achivements_library = get_all_my_achivements(api)
+achievements_library = get_all_my_achievements(api)
 
 
 for category in get_categories():
     for achivement_id in category['achievements']:
-        if achivement_id in achivements_library:
-            achivements_library[achivement_id]['category'] = category
+        if achivement_id in achievements_library:
+            achievements_library[achivement_id]['category'] = category
 
-for ident, achivement in achivements_library.items():
+for ident, achivement in achievements_library.items():
     if not 'info' in achivement:
         continue
 

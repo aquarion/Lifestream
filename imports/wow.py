@@ -53,7 +53,7 @@ lifestream.arguments.add_argument(
 lifestream.arguments.add_argument(
     '--catchup',
     required=False,
-    help="Force sync of all achivements",
+    help="Force sync of all achievements",
     default=False,
     action='store_true')
 
