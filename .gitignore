@@ -16,3 +16,5 @@ dayze/annual
 .direnv
 crontab
 *.log
+datafiles/ffxiv_achievements.csv
+datafiles/ffxiv_achievements.db

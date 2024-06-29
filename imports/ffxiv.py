@@ -3,22 +3,18 @@
 from ctypes.wintypes import CHAR
 from datetime import datetime
 import logging
-import asyncio
-import aiohttp
 import hashlib
+import re
+import math
 
 from pprint import pprint
 
 # Libraries
-import pyxivapi
 import requests
 import ipdb
-
-from pyxivapi.exceptions import (
-    XIVAPIBadRequest, XIVAPIForbidden, XIVAPINotFound, XIVAPIServiceUnavailable, 
-    XIVAPIInvalidLanguage, XIVAPIError, XIVAPIInvalidIndex, XIVAPIInvalidColumns, 
-    XIVAPIInvalidAlgo
-)
+import bs4
+import simplejson
+import sqlite3
 
 # Local
 import lifestream
@@ -40,105 +36,117 @@ class Lodestone:
     base_url = "https://xivapi.com"
     languages = ["en", "fr", "de", "ja"]
 
+    achivement_db = False;
+
     def __init__(self, apikey) -> None:
         self.api_key = apikey
+        self.achivement_db = sqlite3.connect(Lifestream.config.get("xivapi", "achievement_db"))
         pass
 
-    # The official client doesn't offer this as an endpoint, but we want to grab the achivements without doing 100 calls, so...
-    def index_by_ids(self, index, ids: list, columns=(), language="en", page=1, per_page=100, all_pages=False):
-        """|coro|
-        Request data from a given index by ID.
-        Parameters
-        ------------
-        index: str
-            The index to which the content is attributed.
-        content_id: int
-            The ID of the content
-        Optional[columns: list]
-            A named list of columns to return in the response. ID, Name, Icon & ItemDescription will be returned by default.
-            e.g. ["ID", "Name", "Icon"]
-        Optional[language: str]
-            The two character length language code that indicates the language to return the response in. Defaults to English (en).
-            Valid values are "en", "fr", "de" & "ja"
-        """
-        if index == "":
-            raise XIVAPIInvalidIndex("Please specify an index to search on, e.g. \"Item\"")
+    def get_character_detail(self, character_id, section="", page=1, region="eu"):
+        url = "https://{}.finalfantasyxiv.com/lodestone/character/{}/{}".format(region, character_id, section)
+        params = {}
+        if page > 1:
+            params['page'] = page
 
-        if len(columns) == 0:
-            raise XIVAPIInvalidColumns("Please specify at least one column to return in the resulting data.")
+        request = requests.get(url, params)
+        return request.text
+    
+    def pull_value(self, map, root):
+        tags = root.select(map['selector'])
+        if not len(tags):
+            raise Exception("Selector not found: {}".format(map['selector']))
+        
+        if 'regex' in map:
+            if "attribute" in map:
+                haystack = tags[0].get(map['attribute'])
+            else:
+                haystack = tags[0].text.strip()
 
-        params = {
-            "private_key": self.api_key,
-            "language": language,
-            "ids" : ",".join(str(element) for element in ids),
-            "limit" : per_page
-        }
-
-        if len(columns) > 0:
-            params["columns"] = ",".join(list(set(columns)))
-
-        url = f'{self.base_url}/{index}'
-
-        response = requests.get(url, params=params)
-        response_data = response.json();
-
-        if all_pages and response_data['Pagination']['PageNext']:
-            results = response_data['Results']
-            while response_data['Pagination']['PageNext']:
-                logger.debug("Page {}".format(response_data['Pagination']['PageNext']))
-                next_page_params = params.copy()
-                params['page'] = response_data['Pagination']['PageNext']
-                response = requests.get(url, params=params)
-                response_data = response.json();
-                results += response_data['Results']
-
-            return { 
-                'Results': results,
-                'Pagination' : "Nope"
-            }
+            re_result = re.findall(map['regex'], haystack)
+            if len(re_result) > 0:
+                return re_result[0]
+            else:
+                raise Exception("Regex not found: {}".format(map['regex']))
+        if 'multiple' in map: 
+            return tags
         else:
-            return response_data
+            
+            if "attribute" in map:
+                return tags[0].get(map['attribute'])
+            else:
+                return tags[0]
+
+    def get_character_info(self, character_id):
+        html = self.get_character_detail(character_id)
+        map = simplejson.load(open('datafiles/lodestone-css-selectors/profile/character.json'))
+        soup = bs4.BeautifulSoup(html, 'html.parser')
+
+        character = {}
+        character['Name'] = self.pull_value(map['NAME'], soup).text
+        character['Server'] = self.pull_value(map['SERVER'], soup)
+        character['Title'] = self.pull_value(map['TITLE'], soup).text
+        return character
+    
+    def get_achievements(self, character_id):
+        html = self.get_character_detail(character_id, "achievement")
+        achievements = self.parse_achievements_page(html)
+        while self.next:
+            logger.debug("Fetching next page {}".format(self.next))
+            next_page_contents = requests.get(self.next).text
+            achievements += self.parse_achievements_page(next_page_contents)
+
+        return achievements
+
+    def icon_path(self, achivement_id):
+
+        result = self.achivement_db.execute("SELECT icon FROM achievements WHERE id = ?", (achivement_id,))
+        row = result.fetchone()
+        if row:
+            icon_id = int(row[0])
+        else:
+            logger.warning("Achivement DB Icon not found for {}".format(achivement_id))
+            return False
+        
+        filename = "{:06d}".format(icon_id)
+        foldername = "{:06d}".format(math.floor(icon_id/1000)*1000)
+
+        return "{}/{}.png".format(foldername, filename)
+
+    def parse_achievements_page(self, html):
+        map = simplejson.load(open('datafiles/lodestone-css-selectors/profile/achievements.json'))
+        soup = bs4.BeautifulSoup(html, 'html.parser')
+
+        root = self.pull_value(map['ROOT'], soup)
+        entries = self.pull_value(map['ENTRY']['ROOT'], root)
+
+        
+        self.next = self.pull_value(map['LIST_NEXT_BUTTON'], root)
+        if self.next == "javascript:void(0);":
+            self.next = False        
+            
+        achievements = []
+        for entry in entries:
+            achivement = {}
+            achivement['Name'] = self.pull_value(map['ENTRY']['NAME'], entry)[1]
+            achivement['ID'] = self.pull_value(map['ENTRY']['ID'], entry)
+            achivement['Icon'] = self.icon_path(self.pull_value(map['ENTRY']['ID'], entry))
+            date_epoch = self.pull_value(map['ENTRY']['TIME'], entry)
+            achivement['Date'] =  datetime.fromtimestamp(int(date_epoch))
+            achievements.append(achivement)
+        
+        return achievements
 
 
 lodestone = Lodestone(APIKEY)
 
-async def fetch_results(char_id):
-    client = pyxivapi.XIVAPIClient(APIKEY)
-    # Search Lodestone for a character
-    character = await client.character_by_id(
-        lodestone_id=char_id, 
-        include_achievements=True
-        # extended=True,
-        # include_freecompany=True
-    )
+def update_achievements(char_id):
+    achievements = lodestone.get_achievements(char_id)
+    character = lodestone.get_character_info(char_id)
+    character_name = character['Name']
 
-    await client.session.close()
-    
-    character_name = character['Character']['Name'];
-
-    achivement_dates = {}
-    achivements = character['Achievements']['List'] #[0:5]
-    
-    for achivement in achivements:
-        achivement_dates[achivement['ID']] = achivement['Date']
-
-    achivement_data = lodestone.index_by_ids(
-        index="Achievement", 
-        ids=achivement_dates.keys(), 
-        columns=["ID", "Name", "Icon", "Category.Name"], 
-        language="en", all_pages=True)
-
-    results = {}
-    for achivement in achivement_data['Results']:
-        # pprint(achivement_dates[achivement['ID']])
-        # try:
-        #     pprint(achivement['ID'])
-        # except Exception as e:
-        #     ipdb.set_trace()
-        achivement['Date'] = achivement_dates[achivement['ID']]
-        results[achivement['ID']] = achivement
-        
-        logger.debug("{}, {}, {}".format(achivement['Name'], achivement['Icon'], datetime.fromtimestamp(achivement['Date'])))
+    for achivement in achievements:
+        logger.debug("{}, {}, {}".format(achivement['Name'], achivement['Icon'], achivement['Date']))
         
     
         message = "FFXIV: {} &ndash; {}".format(character_name, achivement['Name'])
@@ -151,12 +159,13 @@ async def fetch_results(char_id):
             title=message,
             source="FFXIV",
             url=url,
-            date=datetime.fromtimestamp(achivement['Date']),
+            date=achivement['Date'],
             image="{}{}".format(ICON_BASE,achivement['Icon']),
             update=True)
         
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(fetch_results(CHARACTERS))
+    for character_id in CHARACTERS.split(","):
+        update_achievements(character_id)
+
 

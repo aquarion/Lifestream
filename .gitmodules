@@ -4,3 +4,6 @@
 [submodule "lib/twitter"]
 	path = lib/twitter
 	url = http://github.com/sixohsix/twitter.git
+[submodule "datafiles/lodestone-css-selectors"]
+	path = datafiles/lodestone-css-selectors
+	url = git@github.com:xivapi/lodestone-css-selectors.git
