@@ -6,7 +6,14 @@ from pprint import pprint
 import os
 import paramiko
 import sys
+import site
+import sqlite3
 
+import math
+from tqdm import tqdm
+
+basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+site.addsitedir(basedir + "/../imports")
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -18,6 +25,38 @@ REMOTE_ICONS = config.get("xivapi", "icon_remote_location")
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("paramiko").setLevel(logging.WARN) # for example
+
+class SaintCoinach:
+
+    db_connection = False
+
+    def __init__(self, dbpath):
+        self.db_connection = sqlite3.connect(dbpath)
+        self.db_connection.row_factory = sqlite3.Row   #   add this row
+
+    def count_achievements(self):
+      cursor = self.db_connection.cursor()
+      result = cursor.execute("SELECT COUNT(*) FROM achievements")
+      return result.fetchone()[0]
+    
+    def list_achievements(self):
+      cursor = self.db_connection.cursor()
+      result = cursor.execute("SELECT * FROM achievements")
+      return result
+    
+    def get_achievement(self, achievement_id):
+        cursor = self.db_connection.cursor()
+        result = cursor.execute("SELECT * FROM achievements WHERE ID = ?", (achievement_id,))
+        record = result.fetchone()
+        return record
+    
+    def icon_path(self, icon_id):
+        icon_id = int(icon_id)
+        filename = "{:06d}".format(icon_id)
+        foldername = "{:06d}".format(math.floor(icon_id/1000)*1000)
+        return "{}/{}.png".format(foldername, filename)
+    
+        
 
 class SSHClient:
     
@@ -75,44 +114,59 @@ class XIVClient:
         url = f"/achievement/{id}"
         return self.__call(url)
     
-    def list_achivements(self):
-        logger.info("Getting achivements")
+    def list_achievements(self):
+        logger.info("Getting achievements")
         url = "/achievement"
-        achivements = []
+        achievements = []
         this_page = self.__call(url)
-        achivements += this_page['Results']
+        achievements += this_page['Results']
         while this_page['Pagination']['PageNext']:
-            logger.info(f"Getting page {this_page['Pagination']['PageNext']}/{this_page['Pagination']['PageTotal']} of achivements")
+            logger.info(f"Getting page {this_page['Pagination']['PageNext']}/{this_page['Pagination']['PageTotal']} of achievements")
             this_page = self.__call(url, page=this_page['Pagination']['PageNext'])
-            achivements += this_page['Results']
+            achievements += this_page['Results']
             logger.info("Next page is {}".format(this_page['Pagination']['PageNext']))
 
-        return achivements 
+        return achievements 
 
-client = XIVClient(api_key=APIKEY)
+client = SaintCoinach(config.get("xivapi", "saintcoinach_db"))
 
 ssh_client = SSHClient(config.get("xivapi", "remote_server"), config.get("xivapi", "remote_user"))
 
-achivements = client.list_achivements()
+rowcount = client.count_achievements()
+achievements = client.list_achievements()
 
-for achivement in achivements:
+
+for achievement in tqdm(achievements, desc="Achievements", unit=" achievement", total=rowcount):
+    
     #  {'ID': 3210,
     #   'Icon': '/i/000000/000116.png',
     #   'Name': 'On the Proteion I',
     #   'Url': '/Achievement/3210'},
-    # logger.info("{}: ".format(achivement['Name']))
-    if not achivement['Name']:
-       logger.debug(f"No name for {achivement['ID']}")
+    # logger.info("{}: ".format(achievement['Name']))
+    warning = False
+    message = False
+    if not achievement['Name']:
+       message = f"No name for {achievement['ID']}"
        continue
-    if not achivement['Icon']:
-        logger.debug(f"No icon set for {achivement['Name']}")
+    if not achievement['Icon']:
+        warning = True
+        message = f"No icon set for {achievement['Name']}"
         continue
-    if not os.path.isfile(f"{LOCAL_ICONS}{achivement['Icon']}"):
-        logger.info(f"Unable find icon for {achivement['Name']}: {achivement['Icon']}")
+    icon_path = client.icon_path(achievement['Icon'])
+    if not os.path.isfile(f"{LOCAL_ICONS}/{icon_path}"):
+        warning = True
+        message = f"Unable find icon for {achievement['Name']}: {LOCAL_ICONS}/{icon_path}"
     else: 
       try:
-        result = ssh_client.put(f"{LOCAL_ICONS}{achivement['Icon']}", f"{REMOTE_ICONS}{achivement['Icon']}")
+        result = ssh_client.put(f"{LOCAL_ICONS}/{icon_path}", f"{REMOTE_ICONS}/{icon_path}")
         if result:
-          logger.info(f"Uploaded icon for {achivement['Name']}: {achivement['Icon']}")
+          message = f"Uploaded icon for {achievement['Name']}: {icon_path}"
       except IOError:
-        logger.error(f"Unable to upload icon for {achivement['Name']}: {REMOTE_ICONS}{achivement['Icon']}")
+        warning = True
+        message = f"Unable to upload icon for {achievement['Name']}: {REMOTE_ICONS}/{icon_path}"
+    if warning:
+        logger.warning(f"{achievement['name']} : {message}")
+    elif message:
+        logger.info(f"{achievement['name']} : {message}")
+    else:
+        logger.debug(f"{achievement['name']} : Nothing to do")
