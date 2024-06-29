@@ -56,7 +56,8 @@ python-gflags==3.1.2
 python-magic==0.4.27
 python-memcached==1.62
 python-twitter==3.5
-python-wordpress-xmlrpc==2.3
+#python-wordpress-xmlrpc==2.3
+git+ssh://git@github.com/emsi/python-wordpress-xmlrpc.git#egg=python-wordpress-xmlrpc
 PyTumblr==0.1.2
 pytz==2024.1
 requests==2.32.3
