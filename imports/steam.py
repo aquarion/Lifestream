@@ -104,24 +104,24 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
         logger.info("       + XML Error reading file. Not a real stats page.")
         continue
 
-    for achivement in game.getElementsByTagName("achievement"):
-        closed = achivement.getAttribute("closed")
-        if not achivement.getElementsByTagName('name')[0].firstChild:
+    for achievement in game.getElementsByTagName("achievement"):
+        closed = achievement.getAttribute("closed")
+        if not achievement.getElementsByTagName('name')[0].firstChild:
             logger.info("         +  (Empty Name)")
             continue
 
-        name = achivement.getElementsByTagName('name')[0].firstChild.data
+        name = achievement.getElementsByTagName('name')[0].firstChild.data
         if closed == '0':
             logger.info("         + %s (Not Achieved)" % name)
             continue
 
         m = hashlib.md5()
 
-        image = achivement.getElementsByTagName(
+        image = achievement.getElementsByTagName(
             'iconClosed')[0].firstChild.data
 
         try:
-            unlocked = achivement.getElementsByTagName(
+            unlocked = achievement.getElementsByTagName(
                 'unlockTimestamp')[0].firstChild.data
             us_timestamp = datetime.fromtimestamp(int(unlocked))
             local_timestamp = steamtime.localize(us_timestamp)
@@ -139,7 +139,7 @@ while (foundGames < maxGames and thisGame != len(gamesList)):
         id = image
 
         Lifestream.add_entry(
-            "achivement",
+            "achievement",
             id,
             message,
             "steam",

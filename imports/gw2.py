@@ -53,12 +53,12 @@ def get_all_my_achievements(api):
 
     achievements_library = {}
 
-    for achivement in my_achievements:
-        if achivement['done']:
-            ident = achivement['id']
+    for achievement in my_achievements:
+        if achievement['done']:
+            ident = achievement['id']
             fetch_list.append(ident)
             achievements_library[ident] = {}
-            achievements_library[ident]['progress'] = achivement
+            achievements_library[ident]['progress'] = achievement
 
 
     # Chunk 
@@ -75,9 +75,9 @@ def get_all_my_achievements(api):
 
         response = api.achievements.get(ids=fetch_chunk)
 
-        for achivement in response:
-            ident = achivement['id']
-            achievements_library[ident]['info'] = achivement
+        for achievement in response:
+            ident = achievement['id']
+            achievements_library[ident]['info'] = achievement
 
     return achievements_library
 
@@ -87,34 +87,34 @@ achievements_library = get_all_my_achievements(api)
 
 
 for category in get_categories():
-    for achivement_id in category['achievements']:
-        if achivement_id in achievements_library:
-            achievements_library[achivement_id]['category'] = category
+    for achievement_id in category['achievements']:
+        if achievement_id in achievements_library:
+            achievements_library[achievement_id]['category'] = category
 
-for ident, achivement in achievements_library.items():
-    if not 'info' in achivement:
+for ident, achievement in achievements_library.items():
+    if not 'info' in achievement:
         continue
 
     icon = False
-    if 'icon' in achivement['info']:
-        icon = achivement['info']['icon']
-    elif "category" in achivement:
-        icon = achivement['category']['icon']
+    if 'icon' in achievement['info']:
+        icon = achievement['info']['icon']
+    elif "category" in achievement:
+        icon = achievement['category']['icon']
     else:
         icon = "https://wiki.guildwars2.com/images/d/d9/Retired_Achievements.png"
 
     if not icon:
-        logger.warn(achivement['info']['name'], " - has no icon")
+        logger.warn(achievement['info']['name'], " - has no icon")
 
-    text = achivement['info']['name'] + " &ndash; " + \
-        achivement['info']['requirement']
+    text = achievement['info']['name'] + " &ndash; " + \
+        achievement['info']['requirement']
     
     logger.info(text)
 
 #     id = hashlib.md5()
 # id.update(text)
     Lifestream.add_entry(
-        "achivement",
+        "achievement",
         ident,
         text,
         "Guild Wars 2",

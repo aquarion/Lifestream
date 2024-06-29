@@ -91,21 +91,21 @@ for character_name in characters:
         "%s/characters_achievement/?character_id=%s&c:join=achievement&c:limit=100" %
         (api_base, character_id))
 
-    for achivement in achievements.json()['characters_achievement_list']:
-        if achivement['finish'] == "0":
+    for achievement in achievements.json()['characters_achievement_list']:
+        if achievement['finish'] == "0":
             continue
 
-        name = achivement['achievement_id_join_achievement']['name']['en']
+        name = achievement['achievement_id_join_achievement']['name']['en']
         text = "%s earnt %s" % (character_name, name)
         image = image_base + \
-            achivement['achievement_id_join_achievement']['image_path']
-        date = achivement['finish_date']
+            achievement['achievement_id_join_achievement']['image_path']
+        date = achievement['finish_date']
         id = hashlib.md5()
         id.update(str(text + date).encode('utf-8'))
 
         logger.info(text)
 
-        epoch = float(achivement['finish'])
+        epoch = float(achievement['finish'])
         localzone = pytz.timezone("Europe/London")
         localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
         utcdate = localtime.strftime("%Y-%m-%d %H:%M")
@@ -118,7 +118,7 @@ for character_name in characters:
             date,
             url=url,
             image=image,
-            fulldata_json=achivement)
+            fulldata_json=achievement)
 
     # if 'stats_daily' in profile.keys():
     # 	stats = profile['stats_daily']

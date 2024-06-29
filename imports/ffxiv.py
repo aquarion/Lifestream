@@ -36,11 +36,11 @@ class Lodestone:
     base_url = "https://xivapi.com"
     languages = ["en", "fr", "de", "ja"]
 
-    achivement_db = False;
+    achievement_db = False;
 
     def __init__(self, apikey) -> None:
         self.api_key = apikey
-        self.achivement_db = sqlite3.connect(Lifestream.config.get("xivapi", "achievement_db"))
+        self.achievement_db = sqlite3.connect(Lifestream.config.get("xivapi", "achievement_db"))
         pass
 
     def get_character_detail(self, character_id, section="", page=1, region="eu"):
@@ -98,14 +98,14 @@ class Lodestone:
 
         return achievements
 
-    def icon_path(self, achivement_id):
+    def icon_path(self, achievement_id):
 
-        result = self.achivement_db.execute("SELECT icon FROM achievements WHERE id = ?", (achivement_id,))
+        result = self.achievement_db.execute("SELECT icon FROM achievements WHERE id = ?", (achievement_id,))
         row = result.fetchone()
         if row:
             icon_id = int(row[0])
         else:
-            logger.warning("Achivement DB Icon not found for {}".format(achivement_id))
+            logger.warning("Achivement DB Icon not found for {}".format(achievement_id))
             return False
         
         filename = "{:06d}".format(icon_id)
@@ -127,13 +127,13 @@ class Lodestone:
             
         achievements = []
         for entry in entries:
-            achivement = {}
-            achivement['Name'] = self.pull_value(map['ENTRY']['NAME'], entry)[1]
-            achivement['ID'] = self.pull_value(map['ENTRY']['ID'], entry)
-            achivement['Icon'] = self.icon_path(self.pull_value(map['ENTRY']['ID'], entry))
+            achievement = {}
+            achievement['Name'] = self.pull_value(map['ENTRY']['NAME'], entry)[1]
+            achievement['ID'] = self.pull_value(map['ENTRY']['ID'], entry)
+            achievement['Icon'] = self.icon_path(self.pull_value(map['ENTRY']['ID'], entry))
             date_epoch = self.pull_value(map['ENTRY']['TIME'], entry)
-            achivement['Date'] =  datetime.fromtimestamp(int(date_epoch))
-            achievements.append(achivement)
+            achievement['Date'] =  datetime.fromtimestamp(int(date_epoch))
+            achievements.append(achievement)
         
         return achievements
 
@@ -145,22 +145,22 @@ def update_achievements(char_id):
     character = lodestone.get_character_info(char_id)
     character_name = character['Name']
 
-    for achivement in achievements:
-        logger.debug("{}, {}, {}".format(achivement['Name'], achivement['Icon'], achivement['Date']))
+    for achievement in achievements:
+        logger.debug("{}, {}, {}".format(achievement['Name'], achievement['Icon'], achievement['Date']))
         
     
-        message = "FFXIV: {} &ndash; {}".format(character_name, achivement['Name'])
+        message = "FFXIV: {} &ndash; {}".format(character_name, achievement['Name'])
 
-        url = 'https://eu.finalfantasyxiv.com/lodestone/character/{}/achievement/detail/{}/'.format(char_id, achivement['ID'])
+        url = 'https://eu.finalfantasyxiv.com/lodestone/character/{}/achievement/detail/{}/'.format(char_id, achievement['ID'])
 
         Lifestream.add_entry(
-            type="achivement",
-            id="ffxiv-{}-{}".format(char_id, achivement['ID']),
+            type="achievement",
+            id="ffxiv-{}-{}".format(char_id, achievement['ID']),
             title=message,
             source="FFXIV",
             url=url,
-            date=achivement['Date'],
-            image="{}{}".format(ICON_BASE,achivement['Icon']),
+            date=achievement['Date'],
+            image="{}{}".format(ICON_BASE,achievement['Icon']),
             update=True)
         
 
