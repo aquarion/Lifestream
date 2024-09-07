@@ -1,3 +1,4 @@
 .direnv
 config.ini
-icons/i
+icons/idata/
+data/
