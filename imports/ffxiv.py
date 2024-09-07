@@ -26,8 +26,24 @@ APIKEY = Lifestream.config.get("xivapi", "apikey")
 CHARACTERS = Lifestream.config.get("xivapi", "characters")
 ICON_BASE = Lifestream.config.get("xivapi", "icon_base")
 
+
+lifestream.arguments.add_argument(
+    '--all-achievements',
+    required=False,
+    help="Get all achievements, not just last 2 pages",
+    default=False,
+    action='store_true')
+
+lifestream.arguments.add_argument(
+    '--max-pages',
+    required=False,
+    help="Maximum number of pages to fetch",
+    default=3,
+    action='store')
+
 logger = logging.getLogger('FFXIV')
 args = lifestream.arguments.parse_args()
+
 
 
 class Lodestone:
@@ -91,10 +107,15 @@ class Lodestone:
     def get_achievements(self, character_id):
         html = self.get_character_detail(character_id, "achievement")
         achievements = self.parse_achievements_page(html)
+        page = 1
         while self.next:
-            logger.debug("Fetching next page {}".format(self.next))
+            logger.debug(">> Fetching next page {}".format(self.next))
             next_page_contents = requests.get(self.next).text
             achievements += self.parse_achievements_page(next_page_contents)
+            page += 1
+            if page > args.max_pages and not args.all_achievements:
+                logger.debug(">> Reached max pages")
+                break
 
         return achievements
 
