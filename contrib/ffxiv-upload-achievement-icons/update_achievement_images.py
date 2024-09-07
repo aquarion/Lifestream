@@ -12,6 +12,7 @@ import sqlite3
 import math
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+import argparse
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(basedir + "/../imports")
@@ -27,7 +28,20 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.WARN)
 logging.getLogger("paramiko").setLevel(logging.WARN) # for example
 
+# Parse command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
+args = parser.parse_args()
 
+# Set debug level based on command line argument
+if args.debug:
+  logger.setLevel(logging.DEBUG)
+if args.verbose:
+  logger.setLevel(logging.INFO)
+
+class XIVImageUpgraded(Exception):
+    pass
 
 class SaintCoinach:
 
@@ -82,7 +96,7 @@ class SSHClient:
       self.ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
       self.ssh.connect(server, username=username)
 
-    def put(self, localpath, remotepath):
+    def put(self, localpath, remotepath, achviement_name="Achievement"):
            
       if not self.sftp:
         self.sftp = self.ssh.open_sftp()
@@ -90,24 +104,26 @@ class SSHClient:
         remote_stat = self.sftp.stat(remotepath)
         local_stat = os.stat(localpath)
         if remote_stat.st_size == local_stat.st_size:
-           logger.info("File {} already exists".format(remotepath))
+           logger.debug("File {} already exists".format(remotepath))
            return False
         else:
-           logger.info("File {} exists but is different size".format(remotepath))
+           logger.debug("File {} exists but is different size".format(remotepath))
+           raise XIVImageUpgraded
         
-      except IOError:
+      except (IOError, XIVImageUpgraded):
         exploded_path = remotepath.split(os.path.sep)
         imploded_path = os.path.sep.join(exploded_path[:-1])
-        logger.info("Checking for directory {}".format(imploded_path))
+        logger.debug("Checking for directory {}".format(imploded_path))
         try:
           self.sftp.stat(imploded_path)
         except IOError:
           self.sftp.mkdir(imploded_path)
-          logger.info("Created directory {}".format(imploded_path))
-        logger.info("Uploading file {} to {}".format(localpath, remotepath))
+          logger.debug("Created directory {}".format(imploded_path))
+        logger.debug("Uploading file {} to {}".format(localpath, remotepath))
         self.sftp.put(localpath, remotepath)
+        return True
 
-      return True
+      return False
       
 
     def __del__(self):
@@ -140,10 +156,10 @@ class XIVClient:
         this_page = self.__call(url)
         achievements += this_page['Results']
         while this_page['Pagination']['PageNext']:
-            logger.info(f"Getting page {this_page['Pagination']['PageNext']}/{this_page['Pagination']['PageTotal']} of achievements")
+            logger.debug(f"Getting page {this_page['Pagination']['PageNext']}/{this_page['Pagination']['PageTotal']} of achievements")
             this_page = self.__call(url, page=this_page['Pagination']['PageNext'])
             achievements += this_page['Results']
-            logger.info("Next page is {}".format(this_page['Pagination']['PageNext']))
+            logger.debug("Next page is {}".format(this_page['Pagination']['PageNext']))
 
         return achievements 
 
@@ -178,9 +194,12 @@ with logging_redirect_tqdm():
           message = f"Unable find icon for {achievement['Name']}: {LOCAL_ICONS}/{icon_image}"
       else: 
         try:
-          result = ssh_client.put(f"{LOCAL_ICONS}/{icon_image}", f"{REMOTE_ICONS}/{icon_path}")
+          result = ssh_client.put(f"{LOCAL_ICONS}/{icon_image}", f"{REMOTE_ICONS}/{icon_path}", achievement['Name'])
           if result:
-            message = f"Uploaded icon for {achievement['Name']}: {icon_path}"
+            if icon_path == icon_image:
+              message = f"Uploaded icon for {achievement['Name']}: {icon_path}"
+            else:
+              message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
         except IOError:
           warning = True
           message = f"Unable to upload icon for {achievement['Name']}: {REMOTE_ICONS}/{icon_path}"
