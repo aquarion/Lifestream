@@ -139,7 +139,7 @@ cursor = cursor(dbcxn)
 
 sql = "select title, date_created,url,fulldata_json, systemid, source, type from lifestream where (source = 'tumblr' or type = 'twitter') and date_created between %s and %s"
 
-now = datetime.datetime.utcnow()
+now = datetime.datetime.now(datetime.UTC)
 
 a_day = datetime.timedelta(days=1)
 four_years = relativedelta(years=4);

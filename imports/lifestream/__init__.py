@@ -37,9 +37,9 @@ warnings.filterwarnings('error', category=MySQLdb.Warning)
 
 config = configparser.ConfigParser()
 try:
-    config.readfp(open(basedir + '/../config.ini'))
+    config.read(basedir + '/../config.ini')
 except IOError:
-    config.readfp(open(os.getcwd() + '/../config.ini'))
+    config.read(os.getcwd() + '/../config.ini')
 
 arguments = argparse.ArgumentParser()
 arguments.add_argument(
@@ -71,6 +71,7 @@ if ('--debug' in sys.argv):
     console.setLevel(logging.DEBUG)
 else:
     console.setLevel(logging.ERROR)
+    warnings.filterwarnings('ignore', category=DeprecationWarning, module='')
 
 logger = logging.getLogger(__name__)
 
