@@ -24,9 +24,11 @@ import oauth2
 import pymysql as MySQLdb
 import requests
 import warnings
+import redis
 
 # Local
 
+RedisCXN = False
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(basedir + "/../lib")
@@ -91,6 +93,16 @@ def getDatabaseConnection():
     # dbcxn.set_character_set('utf8')
     return dbcxn
 
+def getRedisConnection():
+    global RedisCXN
+    if not RedisCXN:
+        RedisCXN = redis.Redis(
+            host=config.get("redis", "host", fallback="localhost"),
+            port=config.get("redis", "port", fallback=6379),
+            username=config.get("redis", "username", fallback=None),
+            password=config.get("redis", "password", fallback=None))
+    
+    return RedisCXN
 
 def cursor(dbcxn):
     dbc = dbcxn.cursor()
