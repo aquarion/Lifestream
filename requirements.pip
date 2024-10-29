@@ -22,7 +22,8 @@ google-api-python-client==2.135.0
 google-auth==2.30.0
 google-auth-httplib2==0.2.0
 googleapis-common-protos==1.63.2
--e git+https://github.com/aquarion/guildwars2api.git@b72cc7afecaff3341acbf8766e632cdbff7b8ee1#egg=guildwars2api
+#git+https://github.com/aquarion/guildwars2api.git@b72cc7afecaff3341acbf8766e632cdbff7b8ee1#egg=guildwars2api
+guildwars2api @ https://github.com/aquarion/guildwars2api/archive/refs/tags/0.1a.tar.gz
 h11==0.14.0
 httplib2==0.22.0
 httpretty==1.1.4
@@ -57,7 +58,8 @@ python-magic==0.4.27
 python-memcached==1.62
 python-twitter==3.5
 #python-wordpress-xmlrpc==2.3
-git+ssh://git@github.com/emsi/python-wordpress-xmlrpc.git#egg=python-wordpress-xmlrpc
+#git+ssh://git@github.com/emsi/python-wordpress-xmlrpc.git#egg=python-wordpress-xmlrpc
+python-wordpress-xmlrpc @ https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip
 PyTumblr==0.1.2
 pytz==2024.1
 requests==2.32.3
