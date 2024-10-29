@@ -144,11 +144,11 @@ def get_code(key_wanted_arg):
         raise WeSayNotToday()
 
     httpd = ServerClass(server_address, handler_class)
-    httpd.socket = ssl.wrap_socket(
-        httpd.socket,
-        certfile=certfile,
-        keyfile=keyfile,
-        server_side=True)
+
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(certfile=certfile, keyfile=keyfile)
+    httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+
 
     sa = httpd.socket.getsockname()
     print("Waiting on {}:{}".format(sa[0], sa[1]))
