@@ -232,7 +232,16 @@ if datetime.now() > credentials['expire_dt']:
 
 if delta.days <= 7:
     logger.warning("Token will expire in {} days!".format(delta.days))
-    print("Token will expire in {} days!".format(delta.days))
+    
+    redisCxn = lifestream.getRedisConnection()
+    
+    # Only Print a warning every 24 hours
+    lastSent = redisCxn.get("facebook:token:warning_sent")
+    if not lastSent:
+        logger.error("Token will expire in {} days!".format(delta.days))
+        redisCxn.set("facebook:token:warning_sent", "1", ex=86400)
+    else:
+        logger.info("Warning already sent")
 else:
     logger.info("Token will expire in {} days!".format(delta.days))
 
