@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # Python
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import requests
 import sys
@@ -47,7 +47,18 @@ def get_categories():
 
 
 def get_all_my_achievements(api):
-    my_achievements = api.account_achievements.get()
+    try:
+        my_achievements = api.account_achievements.get()
+    except GuildWars2APIError as e:
+
+        ttl = Lifestream.warned_recently("gw2:api_error:warning_sent") 
+        if ttl:
+            logger.warning("Error fetching achievements: {}".format(e))
+            logger.info("Error already sent {} ago".format(lifestream.niceTimeDelta(ttl)))
+        else:
+            logger.error("Error fetching achievements: {}".format(e))
+       
+        sys.exit(1)
 
     fetch_list = []
 
