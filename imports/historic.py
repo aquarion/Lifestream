@@ -8,12 +8,9 @@ import pickle as pickle
 import simplejson
 import datetime
 import logging
-import os
 from dateutil.relativedelta import relativedelta
 
 # Libraries
-import socket
-import twitter
 from pytumblr import TumblrRestClient
 import oauth2 as oauth
 
@@ -47,7 +44,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         logger.error("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 
-    if(not oauth_token):
+    if (not oauth_token):
         consumer = oauth.Consumer(consumer_key, consumer_secret)
         client = oauth.Client(consumer)
         resp, content = client.request(request_token_url, "GET")
@@ -90,39 +87,6 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         oauth_token['oauth_token_secret'])
 
 
-# Setup Twitter
-socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
-
-
-OAUTH_FILENAME = "%s/twitter_historical.oauth" % (
-    lifestream.config.get("global", "secrets_dir"))
-CONSUMER_KEY = lifestream.config.get("twitter", "consumer_key")
-CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
-
-ACCOUNTS = lifestream.config.get("twitter", "accounts")
-
-if not ACCOUNTS:
-    logger.error("No twitter accounts found in config")
-    sys.exit(5)
-
-if not os.path.exists(OAUTH_FILENAME):
-    oauth_dance(
-        "Lifestream", CONSUMER_KEY, CONSUMER_SECRET,
-        OAUTH_FILENAME)
-
-
-oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
-
-
-api = twitter.Api(consumer_key=CONSUMER_KEY,
-                  consumer_secret=CONSUMER_SECRET,
-                  access_token_key=oauth_token,
-                  access_token_secret=oauth_token_secret,
-                  tweet_mode='extended')
-
-# Start the engines
-
-
 def cursor(dbcxn):
     dbc = dbcxn.cursor()
     dbc.execute('SET NAMES utf8;')
@@ -137,13 +101,13 @@ to_blog = "aquarions-of-history"
 dbcxn = lifestream.getDatabaseConnection()
 cursor = cursor(dbcxn)
 
-sql = "select title, date_created,url,fulldata_json, systemid, source, type from lifestream where (source = 'tumblr' or type = 'twitter') and date_created between %s and %s"
+sql = "select title, date_created,url,fulldata_json, systemid, source, type from lifestream where source = 'tumblr' and date_created between %s and %s"
 
 now = datetime.datetime.now(datetime.UTC)
 
 a_day = datetime.timedelta(days=1)
-four_years = relativedelta(years=4);
-ten_years = relativedelta(years=10);
+four_years = relativedelta(years=4)
+ten_years = relativedelta(years=10)
 an_hour = datetime.timedelta(minutes=60)
 quarter_hour = datetime.timedelta(minutes=15)
 
@@ -177,15 +141,12 @@ for post in cursor:
     logger.info(date_created + ten_years)
     logger.info('---')
 
-    if source == 'tumblr':
-        tresponse = tumblr.reblog(
-            "aquarions-of-history",
-            id=systemid,
-            reblog_key=data['reblog_key'],
-            state="queue",
-            date=date_created + ten_years
-        )
-    elif contenttype == 'twitter':
-        api.PostUpdate(title, in_reply_to_status_id=systemid)
+    tresponse = tumblr.reblog(
+        "aquarions-of-history",
+        id=systemid,
+        reblog_key=data['reblog_key'],
+        state="queue",
+        date=date_created + ten_years
+    )
 
 dbcxn.close()
