@@ -363,6 +363,17 @@ class Lifestream:
 
         return decorator   # return this "customized" decorator that uses "cachefile"
     
+        
+    def warned_recently(self, warning_id, hours=24):
+        redisCxn = getRedisConnection()
+        lastSent = redisCxn.get(warning_id)
+
+        if not lastSent:
+            redisCxn.set(warning_id, "1", ex=hours*3600)
+            return False
+        else:
+            return redisCxn.ttl(warning_id)
+    
 
 class FoursquareAPI:
 
