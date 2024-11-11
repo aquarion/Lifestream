@@ -39,7 +39,7 @@ def fitbitAuth(config, OAUTH_SECRETS):
         logger.error("Couldn't open %s, reloading..." % OAUTH_SECRETS)
         token = False
 
-    if(not token):
+    if (not token):
         pp = pprint.PrettyPrinter(indent=4)
         client = FitbitOauthClient(CLIENT_KEY, CLIENT_SECRET)
 

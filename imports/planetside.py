@@ -24,13 +24,13 @@ characters = lifestream.config.get("planetside", "characters")
 characters = characters.split(",")
 
 try:
-    api_key = "s:%s" % lifestream.config.get("planetside", "service_key")
+    api_key = "s:{}".format(lifestream.config.get("planetside", "service_key"))
 except configparser.NoOptionError:
     api_key = ''
 
 url_base = "https://census.daybreakgames.com"
 
-api_base = "%s/%s/get/ps2:v2" % (url_base, api_key)
+api_base = "{}/{}/get/ps2:v2".format(url_base, api_key)
 
 image_base = url_base
 
@@ -38,14 +38,12 @@ Lifestream = lifestream.Lifestream()
 
 
 for character_name in characters:
-    logger.info("Data for %s" % character_name)
+    logger.info("Data for {}".format(character_name))
 
     logger.info(
-        "%s/character/?name.first_lower=%s&c:resolve=faction" %
-        (api_base, character_name))
+        "{}/character/?name.first_lower={}&c:resolve=faction".format(api_base, character_name))
     charac = requests.get(
-        "%s/character/?name.first_lower=%s&c:resolve=faction" %
-        (api_base, character_name))
+        "{}/character/?name.first_lower={}&c:resolve=faction".format(api_base, character_name))
 
     character = charac.json()
 
@@ -60,14 +58,13 @@ for character_name in characters:
 
     ##
     ranki = requests.get(
-        "%s/experience_rank?rank=%s" %
-        (api_base, br['value']))
+        "{}/experience_rank?rank={}".format(api_base, br['value']))
 
     rank = ranki.json()['experience_rank_list'][0][faction]['title']['en']
-    text = "In Planetside 2, %s achieved the rank %s" % (name, rank)
-    url = "https://players.planetside2.com/#!/%s" % character_id
+    text = "In Planetside 2, {} achieved the rank {}".format(name, rank)
+    url = 'https://players.planetside2.com/#!/{}'.format(character_id)
 
-    image_key = "%s_image_path" % faction
+    image_key = "{}_image_path".format(faction)
     image = image_base + ranki.json()['experience_rank_list'][0][image_key]
 
     id = hashlib.md5()
@@ -88,15 +85,15 @@ for character_name in characters:
     # Achivements
 
     achievements = requests.get(
-        "%s/characters_achievement/?character_id=%s&c:join=achievement&c:limit=100" %
-        (api_base, character_id))
+        "{}/characters_achievement/?character_id={}&c:join=achievement&c:limit=100".format(
+            api_base, character_id))
 
     for achievement in achievements.json()['characters_achievement_list']:
         if achievement['finish'] == "0":
             continue
 
         name = achievement['achievement_id_join_achievement']['name']['en']
-        text = "%s earnt %s" % (character_name, name)
+        text = "{} earnt {}".format(character_name, name)
         image = image_base + \
             achievement['achievement_id_join_achievement']['image_path']
         date = achievement['finish_date']
@@ -107,7 +104,7 @@ for character_name in characters:
 
         epoch = float(achievement['finish'])
         localzone = pytz.timezone("Europe/London")
-        localtime = localzone.localize(datetime.utcfromtimestamp(epoch))
+        localtime = localzone.localize(datetime.fromtimestamp(epoch))
         utcdate = localtime.strftime("%Y-%m-%d %H:%M")
 
         Lifestream.add_entry(
@@ -122,7 +119,7 @@ for character_name in characters:
 
     # if 'stats_daily' in profile.keys():
     # 	stats = profile['stats_daily']
-    # 	text = "Played Planetside as %s %s for %s, with a K:D of %2.2f%% (%d:%d)"
+    # 	text = "Played Planetside as {} {} for {}, with a K:D of %2.2f%% (%d:%d)"
     # 	time = lifestream.niceTimeDelta(int(stats['play_time']['value']))
     # 	kd   = float(stats['kill_death_ratio']['value'])
     # 	k    = int(stats['kills']['value'])

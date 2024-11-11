@@ -52,7 +52,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         print("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 
-    if(not oauth_token):
+    if (not oauth_token):
         consumer = oauth.Consumer(consumer_key, consumer_secret)
         client = oauth.Client(consumer)
         resp, content = client.request(request_token_url, "GET")
@@ -107,7 +107,8 @@ for blog in blogs:
     startat = 0.0
 
     if 'errors' in details:
-        logger.error("Error in tumbling {}:  {} ".format(blog, details['meta']['msg']))
+        logger.error("Error in tumbling {}:  {} ".format(
+            blog, details['meta']['msg']))
         continue
 
     if FULL_IMPORT:
@@ -118,7 +119,6 @@ for blog in blogs:
     while startat < max_posts:
         details = tumblr.posts(blog, offset=startat, limit=20)
         startat += 20
-	
 
         posts = details['posts']
 

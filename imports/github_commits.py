@@ -46,7 +46,7 @@ repos = github_call("user/repos", TOKEN)
 for repo in repos:
     logger.debug("Hello %s" % repo['name'])
     # if repo['private']:
-    #	continue;
+    # continue;
 
     commits = github_call("repos/%s/commits" % repo['full_name'], TOKEN)
     for commit in commits:
@@ -69,7 +69,7 @@ for repo in repos:
 
         # print message
         logger.info(message)
-        #cursor.execute(s_sql, (ls_type, id, message, utcdate, url, ls_source))
+        # cursor.execute(s_sql, (ls_type, id, message, utcdate, url, ls_source))
         # print s_sql % (ls_type, id, message, utcdate, url, ls_source)
         Lifestream.add_entry(
             ls_type,

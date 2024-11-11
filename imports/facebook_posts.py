@@ -94,7 +94,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     else:
         oauth_token = False
 
-    if(not oauth_token):
+    if (not oauth_token):
         print("Go to the following link in your browser:")
         print(request_token_url)
         print()
@@ -237,7 +237,7 @@ if delta.days <= 7:
         logger.info("Warning already sent recently")
     else:
         logger.error("Token will expire in {} days!".format(delta.days))
-    
+
 else:
     logger.info("Token will expire in {} days!".format(delta.days))
 
@@ -251,9 +251,9 @@ posts = graph.get_object(
 # finished.
 
 if args.pages == 0 or args.all:
-	INFINITE=True
+    INFINITE = True
 else:
-	INFINITE=False
+    INFINITE = False
 
 
 page = 0
@@ -277,7 +277,7 @@ while True:
         # Facebook.
         # Attempt to make a request to the next page of data, if it exists.
         posts = requests.get(posts['paging']['next']).json()
-        #raise KeyError;
+        # raise KeyError;
     except KeyError:
         # When there are no more pages (['paging']['next']), break from the
         # loop and end the script.

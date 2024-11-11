@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # Local
-import lifestream, lifestreamutils
+import lifestream
+import lifestreamutils
 import logging
 from datetime import datetime
 
@@ -30,13 +31,15 @@ logger = logging.getLogger('switchbot')
 
 args = lifestream.arguments.parse_args()
 
-#https://github.com/OpenWonderLabs/SwitchBotAPI
+# https://github.com/OpenWonderLabs/SwitchBotAPI
+
+
 class SwitchBotAPI:
-    
+
     base_url = "https://api.switch-bot.com"
     token = False
     version = "v1.0"
-    
+
     def __init__(self, token=False) -> None:
         if token:
             self.token = token
@@ -45,9 +48,9 @@ class SwitchBotAPI:
 
     def call(self, method, callname, data={}):
         URL = '{}/{}/{}'.format(self.base_url, self.version, callname)
-        
+
         headers = {
-            'authorization' : self.token
+            'authorization': self.token
         }
 
         if method == 'post':
@@ -63,17 +66,20 @@ switchbot = SwitchBotAPI()
 
 r = switchbot.call('get', 'devices')
 for device in r['body']['deviceList']:
-    
+
     name = device['deviceName']
 
-    logging.info( "Hello {}, You are a {}".format(name, device['deviceType']))
+    logging.info("Hello {}, You are a {}".format(name, device['deviceType']))
     if device['deviceType'] == 'Meter':
-        data = switchbot.call('get', 'devices/{}/status'.format(device['deviceId']))['body']
+        data = switchbot.call(
+            'get', 'devices/{}/status'.format(device['deviceId']))['body']
 
-        logging.info( "{}-temp is {}".format(name, data['temperature']))
-        logging.info( "{}-humid is {}".format(name, data['humidity']))
+        logging.info("{}-temp is {}".format(name, data['temperature']))
+        logging.info("{}-humid is {}".format(name, data['humidity']))
 
-        lifestreamutils.newstat(datetime.now(), "{}-temp".format(name), data['temperature'] )
-        lifestreamutils.newstat(datetime.now(), "{}-humid".format(name), data['humidity'] )
+        lifestreamutils.newstat(
+            datetime.now(), "{}-temp".format(name), data['temperature'])
+        lifestreamutils.newstat(
+            datetime.now(), "{}-humid".format(name), data['humidity'])
 #
 #    lifestreamutils.newstat(date, STATISTIC, dates[date]['total'])

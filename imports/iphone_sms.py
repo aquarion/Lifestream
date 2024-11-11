@@ -32,13 +32,13 @@ token_data.close()
 
 sess = session.DropboxSession(APP_KEY, APP_SECRET, ACCESS_TYPE)
 sess.set_token(token['key'], token['secret'])
-## client = client.DropboxClient(sess)
+# client = client.DropboxClient(sess)
 
 # Grab the database
-## f, metadata = client.get_file_and_metadata(DROPBOX_PATH)
+# f, metadata = client.get_file_and_metadata(DROPBOX_PATH)
 
 # Write it out
-## out = open(MESSAGES_DATABASE_CACHE, "wb")
+# out = open(MESSAGES_DATABASE_CACHE, "wb")
 # out.write(f.read())
 # out.close()
 

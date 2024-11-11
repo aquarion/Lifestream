@@ -35,7 +35,7 @@ site.addsitedir(basedir + "/../lib")
 
 warnings.filterwarnings('error', category=MySQLdb.Warning)
 
-#sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+# sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 config = configparser.ConfigParser()
 try:
@@ -93,6 +93,7 @@ def getDatabaseConnection():
     # dbcxn.set_character_set('utf8')
     return dbcxn
 
+
 def getRedisConnection():
     global RedisCXN
     if not RedisCXN:
@@ -101,8 +102,9 @@ def getRedisConnection():
             port=config.get("redis", "port", fallback=6379),
             username=config.get("redis", "username", fallback=None),
             password=config.get("redis", "password", fallback=None))
-    
+
     return RedisCXN
+
 
 def cursor(dbcxn):
     dbc = dbcxn.cursor()
@@ -145,6 +147,7 @@ def yearsago(years, from_date=None):
         assert from_date.month == 2 and from_date.day == 29  # can be removed
         return from_date.replace(month=2, day=28, year=from_date.year-years)
 
+
 def is_jsonable(x):
     try:
         json.dumps(x)
@@ -152,9 +155,10 @@ def is_jsonable(x):
     except:
         return False
 
+
 def force_json(incoming):
     if incoming is dict:
-        outgoing = {}     
+        outgoing = {}
         for key, value in incoming:
             outgoing[key] = force_json(incoming)
         return outgoing
@@ -170,28 +174,32 @@ def force_json(incoming):
             return str(incoming)
     raise Exception("Logic failure")
 
+
 class AnAttributeError(Exception):
     pass
 
 
-def niceTimeDelta(timedelta, format="decimal"):
+def niceTimeDelta(delta_object, format="decimal"):
+
+    if type(delta_object) is int:
+        delta_object = timedelta(seconds=delta_object)
 
     try:
         years = 0
-        days = timedelta.days
-        hours = timedelta.seconds//3600
-        minutes = (timedelta.seconds//60) % 60
+        days = delta_object.days
+        hours = delta_object.seconds//3600
+        minutes = (delta_object.seconds//60) % 60
         if days > 365:
             years = int(days / 365)
             days = int(days % 365)
 
     except AnAttributeError:
-        years = int(timedelta / (60 * 60 * 24 * 365))
-        remainder = timedelta % (60 * 60 * 24 * 365)
+        years = int(delta_object / (60 * 60 * 24 * 365))
+        remainder = delta_object % (60 * 60 * 24 * 365)
         days = int(remainder / (60 * 60 * 24))
-        remainder = timedelta % (60 * 60 * 24)
+        remainder = delta_object % (60 * 60 * 24)
         hours = remainder / (60 * 60)
-        remainder = timedelta % (60 * 60)
+        remainder = delta_object % (60 * 60)
         minutes = remainder / 60
 
     if int(years) == 1:
@@ -246,8 +254,7 @@ class Lifestream:
 
     def __init__(self, *args, **kwargs):
         self.config = config
-        
-    
+
     def init_db(self):
         if self.dbcxn:
             return
@@ -328,13 +335,13 @@ class Lifestream:
              title,
              icon))
 
-        
     def cache_this(self, cache_id, maxage):
         """
         A function that creates a decorator which will use "cachefile" for caching the results of the decorated function "fn".
         """
         def decorator(fn):  # define a decorator for a function "fn"
-            def wrapped(*args, **kwargs):   # define a wrapper that will finally call "fn" with all arguments  
+            # define a wrapper that will finally call "fn" with all arguments
+            def wrapped(*args, **kwargs):
                 cachefile = "/tmp/" + cache_id
                 logger = logging.getLogger('cache_this')
                 # if cache exists -> load it and return its content
@@ -343,10 +350,12 @@ class Lifestream:
                     logger.debug("Found cache file at '{}'".format(cachefile))
                     now = time.time()
                     if now > (modified + maxage):
-                        logger.debug("Ignoring old cache file {}'".format(cachefile))
+                        logger.debug(
+                            "Ignoring old cache file {}'".format(cachefile))
                     else:
                         with open(cachefile, 'rb') as cachehandle:
-                            logger.info("using cached result from '{}'".format(cachefile))
+                            logger.info(
+                                "using cached result from '{}'".format(cachefile))
                             return pickle.load(cachehandle)
 
                 # execute the function with all arguments passed
@@ -354,7 +363,8 @@ class Lifestream:
 
                 # write to cache file
                 with open(cachefile, 'wb') as cachehandle:
-                    logger.info("saving result to cache '{}'".format(cachefile))
+                    logger.info(
+                        "saving result to cache '{}'".format(cachefile))
                     pickle.dump(res, cachehandle)
 
                 return res
@@ -362,8 +372,7 @@ class Lifestream:
             return wrapped
 
         return decorator   # return this "customized" decorator that uses "cachefile"
-    
-        
+
     def warned_recently(self, warning_id, hours=24):
         redisCxn = getRedisConnection()
         lastSent = redisCxn.get(warning_id)
@@ -373,7 +382,7 @@ class Lifestream:
             return False
         else:
             return redisCxn.ttl(warning_id)
-    
+
 
 class FoursquareAPI:
 
@@ -415,7 +424,7 @@ class FoursquareAPI:
         key = m.hexdigest()
 
         res = self.mc.get(key)
-        if(res):
+        if (res):
             return json.loads(res)
 
         r = requests.get(self.url_base %

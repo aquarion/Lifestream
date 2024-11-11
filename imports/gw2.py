@@ -25,7 +25,6 @@ api = GuildWars2API(
     api_key=APIKEY)
 
 
-
 @Lifestream.cache_this('gw2.categories', 86400)
 def get_categories():
     category_list = requests.get(
@@ -35,12 +34,14 @@ def get_categories():
 
     step = 200
     for i in range(0, len(category_list), step):
-        logger.debug("Fetching Category {} to {} of {}".format(i, i + step, len(category_list)))
-        
-        category_data = {"ids": ','.join(str(x) for x in category_list[i:i+step])}
+        logger.debug("Fetching Category {} to {} of {}".format(
+            i, i + step, len(category_list)))
+
+        category_data = {"ids": ','.join(str(x)
+                                         for x in category_list[i:i+step])}
         category_request = requests.get(
-        "https://api.guildwars2.com/v2/achievements/categories",
-        data=category_data).json()
+            "https://api.guildwars2.com/v2/achievements/categories",
+            data=category_data).json()
         category_fetch += category_request
 
     return category_fetch
@@ -51,13 +52,14 @@ def get_all_my_achievements(api):
         my_achievements = api.account_achievements.get()
     except GuildWars2APIError as e:
 
-        ttl = Lifestream.warned_recently("gw2:api_error:warning_sent") 
+        ttl = Lifestream.warned_recently("gw2:api_error:warning_sent")
         if ttl:
             logger.warning("Error fetching achievements: {}".format(e))
-            logger.info("Error already sent {} ago".format(lifestream.niceTimeDelta(ttl)))
+            logger.info("Error already sent {} ago".format(
+                lifestream.niceTimeDelta(ttl)))
         else:
             logger.error("Error fetching achievements: {}".format(e))
-       
+
         sys.exit(1)
 
     fetch_list = []
@@ -71,8 +73,7 @@ def get_all_my_achievements(api):
             achievements_library[ident] = {}
             achievements_library[ident]['progress'] = achievement
 
-
-    # Chunk 
+    # Chunk
 
     logger.debug("Fetch list is {} long".format(len(fetch_list)))
 
@@ -82,7 +83,8 @@ def get_all_my_achievements(api):
 
     for ach_index in range(0, list_size, ach_pagesize):
         fetch_chunk = fetch_list[ach_index:ach_index+ach_pagesize]
-        logger.debug("Fetching Achivement {} to {} of {}".format(ach_index, ach_index + ach_pagesize, len(fetch_chunk)))
+        logger.debug("Fetching Achivement {} to {} of {}".format(
+            ach_index, ach_index + ach_pagesize, len(fetch_chunk)))
 
         response = api.achievements.get(ids=fetch_chunk)
 
@@ -91,7 +93,6 @@ def get_all_my_achievements(api):
             achievements_library[ident]['info'] = achievement
 
     return achievements_library
-
 
 
 achievements_library = get_all_my_achievements(api)
@@ -119,7 +120,7 @@ for ident, achievement in achievements_library.items():
 
     text = achievement['info']['name'] + " &ndash; " + \
         achievement['info']['requirement']
-    
+
     logger.info(text)
 
 #     id = hashlib.md5()

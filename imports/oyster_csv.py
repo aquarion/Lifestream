@@ -58,7 +58,7 @@ for row in dataReader:
         id.update(action.encode('utf-8'))
 
         logger.info("%s: %s" % (action, utcdate))
-        #add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False)
+        # add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False)
         Lifestream.add_entry(
             "oyster",
             id.hexdigest(),

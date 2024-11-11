@@ -44,7 +44,7 @@ try:
         "https://steamcommunity.com/id/%s/games?tab=recent&xml=1" %
         user)
 except IOError:
-    #print >> sys.stderr, "Got socket error fetching games list"
+    # print >> sys.stderr, "Got socket error fetching games list"
     os._exit(5)
 
 games = minidom.parse(BytesIO(gameslist_xml.content))

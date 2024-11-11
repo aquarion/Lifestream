@@ -44,7 +44,7 @@ photos_xml = flickr.photos_search(
     per_page=per_page,
     page=1,
     min_taken_date=since)
-#sets = flickr.photosets_getList(user_id='73509078@N00')
+# sets = flickr.photosets_getList(user_id='73509078@N00')
 
 
 pages = int(photos_xml.find('photos').attrib['pages'])

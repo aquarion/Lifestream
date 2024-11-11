@@ -50,9 +50,12 @@ for site in sites:
     type = "mastodon"
     try:
         base_url = lifestream.config.get("mastodon:%s" % source, "base_url")
-        client_key = lifestream.config.get("mastodon:%s" % source, "client_key")
-        client_secret = lifestream.config.get("mastodon:%s" % source, "client_secret")
-        access_token = lifestream.config.get("mastodon:%s" % source, "access_token")
+        client_key = lifestream.config.get(
+            "mastodon:%s" % source, "client_key")
+        client_secret = lifestream.config.get(
+            "mastodon:%s" % source, "client_secret")
+        access_token = lifestream.config.get(
+            "mastodon:%s" % source, "access_token")
     except configparser.NoSectionError:
         logger.error("No [mastodon:%s] section found in config" % source)
         sys.exit(5)
@@ -61,10 +64,10 @@ for site in sites:
         sys.exit(5)
 
     mastodon = mastodonpy.Mastodon(
-      client_id = client_key,
-      client_secret = client_secret,
-      api_base_url = base_url,
-      access_token = access_token
+        client_id=client_key,
+        client_secret=client_secret,
+        api_base_url=base_url,
+        access_token=access_token
     )
 
     this_page = 0
@@ -81,7 +84,7 @@ for site in sites:
     last_seen = False
 
     while keep_going:
-        
+
         if last_seen:
             toots = mastodon.account_statuses(me['id'], min_id=last_seen)
         else:

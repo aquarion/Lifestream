@@ -326,7 +326,7 @@ for character in profile['characters']:
     logger.info("%s!%s L%d %s" % (
         character['realm'], character['name'], character['level'], character['class']))
     # pprint(character)
-    #Achievement( apikey='Your key', region='us',achievement="" )
+    # Achievement( apikey='Your key', region='us',achievement="" )
 
     modified = datetime.fromtimestamp(character['lastModified'] / 1000)
     since_login = (datetime.now() - modified).days

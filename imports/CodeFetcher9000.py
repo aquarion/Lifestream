@@ -149,7 +149,6 @@ def get_code(key_wanted_arg):
     context.load_cert_chain(certfile=certfile, keyfile=keyfile)
     httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
 
-
     sa = httpd.socket.getsockname()
     print("Waiting on {}:{}".format(sa[0], sa[1]))
 

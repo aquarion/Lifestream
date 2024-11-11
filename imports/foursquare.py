@@ -95,7 +95,7 @@ if 'checkins' in list(data['response'].keys()):
 
         url = "http://www.foursquare.com/%s/checkin/%s" % (username, id)
 
-        #cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
+        # cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
         Lifestream.add_entry(
             type,
             id,
