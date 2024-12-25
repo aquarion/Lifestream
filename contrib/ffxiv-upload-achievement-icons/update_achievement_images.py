@@ -37,8 +37,10 @@ args = parser.parse_args()
 # Set debug level based on command line argument
 if args.debug:
   logger.setLevel(logging.DEBUG)
+  logger.debug("Debug mode enabled")
 if args.verbose:
   logger.setLevel(logging.INFO)
+  logger.info("Verbose mode enabled")
 
 class XIVImageUpgraded(Exception):
     pass
@@ -165,8 +167,10 @@ class XIVClient:
 
 client = SaintCoinach(config.get("local", "saintcoinach_db"))
 
+logger.info("Connecting to remote server {}".format(config.get("remote", "remote_server")))
 ssh_client = SSHClient(config.get("remote", "remote_server"), config.get("remote", "remote_user"))
 
+logger.info("Getting achievements")
 rowcount = client.count_achievements()
 achievements = client.list_achievements()
 
