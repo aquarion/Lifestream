@@ -8,6 +8,8 @@ import paramiko
 import sys
 import site
 import sqlite3
+from glob import iglob
+import re
 
 import math
 from tqdm import tqdm
@@ -21,7 +23,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 APIKEY = config.get("xivapi", "apikey")
-LOCAL_ICONS = config.get("local", "icon_local_location")
+LOCAL_ICONS_BASE = config.get("local", "icon_local_base")
 REMOTE_ICONS = config.get("remote", "icon_remote_location")
 
 logger = logging.getLogger(__name__)
@@ -41,6 +43,7 @@ if args.debug:
 if args.verbose:
   logger.setLevel(logging.INFO)
   logger.info("Verbose mode enabled")
+
 
 class XIVImageUpgraded(Exception):
     pass
@@ -76,16 +79,36 @@ class SaintCoinach:
         return "{}/{}.png".format(foldername, filename)
             
     def icon_image(self, icon_id):
+        local_icons = self.find_icons_path(LOCAL_ICONS_BASE)
+
         icon_id = int(icon_id)
         filename = "{:06d}".format(icon_id)
         foldername = "{:06d}".format(math.floor(icon_id/1000)*1000)
         low_quality = "{}/{}.png".format(foldername, filename)
         high_quality = "{}/{}_hr1.png".format(foldername, filename)
-        if os.path.isfile(f"{LOCAL_ICONS}/{high_quality}"):
+        if os.path.isfile(f"{local_icons}/{high_quality}"):
             return high_quality
         else:
             return low_quality
     
+    
+
+    def find_icons_path(self, icon_local_base):
+        if not os.path.isdir(icon_local_base):
+            raise IOError(f"Unable to find icon location {icon_local_base}")
+        
+        dirs = []
+        for icon_location in iglob(f"{icon_local_base}/*"):
+            if os.path.isdir(icon_location):
+                dirname = os.path.basename(icon_location)
+                # 0000.00.00.0000.0000
+                if re.match(r"^\d{4}\.\d{2}\.\d{2}\.\d{4}\.\d{4}$", dirname):
+                    dirs.append(icon_location)
+        if not dirs:
+            raise IOError(f"Unable to find icon directory {icon_local_base}/XXXX.XX.XX.0000.0000")
+        dir = sorted(dirs).pop() + "/ui/icon"
+        logger.info(f"Using icon directory {dir}")
+        return dir
         
 
 class SSHClient:
@@ -175,6 +198,7 @@ rowcount = client.count_achievements()
 achievements = client.list_achievements()
 
 with logging_redirect_tqdm():
+  local_icons = client.find_icons_path(LOCAL_ICONS_BASE)
   for achievement in tqdm(achievements, desc="Achievements", unit=" achievement", total=rowcount):
       
       #  {'ID': 3210,
@@ -193,12 +217,12 @@ with logging_redirect_tqdm():
           continue
       icon_path = client.icon_path(achievement['Icon'])
       icon_image = client.icon_image(achievement['Icon'])
-      if not os.path.isfile(f"{LOCAL_ICONS}/{icon_image}"):
+      if not os.path.isfile(f"{local_icons}/{icon_image}"):
           warning = True
-          message = f"Unable find icon for {achievement['Name']}: {LOCAL_ICONS}/{icon_image}"
+          message = f"Unable find icon for {achievement['Name']}: {local_icons}/{icon_image}"
       else: 
         try:
-          result = ssh_client.put(f"{LOCAL_ICONS}/{icon_image}", f"{REMOTE_ICONS}/{icon_path}", achievement['Name'])
+          result = ssh_client.put(f"{local_icons}/{icon_image}", f"{REMOTE_ICONS}/{icon_path}", achievement['Name'])
           if result:
             if icon_path == icon_image:
               message = f"Uploaded icon for {achievement['Name']}: {icon_path}"
