@@ -50,6 +50,12 @@ arguments.add_argument(
     help="Enable Debug",
     default=False,
     action='store_true')
+arguments.add_argument(
+    '--verbose',
+    required=False,
+    help="Enable Verbosity",
+    default=False,
+    action='store_true')
 
 LOG_DIR = config.get('global', 'log_location')
 
@@ -71,6 +77,8 @@ logging.getLogger('').addHandler(console)
 
 if ('--debug' in sys.argv):
     console.setLevel(logging.DEBUG)
+if ('--verbose' in sys.argv):
+    console.setLevel(logging.INFO)
 else:
     console.setLevel(logging.ERROR)
     warnings.filterwarnings('ignore', category=DeprecationWarning, module='')

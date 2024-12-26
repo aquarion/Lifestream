@@ -26,23 +26,54 @@ APIKEY = config.get("xivapi", "apikey")
 LOCAL_ICONS_BASE = config.get("local", "icon_local_base")
 REMOTE_ICONS = config.get("remote", "icon_remote_location")
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.WARN)
-logging.getLogger("paramiko").setLevel(logging.WARN) # for example
-
 # Parse command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
 args = parser.parse_args()
 
+# Set up logging
+
+class CustomFormatter(logging.Formatter):
+    grey = "\x1b[38;20m"
+    white = "\x1b[1;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+
+    FORMATS = {
+        logging.DEBUG: grey + format + reset,
+        logging.INFO: white + format + reset,
+        logging.WARNING: yellow + format + reset,
+        logging.ERROR: red + format + reset,
+        logging.CRITICAL: bold_red + format + reset
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+
+logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.WARN)
+logging.getLogger("paramiko").setLevel(logging.WARN) # for example
+
+ch = logging.StreamHandler()
+ch.setFormatter(CustomFormatter())
+logger.addHandler(ch)
+
 # Set debug level based on command line argument
 if args.debug:
   logger.setLevel(logging.DEBUG)
   logger.debug("Debug mode enabled")
+  ch.setLevel(logging.DEBUG)
 if args.verbose:
   logger.setLevel(logging.INFO)
   logger.info("Verbose mode enabled")
+  ch.setLevel(logging.INFO)
 
 
 class XIVImageUpgraded(Exception):
@@ -107,7 +138,7 @@ class SaintCoinach:
         if not dirs:
             raise IOError(f"Unable to find icon directory {icon_local_base}/XXXX.XX.XX.0000.0000")
         dir = sorted(dirs).pop() + "/ui/icon"
-        logger.info(f"Using icon directory {dir}")
+        logger.debug(f"Using icon directory {dir}")
         return dir
         
 
@@ -144,7 +175,7 @@ class SSHClient:
         except IOError:
           self.sftp.mkdir(imploded_path)
           logger.debug("Created directory {}".format(imploded_path))
-        logger.debug("Uploading file {} to {}".format(localpath, remotepath))
+        logger.info("Uploading file {} to {}".format(localpath, remotepath))
         self.sftp.put(localpath, remotepath)
         return True
 
@@ -188,6 +219,13 @@ class XIVClient:
 
         return achievements 
 
+
+#  Main
+
+print("Updating achievement icons")
+
+logger.info("Connecting to local database {}".format(config.get("local", "saintcoinach_db")))
+
 client = SaintCoinach(config.get("local", "saintcoinach_db"))
 
 logger.info("Connecting to remote server {}".format(config.get("remote", "remote_server")))
@@ -197,10 +235,11 @@ logger.info("Getting achievements")
 rowcount = client.count_achievements()
 achievements = client.list_achievements()
 
-with logging_redirect_tqdm():
+with logging_redirect_tqdm(loggers=[logger]):
   local_icons = client.find_icons_path(LOCAL_ICONS_BASE)
+  upload_count = 0
   for achievement in tqdm(achievements, desc="Achievements", unit=" achievement", total=rowcount):
-      
+
       #  {'ID': 3210,
       #   'Icon': '/i/000000/000116.png',
       #   'Name': 'On the Proteion I',
@@ -224,6 +263,7 @@ with logging_redirect_tqdm():
         try:
           result = ssh_client.put(f"{local_icons}/{icon_image}", f"{REMOTE_ICONS}/{icon_path}", achievement['Name'])
           if result:
+            upload_count += 1
             if icon_path == icon_image:
               message = f"Uploaded icon for {achievement['Name']}: {icon_path}"
             else:
@@ -235,5 +275,5 @@ with logging_redirect_tqdm():
           logger.warning(f"{achievement['name']} : {message}")
       elif message:
           logger.info(f"{achievement['name']} : {message}")
-      else:
-          logger.debug(f"{achievement['name']} : Nothing to do")
+
+print(f"Uploaded {upload_count} icons")
