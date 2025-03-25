@@ -150,7 +150,7 @@ class SSHClient:
     def __init__(self, server, username):
       self.ssh = paramiko.SSHClient() 
       self.ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
-      self.ssh.connect(server, username=username)
+      self.ssh.connect(server, username=username, compress=True)
 
     def put(self, localpath, remotepath, achviement_name="Achievement"):
            
