@@ -13,6 +13,7 @@ import hashlib
 
 # Libraries
 import requests
+from pprint import pprint
 
 # Local
 import lifestream
@@ -167,6 +168,11 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
     }
     extend_token = requests.post(access_token_url, data=payload)
     oauth_token = extend_token.json()
+    
+    if 'error' in oauth_token:
+        logger.error("Error refreshing token: {}".format(oauth_token['error_description']))
+        sys.exit(1)
+        return False
 
     delta = timedelta(seconds=int(oauth_token['expires_in']))
     oauth_token['expire_dt'] = datetime.now() + delta
