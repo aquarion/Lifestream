@@ -18,7 +18,7 @@ basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(basedir + "/../imports")
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("ffxiv_config.ini")
 
 APIKEY = config.get("xivapi", "apikey")
 LOCAL_ICONS_BASE = config.get("local", "icon_local_base")
