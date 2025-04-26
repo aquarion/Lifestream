@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Python
-import sys
 import configparser
 import logging
+import sys
 
 # Libraries
 from wordpress_xmlrpc import Client
@@ -12,16 +12,19 @@ from wordpress_xmlrpc.methods.posts import GetPosts
 # Local
 import lifestream
 
-lifestream.arguments.add_argument('site', type=str,
-                                  help='Site, as defined in config.ini',
-                                  nargs='*')
-lifestream.arguments.add_argument('--all', action="store_true",
-                                  help='Fetch all posts?',
-                                  dest='all_pages')
-lifestream.arguments.add_argument('--max_pages', type=int,
-                                  help='How many pages (overriden by --all)',
-                                  default=1,
-                                  required=False)
+lifestream.arguments.add_argument(
+    "site", type=str, help="Site, as defined in config.ini", nargs="*"
+)
+lifestream.arguments.add_argument(
+    "--all", action="store_true", help="Fetch all posts?", dest="all_pages"
+)
+lifestream.arguments.add_argument(
+    "--max_pages",
+    type=int,
+    help="How many pages (overriden by --all)",
+    default=1,
+    required=False,
+)
 
 args = lifestream.arguments.parse_args()
 
@@ -30,12 +33,12 @@ if args.site:
 else:
     sites = []
     for section in lifestream.config.sections():
-        if section[0:10] == 'wordpress:':
+        if section[0:10] == "wordpress:":
             sites.append(section[10:])
 
 Lifestream = lifestream.Lifestream()
 
-logger = logging.getLogger('Wordpress')
+logger = logging.getLogger("Wordpress")
 
 
 for site in sites:
@@ -59,11 +62,7 @@ for site in sites:
     keep_going = True
 
     while keep_going:
-        options = {
-            'number': 30,
-            'offset': this_page * 30,
-            'post_status': 'publish'
-        }
+        options = {"number": 30, "offset": this_page * 30, "post_status": "publish"}
         posts = wp.call(GetPosts(options))
         for post in posts:
             if len(post.title):
@@ -73,10 +72,10 @@ for site in sites:
             else:
                 title = "[Untitled Post]"
 
-            if post.thumbnail and 'link' in post.thumbnail:
-                thumbnail = post.thumbnail['link']
+            if post.thumbnail and "link" in post.thumbnail:
+                thumbnail = post.thumbnail["link"]
             else:
-                thumbnail = ''
+                thumbnail = ""
 
             Lifestream.add_entry(
                 id=post.guid,
@@ -86,7 +85,8 @@ for site in sites:
                 url=post.link,
                 image=thumbnail,
                 # fulldata_json=post.struct,
-                type=type)
+                type=type,
+            )
 
             logger.info("%s: %s" % (post.date.strftime("%Y-%m-%d"), title))
 

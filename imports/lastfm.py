@@ -1,19 +1,21 @@
 #!/usr/bin/python
 # Python
-import dateutil.parser
-import pytz
-import feedparser
-import sys
-import logging
 import hashlib
+import logging
+import sys
 
-# Libraries
+import dateutil.parser
+import feedparser
+import pytz
 
 # Local
 import lifestream
 
+# Libraries
 
-logger = logging.getLogger('Last.FM')
+
+
+logger = logging.getLogger("Last.FM")
 args = lifestream.arguments.parse_args()
 
 
@@ -29,20 +31,20 @@ if not id:
 Lifestream = lifestream.Lifestream()
 
 url = "https://xiffy.nl/lastfmrss.php?user=%s" % id
-logging.info('Grabbing %s' % url)
+logging.info("Grabbing %s" % url)
 fp = feedparser.parse(url)
 type = "lastfm"
 
-for i in range(1, len(fp['entries'])):
-    o_item = fp['entries'][i]
+for i in range(1, len(fp["entries"])):
+    o_item = fp["entries"][i]
 
     id = hashlib.md5()
-    id.update(o_item['guid'].encode('utf-8'))
+    id.update(o_item["guid"].encode("utf-8"))
 
     title = o_item.title  # .encode("utf_8")
     localdate = dateutil.parser.parse(o_item.updated)
     updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-    del o_item['published_parsed']
+    del o_item["published_parsed"]
     logger.info(title)
     Lifestream.add_entry(
         type,
@@ -50,5 +52,6 @@ for i in range(1, len(fp['entries'])):
         title,
         "lastfm",
         updated,
-        url=o_item['link'],
-        fulldata_json=o_item)
+        url=o_item["link"],
+        fulldata_json=o_item,
+    )

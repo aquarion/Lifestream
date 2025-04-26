@@ -1,48 +1,44 @@
 #!/usr/bin/python
 # Python
-import dateutil.parser
-import pytz
-import sys
+import logging
 import os
 import re
-from urllib.error import URLError
 import socket
-import logging
+import sys
+from urllib.error import URLError
 
+import dateutil.parser
+import pytz
 # Libraries
 import twitter
 
-from lifestream.oauth_utils import read_token_file
-
 # Local
 import lifestream
+from lifestream.oauth_utils import read_token_file
 
 Lifestream = lifestream.Lifestream()
 
 
 lifestream.arguments.add_argument(
-    '--catchup',
+    "--catchup",
     required=False,
     help="Get all tweets",
     default=False,
-    action='store_true')
+    action="store_true",
+)
 
 lifestream.arguments.add_argument(
-    '--reauth',
-    required=False,
-    help="Get new token",
-    default=False,
-    action='store_true')
+    "--reauth", required=False, help="Get new token", default=False, action="store_true"
+)
 
-logger = logging.getLogger('Twitter')
+logger = logging.getLogger("Twitter")
 args = lifestream.arguments.parse_args()
 
 
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/twitter.oauth" % (
-    lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/twitter.oauth" % (lifestream.config.get("global", "secrets_dir"))
 CONSUMER_KEY = lifestream.config.get("twitter", "consumer_key")
 CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
 
@@ -55,11 +51,13 @@ if not ACCOUNTS:
 
 oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
 
-api = twitter.Api(consumer_key=CONSUMER_KEY,
-                  consumer_secret=CONSUMER_SECRET,
-                  access_token_key=oauth_token,
-                  access_token_secret=oauth_token_secret,
-                  tweet_mode='extended')
+api = twitter.Api(
+    consumer_key=CONSUMER_KEY,
+    consumer_secret=CONSUMER_SECRET,
+    access_token_key=oauth_token,
+    access_token_secret=oauth_token_secret,
+    tweet_mode="extended",
+)
 
 
 def process_tweet(account, status):
@@ -70,7 +68,7 @@ def process_tweet(account, status):
     source = status.source
     logger.debug(" -  %s" % status.full_text)
 
-    source = re.sub(r'<[^>]*?>', '', source)
+    source = re.sub(r"<[^>]*?>", "", source)
 
     url = "http://twitter.com/%s/status/%s" % (account, id)
 
@@ -85,7 +83,8 @@ def process_tweet(account, status):
         utcdate,
         url=url,
         image=image,
-        fulldata_json=status.AsDict())
+        fulldata_json=status.AsDict(),
+    )
 
 
 for account in ACCOUNTS.split(","):

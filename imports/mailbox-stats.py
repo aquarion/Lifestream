@@ -1,20 +1,17 @@
 #!/usr/bin/python
 # Python
-import email
 import datetime
-import time
-import sys
-
-
+import email
 # Libraries
 import mailbox
+import sys
+import time
 
 # Local
 import lifestream
 import lifestreamutils
 
-
-if (len(sys.argv) < 2):
+if len(sys.argv) < 2:
     print("Usage: %s statistic filename" % (sys.argv[0]))
     sys.exit(5)
 
@@ -41,30 +38,29 @@ if DEBUG:
 for key in inbox.keys():
     count += 1
     msg = inbox[key]
-    if not msg or not msg['From']:
+    if not msg or not msg["From"]:
         continue
 
     try:
-        subject = msg['Subject'][0:64]
+        subject = msg["Subject"][0:64]
     except:
         subject = "No Subject"
 
     try:
         dte = datetime.datetime.fromtimestamp(
-            time.mktime(
-                email.utils.parsedate(
-                    msg['Date'])))
+            time.mktime(email.utils.parsedate(msg["Date"]))
+        )
     except:
         continue
 
     iso = dte.strftime("%Y-%m-%d")
     if iso in datekeys:
-        dates[iso]['total'] += 1
+        dates[iso]["total"] += 1
     else:
-        dates[iso] = {'total': 1}
+        dates[iso] = {"total": 1}
         datekeys.append(iso)
     if DEBUG:
-        sys.stdout.write('%3.2f%% - %s\r' % ((count / length) * 100, ""))
+        sys.stdout.write("%3.2f%% - %s\r" % ((count / length) * 100, ""))
         sys.stdout.flush()
 
 if DEBUG:
@@ -72,6 +68,6 @@ if DEBUG:
     print("Databasing....")
 
 for date in list(dates.keys()):
-    lifestreamutils.newstat(date, STATISTIC, dates[date]['total'])
+    lifestreamutils.newstat(date, STATISTIC, dates[date]["total"])
 
 dbcxn.close()

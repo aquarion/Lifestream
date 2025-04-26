@@ -1,10 +1,12 @@
 #!/usr/bin/python
 
 # Python
-import sys
 import logging
+import sys
+
 # Libraries
 import flickrapi
+
 # Local
 import lifestream
 
@@ -25,7 +27,7 @@ cursor = lifestream.cursor(dbcxn)
 
 Lifestream = lifestream.Lifestream()
 
-logger = logging.getLogger('Flickr')
+logger = logging.getLogger("Flickr")
 args = lifestream.arguments.parse_args()
 
 # Only search from the most recent result
@@ -40,14 +42,12 @@ else:
 
 flickr = flickrapi.FlickrAPI(API_KEY)
 photos_xml = flickr.photos_search(
-    user_id=FLICKRID,
-    per_page=per_page,
-    page=1,
-    min_taken_date=since)
+    user_id=FLICKRID, per_page=per_page, page=1, min_taken_date=since
+)
 # sets = flickr.photosets_getList(user_id='73509078@N00')
 
 
-pages = int(photos_xml.find('photos').attrib['pages'])
+pages = int(photos_xml.find("photos").attrib["pages"])
 
 logger.info("Since %s" % since)
 
@@ -60,7 +60,7 @@ if max_pages and pages > max_pages:
 
 
 # % (farm, server, id, secret, size)
-s_url = 'http://farm%s.staticflickr.com/%s/%s_%s_%s.jpg'
+s_url = "http://farm%s.staticflickr.com/%s/%s_%s_%s.jpg"
 
 size_code = "z"
 type = "flickr"
@@ -69,26 +69,26 @@ type = "flickr"
 for page in range(1, pages + 1):
     logger.info("Page %d of %d" % (page, pages))
     photos_xml = flickr.photos_search(
-        user_id=FLICKRID,
-        per_page=per_page,
-        page=page,
-        min_taken_date=since)
+        user_id=FLICKRID, per_page=per_page, page=page, min_taken_date=since
+    )
     photos = photos_xml.find("photos").findall("photo")
     for photo in photos:
-        image = s_url % (photo.attrib['farm'],
-                         photo.attrib['server'],
-                         photo.attrib['id'],
-                         photo.attrib['secret'],
-                         size_code)
+        image = s_url % (
+            photo.attrib["farm"],
+            photo.attrib["server"],
+            photo.attrib["id"],
+            photo.attrib["secret"],
+            size_code,
+        )
 
         info = flickr.photos_getinfo(
-            photo_id=photo.attrib['id'],
-            secret=photo.attrib['secret'])
+            photo_id=photo.attrib["id"], secret=photo.attrib["secret"]
+        )
 
         page_url = info.find("photo").find("urls").find("url").text
         title = info.find("photo").find("title").text
-        id = photo.attrib['id']
-        date_taken = info.find("photo").find("dates").attrib['taken']
+        id = photo.attrib["id"]
+        date_taken = info.find("photo").find("dates").attrib["taken"]
 
         logger.info("     %s %s" % (date_taken, title))
 
@@ -99,6 +99,7 @@ for page in range(1, pages + 1):
             url=page_url,
             source="flickr",
             date=date_taken,
-            image=image)
+            image=image,
+        )
 
 dbcxn.close()

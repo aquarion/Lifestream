@@ -1,8 +1,8 @@
 # Python
 import pickle
-
 # Libraries
 import sqlite3
+
 from dropbox import session
 
 # Local
@@ -14,7 +14,7 @@ APPLE_TO_UNIX_CONVERSION = 978307200
 # Some Settings
 
 OAUTH_TOKEN_FILE = ".dropbox_session"
-DROPBOX_PATH = '/Documents/iPhone Backup/6fe928c857d388710370d7191f398899eac87aac/3d0d7e5fb2ce288813306e4d4636395e047a3d28'
+DROPBOX_PATH = "/Documents/iPhone Backup/6fe928c857d388710370d7191f398899eac87aac/3d0d7e5fb2ce288813306e4d4636395e047a3d28"
 MESSAGES_DATABASE_CACHE = "/home/aquarion/scratch/sms.sqlite"
 
 # SOME DROPBOX Settings
@@ -31,7 +31,7 @@ token_data.close()
 # Setup Dropbox Access
 
 sess = session.DropboxSession(APP_KEY, APP_SECRET, ACCESS_TYPE)
-sess.set_token(token['key'], token['secret'])
+sess.set_token(token["key"], token["secret"])
 # client = client.DropboxClient(sess)
 
 # Grab the database
@@ -62,14 +62,15 @@ sql = "select message.guid, message.text, message.date, handle.id, message.is_fr
 res = cxn.execute(sql)
 messages = res.fetchall()
 
-exclude = ("86444",  # Twitter
-           "google",
-           '+447781484000',  # Pingdom
-           '3alerts',  # 3
-           '+447786204400',  # Paypal
-           'irc',
-           'halifax'
-           )
+exclude = (
+    "86444",  # Twitter
+    "google",
+    "+447781484000",  # Pingdom
+    "3alerts",  # 3
+    "+447786204400",  # Paypal
+    "irc",
+    "halifax",
+)
 
 for message in messages:
     if message[3] in exclude:

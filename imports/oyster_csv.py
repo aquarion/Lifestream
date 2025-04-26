@@ -1,22 +1,24 @@
 #!/usr/bin/python
 # Python
-import pytz
-import hashlib
 import csv
-from datetime import datetime
+import hashlib
 import logging
+from datetime import datetime
 
-# Libraries
+import pytz
 
 # Local
 import lifestream
+
+# Libraries
+
 
 
 Lifestream = lifestream.Lifestream()
 
 
-logger = logging.getLogger('Oyster-CSV')
-lifestream.arguments.add_argument('filename')
+logger = logging.getLogger("Oyster-CSV")
+lifestream.arguments.add_argument("filename")
 args = lifestream.arguments.parse_args()
 
 londontime = pytz.timezone("Europe/London")
@@ -25,7 +27,7 @@ londontime = pytz.timezone("Europe/London")
 
 headers = False
 
-data = open(args.filename, 'rt')
+data = open(args.filename, "rt")
 dataReader = csv.reader(data)
 for row in dataReader:
     if not row:
@@ -47,26 +49,18 @@ for row in dataReader:
         elif not time_from:
             time_from = "00:00"
 
-        timestamp = datetime.strptime(
-            "%s %s" %
-            (date, time_from), "%d-%b-%Y %H:%M")
+        timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
         loc_date = londontime.localize(timestamp)
         utcdate = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
         id = hashlib.md5()
-        id.update(utcdate.encode('utf-8'))
-        id.update(action.encode('utf-8'))
+        id.update(utcdate.encode("utf-8"))
+        id.update(action.encode("utf-8"))
 
         logger.info("%s: %s" % (action, utcdate))
         # add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False)
         Lifestream.add_entry(
-            "oyster",
-            id.hexdigest(),
-            action,
-            "oyster",
-            utcdate,
-            False,
-            False,
-            row)
+            "oyster", id.hexdigest(), action, "oyster", utcdate, False, False, row
+        )
 
 data.close()

@@ -1,37 +1,32 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
 # Python
-import sys
-from datetime import datetime
-import socket
+import codecs
+import configparser  # For the exceptions
 import logging
 import pickle
-from datetime import timedelta
-import configparser  # For the exceptions
-import codecs
+import socket
 import sys
+from datetime import datetime, timedelta
 
 # Libraries
 import facebook
 import requests
 
+import CodeFetcher9000
 # Local
 import lifestream
-import CodeFetcher9000
 
-UTF8Writer = codecs.getwriter('utf8')
+UTF8Writer = codecs.getwriter("utf8")
 sys.stdout = UTF8Writer(sys.stdout)
 
 Lifestream = lifestream.Lifestream()
 
-logger = logging.getLogger('Facebook')
+logger = logging.getLogger("Facebook")
 
 lifestream.arguments.add_argument(
-    '--reauth',
-    required=False,
-    help="Get new token",
-    default=False,
-    action='store_true')
+    "--reauth", required=False, help="Get new token", default=False, action="store_true"
+)
 
 
 args = lifestream.arguments.parse_args()
@@ -40,8 +35,7 @@ args = lifestream.arguments.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/facebook.oauth" % (
-    lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/facebook.oauth" % (lifestream.config.get("global", "secrets_dir"))
 APP_KEY = lifestream.config.get("facebook", "appid")
 APP_SECRET = lifestream.config.get("facebook", "secret")
 
@@ -54,19 +48,21 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
         UseCodeFetcher = True
     except CodeFetcher9000.WeSayNotToday:
         try:
-            redirect_uri = '{}/facebook/catch.php'.format(
-                lifestream.config.get(
-                    "dayze",
-                    "base")),
+            redirect_uri = (
+                "{}/facebook/catch.php".format(lifestream.config.get("dayze", "base")),
+            )
             UseCodeFetcher = False
         except configparser.Error:
             logger.error("Dayze base not configured")
             print(
-                "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini")
+                "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
+            )
             sys.exit(32)
 
-    request_token_url = 'https://www.facebook.com/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=token&scope=user_posts,user_status' % (
-        appid, redirect_uri)
+    request_token_url = (
+        "https://www.facebook.com/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=token&scope=user_posts,user_status"
+        % (appid, redirect_uri)
+    )
 
     if not force_reauth:
         try:
@@ -79,29 +75,31 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     else:
         oauth_token = False
 
-    if (not oauth_token):
+    if not oauth_token:
         print("Go to the following link in your browser:")
         print(request_token_url)
         print()
 
         if UseCodeFetcher:
             oauth_redirect = CodeFetcher9000.get_code("access_token")
-            access_key = oauth_redirect['access_token'][0]
+            access_key = oauth_redirect["access_token"][0]
         else:
             print("If you configure CodeFetcher9000, this is a lot easier.")
             print(" - ")
-            access_key = input('What is the PIN? ')
+            access_key = input("What is the PIN? ")
 
-        extend_token_url = "https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s" % (
-            appid, secret, access_key)
+        extend_token_url = (
+            "https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s"
+            % (appid, secret, access_key)
+        )
         extend_token = requests.get(extend_token_url)
 
         oauth_token = extend_token.json()
 
         print(oauth_token)
 
-        delta = timedelta(seconds=int(oauth_token['expires_in']))
-        oauth_token['expire_dt'] = datetime.now() + delta
+        delta = timedelta(seconds=int(oauth_token["expires_in"]))
+        oauth_token["expire_dt"] = datetime.now() + delta
 
         f = open(OAUTH_FILENAME, "w")
         pickle.dump(oauth_token, f)
@@ -112,19 +110,22 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
 def some_action(post, graph, profile):
 
-    visible_filters = ['LARP', "Unwork"]
+    visible_filters = ["LARP", "Unwork"]
 
     filters = {
-        '15295050107': "LARP",
-        '10152343976945108': "Unwork",
-        '10151965973020108': "LimitList"
+        "15295050107": "LARP",
+        "10152343976945108": "Unwork",
+        "10151965973020108": "LimitList",
     }
 
-    if 'application' in post and 'namespace' in post[
-            'application'] and post['application']['namespace'] == "twitter":
+    if (
+        "application" in post
+        and "namespace" in post["application"]
+        and post["application"]["namespace"] == "twitter"
+    ):
         return
 
-    if post['privacy']['value'] == "SELF":
+    if post["privacy"]["value"] == "SELF":
         return
 
     # pprint(post)
@@ -132,15 +133,15 @@ def some_action(post, graph, profile):
     show = True
 
     url = "https://www.facebook.com/%s/posts/%s" % (
-        profile['id'], post['id'].split("_")[1])
+        profile["id"],
+        post["id"].split("_")[1],
+    )
 
-    if post['privacy']['value'] == "CUSTOM":
-        if not post['privacy']['allow']:
-            logger.info(
-                "Ignoring post %s due to an ad-hoc privacy filter" %
-                url)
-        elif post['privacy']['allow'] in filters:
-            filter_name = filters[post['privacy']['allow']]
+    if post["privacy"]["value"] == "CUSTOM":
+        if not post["privacy"]["allow"]:
+            logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
+        elif post["privacy"]["allow"] in filters:
+            filter_name = filters[post["privacy"]["allow"]]
             # print "... That's the %s filter" % filter_name
             if filter_name in visible_filters:
                 # print "... Keep that"
@@ -150,20 +151,20 @@ def some_action(post, graph, profile):
                 show = False
         else:
             logger.error(
-                "[ERROR] on %s - List ID %s not known" %
-                (url, post['privacy']['allow']))
+                "[ERROR] on %s - List ID %s not known" % (url, post["privacy"]["allow"])
+            )
             show = False
 
     if not show:
         return
 
-    if 'picture' in post:
-        post['picture']
+    if "picture" in post:
+        post["picture"]
     else:
         pass
 
-    if not 'message' in post:
-        post['message'] = ''
+    if not "message" in post:
+        post["message"] = ""
 
     # Lifestream.add_entry(
     #     post['type'],
@@ -184,7 +185,7 @@ def some_action(post, graph, profile):
     #         fulldata_json=post)
 
     # print "SYSX", post['created_time'], url
-    print(post['message'])
+    print(post["message"])
     # print
     # "SYSX----------------------------------------------------------------------------------------------------------------
     # NEW ENTRY"
@@ -193,11 +194,11 @@ def some_action(post, graph, profile):
 credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, args.reauth)
 
 
-if datetime.now() > credentials['expire_dt']:
+if datetime.now() > credentials["expire_dt"]:
     logger.error("Token has expired! {} days!".format(delta.days))
     print("Token has expired!")
 
-delta = credentials['expire_dt'] - datetime.now()
+delta = credentials["expire_dt"] - datetime.now()
 
 if delta.days <= 7:
     logger.warning("Token will expire in {} days!".format(delta.days))
@@ -205,20 +206,20 @@ if delta.days <= 7:
 else:
     logger.info("Token will expire in {} days!".format(delta.days))
 
-graph = facebook.GraphAPI(credentials['access_token'])
-profile = graph.get_object('me')
+graph = facebook.GraphAPI(credentials["access_token"])
+profile = graph.get_object("me")
 posts = graph.get_object(
     "idlespeculation/posts",
-    fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time")
+    fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time",
+)
 
 # Wrap this block in a while loop so we can keep paginating requests until
 # finished.
 page = 0
 while True:
     page += 1
-    sys.stderr.write('Page %s \n' % page)
-    [some_action(post=post, graph=graph, profile=profile)
-     for post in posts['data']]
+    sys.stderr.write("Page %s \n" % page)
+    [some_action(post=post, graph=graph, profile=profile) for post in posts["data"]]
     # if page >= 5:
     # break
     #     pass
@@ -226,7 +227,7 @@ while True:
         # Perform some action on each post in the collection we receive from
         # Facebook.
         # Attempt to make a request to the next page of data, if it exists.
-        posts = requests.get(posts['paging']['next']).json()
+        posts = requests.get(posts["paging"]["next"]).json()
         # raise KeyError;
     except KeyError:
         # When there are no more pages (['paging']['next']), break from the

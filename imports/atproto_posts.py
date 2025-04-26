@@ -1,39 +1,40 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Python
-import sys
 import configparser
 import logging
-import dateutil.parser
+import sys
 from pprint import pprint
-import ipdb
-
-from atproto import Client as atClient
-
 from urllib.parse import urlparse
+
+import dateutil.parser
+import ipdb
+import simplejson as json
+from atproto import Client as atClient
 
 # Local
 import lifestream
-import simplejson as json
 
 lifestream.arguments.add_argument(
-    '--site',
-    required=False,
-    help='Site to choose from',
-    default=False)
+    "--site", required=False, help="Site to choose from", default=False
+)
 
 lifestream.arguments.add_argument(
-    '--all',
+    "--all",
     required=False,
-    help='Fetch all toots?',
+    help="Fetch all toots?",
     default=False,
-    action='store_true',
-    dest='all_pages')
+    action="store_true",
+    dest="all_pages",
+)
 
-lifestream.arguments.add_argument('--max_pages', type=int,
-        help='How many pages (overriden by --all)',
-        default=1,
-        required=False)
+lifestream.arguments.add_argument(
+    "--max_pages",
+    type=int,
+    help="How many pages (overriden by --all)",
+    default=1,
+    required=False,
+)
 
 args = lifestream.arguments.parse_args()
 
@@ -43,26 +44,24 @@ else:
     sites = []
     for section in lifestream.config.sections():
         subsection = section.split(":")
-        if subsection[0] == 'atproto':
+        if subsection[0] == "atproto":
             sites.append(subsection[1])
 
 Lifestream = lifestream.Lifestream()
 
-logger = logging.getLogger('AtProto')
+logger = logging.getLogger("AtProto")
 
 for site in sites:
     source = site
     type = "atproto"
     try:
         # base_url = lifestream.config.get("atproto:%s" % source, "base_url")
-        username = lifestream.config.get(
-            "atproto:%s" % source, "username")
-        password = lifestream.config.get(
-            "atproto:%s" % source, "password")
-        handle = lifestream.config.get(
-            "atproto:%s" % source, "handle")
+        username = lifestream.config.get("atproto:%s" % source, "username")
+        password = lifestream.config.get("atproto:%s" % source, "password")
+        handle = lifestream.config.get("atproto:%s" % source, "handle")
         server_base = lifestream.config.get(
-            "atproto:%s" % source, "server_base", fallback=None)
+            "atproto:%s" % source, "server_base", fallback=None
+        )
     except configparser.NoSectionError:
         logger.error("No [atproto:%s] section found in config" % source)
         sys.exit(5)
@@ -73,11 +72,10 @@ for site in sites:
     if server_base:
         atserver = atClient(server_base)
     else:
-        atserver = atClient() ## Default to bsky.app
+        atserver = atClient()  ## Default to bsky.app
 
     atserver.login(username, password)
 
-    
     this_page = 0
     keep_going = True
 
@@ -86,7 +84,9 @@ for site in sites:
     while keep_going:
 
         if last_seen:
-            atResponse = atserver.get_author_feed(actor=handle, cursor=last_seen, limit=30)
+            atResponse = atserver.get_author_feed(
+                actor=handle, cursor=last_seen, limit=30
+            )
         else:
             atResponse = atserver.get_author_feed(actor=handle, limit=30)
 
@@ -101,27 +101,26 @@ for site in sites:
                 pprint(item.post.record.reply)
                 logger.debug("Skipping reply to %s" % item.post.record.reply.parent.uri)
                 continue
-            
+
             post = item.post.record
             embed = item.post.embed
-            
-            title=post.text
-            source=site
-            date=dateutil.parser.isoparse(post.created_at)
-            
+
+            title = post.text
+            source = site
+            date = dateutil.parser.isoparse(post.created_at)
+
             at_url = urlparse(item.post.uri)
             post_id = at_url.path.split("/")[2]
 
             url = "https://{}/profile/{}/post/{}".format(site, handle, post_id)
 
-
-            if embed and embed['py_type'] == "app.bsky.embed.images#viewImage":
+            if embed and embed["py_type"] == "app.bsky.embed.images#viewImage":
                 for media in embed.images:
-                    if media['py_type'] == "app.bsky.embed.images#viewImage":
-                        thumbnail = media['thumb']
+                    if media["py_type"] == "app.bsky.embed.images#viewImage":
+                        thumbnail = media["thumb"]
                         break
             else:
-                thumbnail = ''
+                thumbnail = ""
 
             Lifestream.add_entry(
                 id=item.post.uri,
@@ -131,7 +130,7 @@ for site in sites:
                 url=url,
                 image=thumbnail,
                 fulldata_json=item.post.model_dump_json(),
-                type=type
+                type=type,
             )
 
             logger.info("%s: %s" % (date.strftime("%Y-%m-%d"), title))

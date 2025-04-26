@@ -1,18 +1,19 @@
-import http.server
-import urllib.parse
-import logging
-import ssl
-import lifestream
 import configparser
+import http.server
+import logging
 import os
+import ssl
+import urllib.parse
 
-logger = logging.getLogger('CodeFetcher')
+import lifestream
 
-os.chdir(os.path.dirname(__file__) + '/..')
+logger = logging.getLogger("CodeFetcher")
+
+os.chdir(os.path.dirname(__file__) + "/..")
 
 ServerClass = http.server.HTTPServer
 port = int(lifestream.config.get("CodeFetcher9000", "port"))
-server_address = ('0.0.0.0', port)
+server_address = ("0.0.0.0", port)
 code = False
 key_wanted = False
 
@@ -24,11 +25,7 @@ class WeSayNotToday(Exception):
 class MyHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, req, client_addr, server):
-        http.server.BaseHTTPRequestHandler.__init__(
-            self,
-            req,
-            client_addr,
-            server)
+        http.server.BaseHTTPRequestHandler.__init__(self, req, client_addr, server)
 
     # def do_POST(s):
     #     global code
@@ -41,7 +38,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
     def success(s, params):
 
-        f = open('templates/success.html', 'rb')
+        f = open("templates/success.html", "rb")
 
         s.send_response(200)
         s.send_header("Content-type", "text/html")
@@ -55,7 +52,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
     def failure(s, params):
 
-        f = open('templates/failure.html', 'rt')
+        f = open("templates/failure.html", "rt")
 
         s.send_response(200)
         s.send_header("Content-type", "text/html")
@@ -64,8 +61,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             file_data = f.read(32768)  # use an appropriate chunk size
             if file_data is None or len(file_data) == 0:
                 break
-            file_data = file_data.replace('[[params]]', str(params))
-            file_data = file_data.replace('[[key_wanted]]', str(key_wanted))
+            file_data = file_data.replace("[[params]]", str(params))
+            file_data = file_data.replace("[[key_wanted]]", str(key_wanted))
             s.wfile.write(file_data.encode("utf8"))
         f.close()
 
@@ -81,10 +78,10 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             s.success(params)
             code = params
             return
-        elif s.path == '/test/success':
+        elif s.path == "/test/success":
             s.success(params)
 
-        elif s.path == '/test/failure':
+        elif s.path == "/test/failure":
             s.failure(params)
         else:
             s.failure(params)
@@ -103,7 +100,7 @@ def get_url():
 def are_we_working():
     try:
         certfile = lifestream.config.get("CodeFetcher9000", "certfile")
-        f = open(certfile, 'rb')
+        f = open(certfile, "rb")
         f.close()
     except IOError:
         logger.error("Could not read certificate file: {}".format(certfile))
@@ -114,7 +111,7 @@ def are_we_working():
 
     try:
         keyfile = lifestream.config.get("CodeFetcher9000", "keyfile")
-        f = open(keyfile, 'rb')
+        f = open(keyfile, "rb")
         f.close()
     except IOError:
         logger.error("Could not read key file: {}".format(keyfile))

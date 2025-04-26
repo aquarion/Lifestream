@@ -1,6 +1,4 @@
 # Python
-from datetime import datetime, timedelta
-from logging.handlers import TimedRotatingFileHandler
 import argparse
 import codecs
 import configparser
@@ -8,23 +6,25 @@ import hashlib
 import logging
 import os
 import pickle
-import pytz
-import simplejson
-import simplejson as json
 import site
 import sys
 import time
-
-
-# Libraries
-from .oauth_utils import write_token_file, read_token_file
-from memcache import Client, SERVER_MAX_KEY_LENGTH, SERVER_MAX_VALUE_LENGTH
+import warnings
+from datetime import datetime, timedelta
+from logging.handlers import TimedRotatingFileHandler
 from pprint import pprint
+
 import oauth2
 import pymysql as MySQLdb
-import requests
-import warnings
+import pytz
 import redis
+import requests
+import simplejson
+import simplejson as json
+from memcache import SERVER_MAX_KEY_LENGTH, SERVER_MAX_VALUE_LENGTH, Client
+
+# Libraries
+from .oauth_utils import read_token_file, write_token_file
 
 # Local
 
@@ -33,55 +33,53 @@ RedisCXN = False
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(basedir + "/../lib")
 
-warnings.filterwarnings('error', category=MySQLdb.Warning)
+warnings.filterwarnings("error", category=MySQLdb.Warning)
 
 # sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 config = configparser.ConfigParser()
 try:
-    config.read(basedir + '/../config.ini')
+    config.read(basedir + "/../config.ini")
 except IOError:
-    config.read(os.getcwd() + '/../config.ini')
+    config.read(os.getcwd() + "/../config.ini")
 
 arguments = argparse.ArgumentParser()
 arguments.add_argument(
-    '--debug',
-    required=False,
-    help="Enable Debug",
-    default=False,
-    action='store_true')
+    "--debug", required=False, help="Enable Debug", default=False, action="store_true"
+)
 arguments.add_argument(
-    '--verbose',
+    "--verbose",
     required=False,
     help="Enable Verbosity",
     default=False,
-    action='store_true')
+    action="store_true",
+)
 
-LOG_DIR = config.get('global', 'log_location')
+LOG_DIR = config.get("global", "log_location")
 
-LOG_FORMAT = '%(asctime)s [%(levelname)s] [%(name)s] %(message)s'
+LOG_FORMAT = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
 
-logging.getLogger('').setLevel(logging.DEBUG)
+logging.getLogger("").setLevel(logging.DEBUG)
 
 formatter = logging.Formatter(LOG_FORMAT)
 filename = "%s/lifestream.log" % LOG_DIR
-logfile = TimedRotatingFileHandler(filename, when='W0', interval=1, utc=True)
+logfile = TimedRotatingFileHandler(filename, when="W0", interval=1, utc=True)
 logfile.namer = lambda name: name.replace(".log", "") + ".log"
 logfile.setLevel(logging.DEBUG)
 logfile.setFormatter(formatter)
-logging.getLogger('').addHandler(logfile)
+logging.getLogger("").addHandler(logfile)
 
 console = logging.StreamHandler()
 console.setFormatter(formatter)
-logging.getLogger('').addHandler(console)
+logging.getLogger("").addHandler(console)
 
-if ('--debug' in sys.argv):
+if "--debug" in sys.argv:
     console.setLevel(logging.DEBUG)
-if ('--verbose' in sys.argv):
+if "--verbose" in sys.argv:
     console.setLevel(logging.INFO)
 else:
     console.setLevel(logging.ERROR)
-    warnings.filterwarnings('ignore', category=DeprecationWarning, module='')
+    warnings.filterwarnings("ignore", category=DeprecationWarning, module="")
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +91,12 @@ def getDatabaseConnection():
         db[item[0]] = item[1]
 
     dbcxn = MySQLdb.connect(
-        user=db['username'],
-        passwd=db['password'],
-        db=db['database'],
-        host=db['hostname'],
-        charset='utf8mb4')
+        user=db["username"],
+        passwd=db["password"],
+        db=db["database"],
+        host=db["hostname"],
+        charset="utf8mb4",
+    )
     # dbcxn.set_character_set('utf8')
     return dbcxn
 
@@ -109,16 +108,17 @@ def getRedisConnection():
             host=config.get("redis", "host", fallback="localhost"),
             port=config.get("redis", "port", fallback=6379),
             username=config.get("redis", "username", fallback=None),
-            password=config.get("redis", "password", fallback=None))
+            password=config.get("redis", "password", fallback=None),
+        )
 
     return RedisCXN
 
 
 def cursor(dbcxn):
     dbc = dbcxn.cursor()
-    dbc.execute('SET NAMES utf8mb4;')
-    dbc.execute('SET CHARACTER SET utf8mb4;')
-    dbc.execute('SET character_set_connection=utf8mb4;')
+    dbc.execute("SET NAMES utf8mb4;")
+    dbc.execute("SET CHARACTER SET utf8mb4;")
+    dbc.execute("SET character_set_connection=utf8mb4;")
 
     return dbc
 
@@ -153,7 +153,7 @@ def yearsago(years, from_date=None):
     except ValueError:
         # Must be 2/29!
         assert from_date.month == 2 and from_date.day == 29  # can be removed
-        return from_date.replace(month=2, day=28, year=from_date.year-years)
+        return from_date.replace(month=2, day=28, year=from_date.year - years)
 
 
 def is_jsonable(x):
@@ -195,8 +195,8 @@ def niceTimeDelta(delta_object, format="decimal"):
     try:
         years = 0
         days = delta_object.days
-        hours = delta_object.seconds//3600
-        minutes = (delta_object.seconds//60) % 60
+        hours = delta_object.seconds // 3600
+        minutes = (delta_object.seconds // 60) % 60
         if days > 365:
             years = int(days / 365)
             days = int(days % 365)
@@ -215,9 +215,9 @@ def niceTimeDelta(delta_object, format="decimal"):
     elif years > 1:
         years_message = "%s years, " % convertNiceTime(years, format)
     else:
-        years_message = ''
+        years_message = ""
 
-    if (days < 7 and years == 0):
+    if days < 7 and years == 0:
         hours = hours + (24 * days)
         days = 0
 
@@ -230,21 +230,21 @@ def niceTimeDelta(delta_object, format="decimal"):
     elif days > 1:
         days_message = "%s days, " % days
     else:
-        days_message = ''
+        days_message = ""
 
     if int(hours) == 1:
         hours_message = "1 hour, "
     elif hours > 1:
         hours_message = "%s hours, " % hours
     else:
-        hours_message = ''
+        hours_message = ""
 
     if int(minutes) == 1:
         minutes_message = "1 minute"
     elif minutes > 1:
         minutes_message = "%s minutes" % minutes
     else:
-        minutes_message = ''
+        minutes_message = ""
 
     string = years_message + days_message + hours_message + minutes_message
 
@@ -271,24 +271,25 @@ class Lifestream:
 
     # Lifestream.add_entry(type, id, title, source, date, url='', image='', fulldata_json=False)
     def add_entry(
-            self,
-            type,
-            id,
-            title,
-            source,
-            date,
-            url='',
-            image='',
-            fulldata_json=False,
-            update=False,
-            debug=False):
+        self,
+        type,
+        id,
+        title,
+        source,
+        date,
+        url="",
+        image="",
+        fulldata_json=False,
+        update=False,
+        debug=False,
+    ):
 
         self.init_db()
 
         if fulldata_json:
             fulldata_json = simplejson.dumps(fulldata_json)
 
-        sql = 'select date_created from lifestream where type = %s and systemid = %s order by date_created desc limit 1 '
+        sql = "select date_created from lifestream where type = %s and systemid = %s order by date_created desc limit 1 "
 
         self.cursor.execute(sql, (type, str(id)))
         if self.cursor.fetchone():
@@ -297,96 +298,87 @@ class Lifestream:
                 return False
             else:
                 # print "Update - %s" % title
-                s_sql = 'UPDATE lifestream set `title`=%s, `url`=%s, `date_created`=%s, `source`=%s, `image`=%s, `fulldata_json`=%s where `systemid`=%s and `type`=%s'
+                s_sql = "UPDATE lifestream set `title`=%s, `url`=%s, `date_created`=%s, `source`=%s, `image`=%s, `fulldata_json`=%s where `systemid`=%s and `type`=%s"
                 self.cursor.execute(
-                    s_sql,
-                    (title,
-                     url,
-                     date,
-                     source,
-                     image,
-                     fulldata_json,
-                     id,
-                     type))
+                    s_sql, (title, url, date, source, image, fulldata_json, id, type)
+                )
                 if debug:
                     print(self.cursor._executed)
         else:
             # print "Insert - %s" % title
-            s_sql = 'INSERT INTO lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)'
+            s_sql = "INSERT INTO lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)"
             self.cursor.execute(
-                s_sql,
-                (type,
-                 id,
-                 title,
-                 url,
-                 date,
-                 source,
-                 image,
-                 fulldata_json))
+                s_sql, (type, id, title, url, date, source, image, fulldata_json)
+            )
             if debug:
                 print(self.cursor._executed)
 
-    def add_location(self, timestamp, source, lat, lon, title, icon=False, fulldata=False):
+    def add_location(
+        self, timestamp, source, lat, lon, title, icon=False, fulldata=False
+    ):
         self.init_db()
         l_sql = 'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s, "");'
         time_start = datetime(1970, 1, 1, 0, 0, 0, 0, pytz.UTC)
         epoch = (timestamp - time_start).total_seconds()
         self.cursor.execute(
             l_sql,
-            (epoch,  # `id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`,
-             source,
-             lat,
-             lon,
-             round(lat, 2),
-             round(lon, 2),
-             timestamp,
-             title,
-             icon))
+            (
+                epoch,  # `id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`,
+                source,
+                lat,
+                lon,
+                round(lat, 2),
+                round(lon, 2),
+                timestamp,
+                title,
+                icon,
+            ),
+        )
 
     def cache_this(self, cache_id, maxage):
         """
         A function that creates a decorator which will use "cachefile" for caching the results of the decorated function "fn".
         """
+
         def decorator(fn):  # define a decorator for a function "fn"
             # define a wrapper that will finally call "fn" with all arguments
             def wrapped(*args, **kwargs):
                 cachefile = "/tmp/" + cache_id
-                logger = logging.getLogger('cache_this')
+                logger = logging.getLogger("cache_this")
                 # if cache exists -> load it and return its content
                 if os.path.exists(cachefile):
                     modified = os.path.getmtime(cachefile)
                     logger.debug("Found cache file at '{}'".format(cachefile))
                     now = time.time()
                     if now > (modified + maxage):
-                        logger.debug(
-                            "Ignoring old cache file {}'".format(cachefile))
+                        logger.debug("Ignoring old cache file {}'".format(cachefile))
                     else:
-                        with open(cachefile, 'rb') as cachehandle:
+                        with open(cachefile, "rb") as cachehandle:
                             logger.info(
-                                "using cached result from '{}'".format(cachefile))
+                                "using cached result from '{}'".format(cachefile)
+                            )
                             return pickle.load(cachehandle)
 
                 # execute the function with all arguments passed
                 res = fn(*args, **kwargs)
 
                 # write to cache file
-                with open(cachefile, 'wb') as cachehandle:
-                    logger.info(
-                        "saving result to cache '{}'".format(cachefile))
+                with open(cachefile, "wb") as cachehandle:
+                    logger.info("saving result to cache '{}'".format(cachefile))
                     pickle.dump(res, cachehandle)
 
                 return res
 
             return wrapped
 
-        return decorator   # return this "customized" decorator that uses "cachefile"
+        return decorator  # return this "customized" decorator that uses "cachefile"
 
     def warned_recently(self, warning_id, hours=24):
         redisCxn = getRedisConnection()
         lastSent = redisCxn.get(warning_id)
 
         if not lastSent:
-            redisCxn.set(warning_id, "1", ex=hours*3600)
+            redisCxn.set(warning_id, "1", ex=hours * 3600)
             return False
         else:
             return redisCxn.ttl(warning_id)
@@ -416,14 +408,12 @@ class FoursquareAPI:
         if not os.path.exists(OAUTH_FILENAME):
             logger.error("No OAUTH found at %s" % OAUTH_FILENAME)
             raise Exception(
-                "You need to run foursquare_oauth.py to generate the oauth key")
+                "You need to run foursquare_oauth.py to generate the oauth key"
+            )
 
         oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
 
-        self.payload = {
-            'v': "20170801",
-            'oauth_token': oauth_token
-        }
+        self.payload = {"v": "20170801", "oauth_token": oauth_token}
 
     def cache_get(self, url, params):
         m = hashlib.sha224()
@@ -432,21 +422,22 @@ class FoursquareAPI:
         key = m.hexdigest()
 
         res = self.mc.get(key)
-        if (res):
+        if res:
             return json.loads(res)
 
-        r = requests.get(self.url_base %
-                         "users/self/checkins", params=self.payload)
+        r = requests.get(self.url_base % "users/self/checkins", params=self.payload)
         self.mc.set(key, json.dumps(r.json()))
         return r.json()
 
     def my_checkins(self):
-        return self.cache_get(self.url_base % "users/self/checkins", params=self.payload)
+        return self.cache_get(
+            self.url_base % "users/self/checkins", params=self.payload
+        )
 
     def search_near(self, lat, lng, intent="checkin", radius=50, limit=10):
         payload = self.payload
-        payload['ll'] = "%s,%s" % (lat, lng)
-        payload['intent'] = intent
-        payload['radius'] = radius
-        payload['limit'] = limit
+        payload["ll"] = "%s,%s" % (lat, lng)
+        payload["intent"] = intent
+        payload["radius"] = radius
+        payload["limit"] = limit
         return self.cache_get(self.url_base % "venues/search", params=self.payload)

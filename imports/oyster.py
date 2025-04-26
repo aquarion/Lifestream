@@ -1,28 +1,27 @@
 #!/usr/bin/python
 # Python
-import sys
-import pytz
-import re
-import hashlib
 import csv
+import hashlib
 import io
-from time import sleep
-from datetime import datetime
 import logging
+import re
+import sys
+from datetime import datetime
+from time import sleep
 
+import pytz
 # Libraries
 from mechanize import Browser, RobustFactory
 
 # Local
 import lifestream
 
-
-logger = logging.getLogger('Oyster')
+logger = logging.getLogger("Oyster")
 args = lifestream.arguments.parse_args()
 
 Lifestream = lifestream.Lifestream()
 
-if (len(sys.argv) < 3):
+if len(sys.argv) < 3:
     print("Usage: %s class oystercard_number" % sys.argv[0])
     sys.exit(5)
 
@@ -41,14 +40,16 @@ br.set_handle_robots(False)
 response = br.open("https://oyster.tfl.gov.uk/oyster/entry.do")
 
 br.select_form(name="sign-in")
-br['j_password'] = PASSWORD
-br['j_username'] = USERNAME
+br["j_password"] = PASSWORD
+br["j_username"] = USERNAME
 br.submit()
 
 # Card Choice
 
 br.select_form(nr=0)
-br['cardId'] = [OYSTER_NUMBER, ]
+br["cardId"] = [
+    OYSTER_NUMBER,
+]
 br.submit()
 
 # Dashboard
@@ -63,7 +64,7 @@ sleep(10)
 
 html = br.response().read()
 
-codes = re.findall("/oyster\/journeyDetailsPrint\.do\?_qv=(.*?)\"", html)
+codes = re.findall('/oyster\/journeyDetailsPrint\.do\?_qv=(.*?)"', html)
 
 br.open("/oyster/journeyDetailsPrint.do?_qv=%s" % codes[1])
 
@@ -75,7 +76,7 @@ data = br.response().read()
 
 # Date,Start Time,End Time,Journey/Action,Charge,Credit,Balance,Note
 
-s_sql = 'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
+s_sql = "replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);"
 
 headers = False
 
@@ -98,9 +99,7 @@ for row in dataReader:
         elif not time_from:
             time_from = "00:00"
 
-        timestamp = datetime.strptime(
-            "%s %s" %
-            (date, time_from), "%d-%b-%Y %H:%M")
+        timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
         loc_date = londontime.localize(timestamp)
         utcdate = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
@@ -110,9 +109,4 @@ for row in dataReader:
 
         # print action, utcdate
         logger.info(action)
-        Lifestream.add_entry(
-            "oyster",
-            id.hexdigest(),
-            action,
-            "oyster",
-            utcdate)
+        Lifestream.add_entry("oyster", id.hexdigest(), action, "oyster", utcdate)

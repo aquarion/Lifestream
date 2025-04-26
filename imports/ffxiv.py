@@ -1,24 +1,22 @@
 #!/usr/bin/python
 # Python
+import hashlib
+import logging
+import math
+import re
+import sqlite3
 from ctypes.wintypes import CHAR
 from datetime import datetime
-import logging
-import hashlib
-import re
-import math
-
 from pprint import pprint
 
+import bs4
+import ipdb
 # Libraries
 import requests
-import ipdb
-import bs4
 import simplejson
-import sqlite3
 
 # Local
 import lifestream
-
 
 Lifestream = lifestream.Lifestream()
 
@@ -28,20 +26,22 @@ ICON_BASE = Lifestream.config.get("xivapi", "icon_base")
 
 
 lifestream.arguments.add_argument(
-    '--all-achievements',
+    "--all-achievements",
     required=False,
     help="Get all achievements, not just last 2 pages",
     default=False,
-    action='store_true')
+    action="store_true",
+)
 
 lifestream.arguments.add_argument(
-    '--max-pages',
+    "--max-pages",
     required=False,
     help="Maximum number of pages to fetch",
     default=3,
-    action='store')
+    action="store",
+)
 
-logger = logging.getLogger('FFXIV')
+logger = logging.getLogger("FFXIV")
 args = lifestream.arguments.parse_args()
 
 
@@ -56,54 +56,57 @@ class Lodestone:
     def __init__(self, apikey) -> None:
         self.api_key = apikey
         self.achievement_db = sqlite3.connect(
-            Lifestream.config.get("xivapi", "achievement_db"))
+            Lifestream.config.get("xivapi", "achievement_db")
+        )
         pass
 
     def get_character_detail(self, character_id, section="", page=1, region="eu"):
         url = "https://{}.finalfantasyxiv.com/lodestone/character/{}/{}".format(
-            region, character_id, section)
+            region, character_id, section
+        )
         params = {}
         if page > 1:
-            params['page'] = page
+            params["page"] = page
 
         request = requests.get(url, params)
         return request.text
 
     def pull_value(self, map, root):
-        tags = root.select(map['selector'])
+        tags = root.select(map["selector"])
         if not len(tags):
-            raise Exception("Selector not found: {}".format(map['selector']))
+            raise Exception("Selector not found: {}".format(map["selector"]))
 
-        if 'regex' in map:
+        if "regex" in map:
             if "attribute" in map:
-                haystack = tags[0].get(map['attribute'])
+                haystack = tags[0].get(map["attribute"])
             else:
                 haystack = tags[0].text.strip()
 
-            re_result = re.findall(map['regex'], haystack)
+            re_result = re.findall(map["regex"], haystack)
             if len(re_result) > 0:
                 return re_result[0]
             else:
-                raise Exception("Regex not found: {}".format(map['regex']))
-        if 'multiple' in map:
+                raise Exception("Regex not found: {}".format(map["regex"]))
+        if "multiple" in map:
             return tags
         else:
 
             if "attribute" in map:
-                return tags[0].get(map['attribute'])
+                return tags[0].get(map["attribute"])
             else:
                 return tags[0]
 
     def get_character_info(self, character_id):
         html = self.get_character_detail(character_id)
         map = simplejson.load(
-            open('datafiles/lodestone-css-selectors/profile/character.json'))
-        soup = bs4.BeautifulSoup(html, 'html.parser')
+            open("datafiles/lodestone-css-selectors/profile/character.json")
+        )
+        soup = bs4.BeautifulSoup(html, "html.parser")
 
         character = {}
-        character['Name'] = self.pull_value(map['NAME'], soup).text
-        character['Server'] = self.pull_value(map['SERVER'], soup)
-        character['Title'] = self.pull_value(map['TITLE'], soup).text
+        character["Name"] = self.pull_value(map["NAME"], soup).text
+        character["Server"] = self.pull_value(map["SERVER"], soup)
+        character["Title"] = self.pull_value(map["TITLE"], soup).text
         return character
 
     def get_achievements(self, character_id):
@@ -124,42 +127,43 @@ class Lodestone:
     def icon_path(self, achievement_id):
 
         result = self.achievement_db.execute(
-            "SELECT icon FROM achievements WHERE id = ?", (achievement_id,))
+            "SELECT icon FROM achievements WHERE id = ?", (achievement_id,)
+        )
         row = result.fetchone()
         if row:
             icon_id = int(row[0])
         else:
-            logger.warning(
-                "Achivement DB Icon not found for {}".format(achievement_id))
+            logger.warning("Achivement DB Icon not found for {}".format(achievement_id))
             return False
 
         filename = "{:06d}".format(icon_id)
-        foldername = "{:06d}".format(math.floor(icon_id/1000)*1000)
+        foldername = "{:06d}".format(math.floor(icon_id / 1000) * 1000)
 
         return "{}/{}.png".format(foldername, filename)
 
     def parse_achievements_page(self, html):
         map = simplejson.load(
-            open('datafiles/lodestone-css-selectors/profile/achievements.json'))
-        soup = bs4.BeautifulSoup(html, 'html.parser')
+            open("datafiles/lodestone-css-selectors/profile/achievements.json")
+        )
+        soup = bs4.BeautifulSoup(html, "html.parser")
 
-        root = self.pull_value(map['ROOT'], soup)
-        entries = self.pull_value(map['ENTRY']['ROOT'], root)
+        root = self.pull_value(map["ROOT"], soup)
+        entries = self.pull_value(map["ENTRY"]["ROOT"], root)
 
-        self.next = self.pull_value(map['LIST_NEXT_BUTTON'], root)
+        self.next = self.pull_value(map["LIST_NEXT_BUTTON"], root)
         if self.next == "javascript:void(0);":
             self.next = False
 
         achievements = []
         for entry in entries:
             achievement = {}
-            achievement['Name'] = self.pull_value(
-                map['ENTRY']['NAME'], entry)[1]
-            achievement['ID'] = self.pull_value(map['ENTRY']['ID'], entry)
-            achievement['Icon'] = self.icon_path(
-                self.pull_value(map['ENTRY']['ID'], entry))
-            date_epoch = self.pull_value(map['ENTRY']['TIME'], entry)
-            achievement['Date'] = datetime.fromtimestamp(int(date_epoch))
+            achievement["Name"] = self.pull_value(map["ENTRY"]["NAME"], entry)[1]
+            achievement["ID"] = self.pull_value(map["ENTRY"]["ID"], entry)
+            achievement["Icon"] = self.icon_path(
+                self.pull_value(map["ENTRY"]["ID"], entry)
+            )
+            date_epoch = self.pull_value(map["ENTRY"]["TIME"], entry)
+            achievement["Date"] = datetime.fromtimestamp(int(date_epoch))
             achievements.append(achievement)
 
         return achievements
@@ -171,29 +175,33 @@ lodestone = Lodestone(APIKEY)
 def update_achievements(char_id):
     achievements = lodestone.get_achievements(char_id)
     character = lodestone.get_character_info(char_id)
-    character_name = character['Name']
+    character_name = character["Name"]
 
     for achievement in achievements:
-        logger.debug("{}, {}, {}".format(
-            achievement['Name'], achievement['Icon'], achievement['Date']))
+        logger.debug(
+            "{}, {}, {}".format(
+                achievement["Name"], achievement["Icon"], achievement["Date"]
+            )
+        )
 
-        message = "FFXIV: {} &ndash; {}".format(
-            character_name, achievement['Name'])
+        message = "FFXIV: {} &ndash; {}".format(character_name, achievement["Name"])
 
-        url = 'https://eu.finalfantasyxiv.com/lodestone/character/{}/achievement/detail/{}/'.format(
-            char_id, achievement['ID'])
+        url = "https://eu.finalfantasyxiv.com/lodestone/character/{}/achievement/detail/{}/".format(
+            char_id, achievement["ID"]
+        )
 
         Lifestream.add_entry(
             type="achievement",
-            id="ffxiv-{}-{}".format(char_id, achievement['ID']),
+            id="ffxiv-{}-{}".format(char_id, achievement["ID"]),
             title=message,
             source="FFXIV",
             url=url,
-            date=achievement['Date'],
-            image="{}{}".format(ICON_BASE, achievement['Icon']),
-            update=True)
+            date=achievement["Date"],
+            image="{}{}".format(ICON_BASE, achievement["Icon"]),
+            update=True,
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     for character_id in CHARACTERS.split(","):
         update_achievements(character_id)

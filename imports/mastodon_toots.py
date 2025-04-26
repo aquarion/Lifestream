@@ -1,35 +1,37 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Python
-import sys
 import configparser
 import logging
+import sys
 from pprint import pprint
 
 import mastodon as mastodonpy
+import simplejson as json
 
 # Local
 import lifestream
-import simplejson as json
 
 lifestream.arguments.add_argument(
-    '--site',
-    required=False,
-    help='Site to choose from',
-    default=False)
+    "--site", required=False, help="Site to choose from", default=False
+)
 
 lifestream.arguments.add_argument(
-    '--all',
+    "--all",
     required=False,
-    help='Fetch all toots?',
+    help="Fetch all toots?",
     default=False,
-    action='store_true',
-    dest='all_pages')
+    action="store_true",
+    dest="all_pages",
+)
 
-lifestream.arguments.add_argument('--max_pages', type=int,
-                                  help='How many pages (overriden by --all)',
-                                  default=1,
-                                  required=False)
+lifestream.arguments.add_argument(
+    "--max_pages",
+    type=int,
+    help="How many pages (overriden by --all)",
+    default=1,
+    required=False,
+)
 
 args = lifestream.arguments.parse_args()
 
@@ -38,24 +40,21 @@ if args.site:
 else:
     sites = []
     for section in lifestream.config.sections():
-        if section[0:9] == 'mastodon:':
+        if section[0:9] == "mastodon:":
             sites.append(section[9:])
 
 Lifestream = lifestream.Lifestream()
 
-logger = logging.getLogger('Mastodon')
+logger = logging.getLogger("Mastodon")
 
 for site in sites:
     source = site
     type = "mastodon"
     try:
         base_url = lifestream.config.get("mastodon:%s" % source, "base_url")
-        client_key = lifestream.config.get(
-            "mastodon:%s" % source, "client_key")
-        client_secret = lifestream.config.get(
-            "mastodon:%s" % source, "client_secret")
-        access_token = lifestream.config.get(
-            "mastodon:%s" % source, "access_token")
+        client_key = lifestream.config.get("mastodon:%s" % source, "client_key")
+        client_secret = lifestream.config.get("mastodon:%s" % source, "client_secret")
+        access_token = lifestream.config.get("mastodon:%s" % source, "access_token")
     except configparser.NoSectionError:
         logger.error("No [mastodon:%s] section found in config" % source)
         sys.exit(5)
@@ -67,7 +66,7 @@ for site in sites:
         client_id=client_key,
         client_secret=client_secret,
         api_base_url=base_url,
-        access_token=access_token
+        access_token=access_token,
     )
 
     this_page = 0
@@ -86,30 +85,30 @@ for site in sites:
     while keep_going:
 
         if last_seen:
-            toots = mastodon.account_statuses(me['id'], min_id=last_seen)
+            toots = mastodon.account_statuses(me["id"], min_id=last_seen)
         else:
-            toots = mastodon.account_statuses(me['id'])
+            toots = mastodon.account_statuses(me["id"])
 
         for toot in toots:
-            title = toot['content']
+            title = toot["content"]
 
-            if len(toot['media_attachments']):
-                for media in toot['media_attachments']:
-                    if media['type'] == "image":
-                        thumbnail = media['url']
+            if len(toot["media_attachments"]):
+                for media in toot["media_attachments"]:
+                    if media["type"] == "image":
+                        thumbnail = media["url"]
                         break
             else:
-                thumbnail = ''
+                thumbnail = ""
 
             Lifestream.add_entry(
-                id=toot['id'],
+                id=toot["id"],
                 title=title,
                 source=source,
-                date=toot['created_at'],
-                url=toot['url'],
+                date=toot["created_at"],
+                url=toot["url"],
                 image=thumbnail,
                 fulldata_json=lifestream.force_json(toot),
-                type=type
+                type=type,
             )
 
         #     logger.info("%s: %s" % (post.date.strftime("%Y-%m-%d"), title))

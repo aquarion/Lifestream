@@ -1,28 +1,27 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import datetime
+import logging
+import pickle as pickle
 # Python
 import sys
 import urllib.parse
-import pickle as pickle
-import simplejson
-import datetime
-import logging
-from dateutil.relativedelta import relativedelta
 
+import oauth2 as oauth
+import simplejson
+from dateutil.relativedelta import relativedelta
 # Libraries
 from pytumblr import TumblrRestClient
-import oauth2 as oauth
-
-# Libraries
-from lifestream.oauth_utils import read_token_file
 
 # Local
 import lifestream
+# Libraries
+from lifestream.oauth_utils import read_token_file
 
 Lifestream = lifestream.Lifestream()
 
-logger = logging.getLogger('Histumblr')
+logger = logging.getLogger("Histumblr")
 args = lifestream.arguments.parse_args()
 
 OAUTH_TUMBLR = lifestream.config.get("tumblr", "secrets_file")
@@ -32,9 +31,9 @@ def tumblrAuth(config, OAUTH_TUMBLR):
     consumer_key = config.get("tumblr", "consumer_key")
     consumer_secret = config.get("tumblr", "secret_key")
 
-    request_token_url = 'http://www.tumblr.com/oauth/request_token'
-    access_token_url = 'http://www.tumblr.com/oauth/access_token'
-    authorize_url = 'http://www.tumblr.com/oauth/authorize'
+    request_token_url = "http://www.tumblr.com/oauth/request_token"
+    access_token_url = "http://www.tumblr.com/oauth/access_token"
+    authorize_url = "http://www.tumblr.com/oauth/authorize"
 
     try:
         f = open(OAUTH_TUMBLR, "rb")
@@ -44,27 +43,26 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         logger.error("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 
-    if (not oauth_token):
+    if not oauth_token:
         consumer = oauth.Consumer(consumer_key, consumer_secret)
         client = oauth.Client(consumer)
         resp, content = client.request(request_token_url, "GET")
-        if resp['status'] != '200':
-            raise Exception("Invalid response %s." % resp['status'])
+        if resp["status"] != "200":
+            raise Exception("Invalid response %s." % resp["status"])
 
         request_token = dict(urllib.parse.parse_qsl(content))
         print("Go to the following link in your browser:")
-        print("%s?oauth_token=%s" %
-              (authorize_url, request_token['oauth_token']))
+        print("%s?oauth_token=%s" % (authorize_url, request_token["oauth_token"]))
         print()
 
-        accepted = 'n'
-        while accepted.lower() == 'n':
-            accepted = input('Have you authorized me? (y/n) ')
-        oauth_verifier = input('What is the PIN? ')
+        accepted = "n"
+        while accepted.lower() == "n":
+            accepted = input("Have you authorized me? (y/n) ")
+        oauth_verifier = input("What is the PIN? ")
 
         token = oauth.Token(
-            request_token['oauth_token'],
-            request_token['oauth_token_secret'])
+            request_token["oauth_token"], request_token["oauth_token_secret"]
+        )
         token.set_verifier(oauth_verifier)
         client = oauth.Client(consumer, token)
 
@@ -73,8 +71,8 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         logger.debug(resp)
         logger.debug(oauth_token)
-        print("Access key:", oauth_token['oauth_token'])
-        print("Access Secret:", oauth_token['oauth_token_secret'])
+        print("Access key:", oauth_token["oauth_token"])
+        print("Access Secret:", oauth_token["oauth_token_secret"])
 
         f = open(OAUTH_TUMBLR, "w")
         pickle.dump(oauth_token, f)
@@ -83,15 +81,16 @@ def tumblrAuth(config, OAUTH_TUMBLR):
     return TumblrRestClient(
         consumer_key,
         consumer_secret,
-        oauth_token['oauth_token'],
-        oauth_token['oauth_token_secret'])
+        oauth_token["oauth_token"],
+        oauth_token["oauth_token_secret"],
+    )
 
 
 def cursor(dbcxn):
     dbc = dbcxn.cursor()
-    dbc.execute('SET NAMES utf8;')
-    dbc.execute('SET CHARACTER SET utf8;')
-    dbc.execute('SET character_set_connection=utf8;')
+    dbc.execute("SET NAMES utf8;")
+    dbc.execute("SET CHARACTER SET utf8;")
+    dbc.execute("SET character_set_connection=utf8;")
 
     return dbc
 
@@ -139,14 +138,14 @@ for post in cursor:
 
     logger.info(date_created)
     logger.info(date_created + ten_years)
-    logger.info('---')
+    logger.info("---")
 
     tresponse = tumblr.reblog(
         "aquarions-of-history",
         id=systemid,
-        reblog_key=data['reblog_key'],
+        reblog_key=data["reblog_key"],
         state="queue",
-        date=date_created + ten_years
+        date=date_created + ten_years,
     )
 
 dbcxn.close()

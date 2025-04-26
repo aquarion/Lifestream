@@ -1,26 +1,25 @@
 #!/usr/bin/python
 
 # Python
-import sys
+import logging
 import os
 import re
+import sys
 from datetime import datetime, timezone
-import logging
 
-# Libraries
-from lifestream.oauth_utils import read_token_file
 import requests
 
 # Local
 import lifestream
-
+# Libraries
+from lifestream.oauth_utils import read_token_file
 
 type = "location"
 username = lifestream.config.get("foursquare", "username")
 url = "http://foursquare.com/%s" % username
 
 
-logger = logging.getLogger('Foursquare')
+logger = logging.getLogger("Foursquare")
 args = lifestream.arguments.parse_args()
 
 # DB Setup
@@ -50,10 +49,7 @@ Lifestream = lifestream.Lifestream()
 URL_BASE = "https://api.foursquare.com/v2/%s"
 # Get the data
 
-payload = {
-    'v': "20180226",
-    'oauth_token': oauth_token
-}
+payload = {"v": "20180226", "oauth_token": oauth_token}
 
 r = requests.get(URL_BASE % "users/self/checkins", params=payload)
 
@@ -64,34 +60,34 @@ except Exception as e:
     print(r.text)
     sys.exit(5)
 
-checkins = data['response']['checkins']['items']
+checkins = data["response"]["checkins"]["items"]
 
-if 'checkins' in list(data['response'].keys()):
+if "checkins" in list(data["response"].keys()):
     for location in checkins:
         source = "Foursquare"
-        if "isMayor" in list(location.keys()) and location['isMayor']:
+        if "isMayor" in list(location.keys()) and location["isMayor"]:
             source = "Foursquare-Mayor"
 
         image = ""
 
-        source = re.sub(r'<[^>]*?>', '', source)
+        source = re.sub(r"<[^>]*?>", "", source)
 
         if "venue" in list(location.keys()):
-            message = location['venue']['name']
-            if len(location['venue']['categories']):
-                for category in location['venue']['categories']:
+            message = location["venue"]["name"]
+            if len(location["venue"]["categories"]):
+                for category in location["venue"]["categories"]:
                     if "primary" in list(category.keys()):
-                        image = category['icon']
-                        image = image['prefix'] + "64.png"
+                        image = category["icon"]
+                        image = image["prefix"] + "64.png"
         else:
-            message = location['location']['name']
+            message = location["location"]["name"]
 
-        epoch = location['createdAt']
+        epoch = location["createdAt"]
         # utctime = datetime.utcfromtimestamp(epoch)
         utctime = datetime.fromtimestamp(epoch, tz=timezone.utc)
         utcdate = utctime.strftime("%Y-%m-%d %H:%M")
 
-        id = location['id']
+        id = location["id"]
 
         url = "http://www.foursquare.com/%s/checkin/%s" % (username, id)
 
@@ -104,11 +100,18 @@ if 'checkins' in list(data['response'].keys()):
             utcdate,
             url=url,
             image=image,
-            fulldata_json=location)
+            fulldata_json=location,
+        )
 
-        coordinates = location['venue']['location']
+        coordinates = location["venue"]["location"]
 
-        logger.info("Checkin %s@%s" % (utcdate, location['venue']['name']))
+        logger.info("Checkin %s@%s" % (utcdate, location["venue"]["name"]))
 
         Lifestream.add_location(
-            utctime, "foursquare", coordinates['lat'], coordinates['lng'], message, image)
+            utctime,
+            "foursquare",
+            coordinates["lat"],
+            coordinates["lng"],
+            message,
+            image,
+        )
