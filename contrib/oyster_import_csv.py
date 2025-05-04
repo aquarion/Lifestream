@@ -1,26 +1,23 @@
 #!/usr/bin/python
 
-''' A handy script to import a CSV file from tfl.gov into lifestream, useful for catching up missed items '''
+"""A handy script to import a CSV file from tfl.gov into lifestream, useful for catching up missed items"""
+
+import csv
+import hashlib
+from datetime import datetime
 
 import lifestream
-import sys
 import pytz
-import re
-import hashlib
-import time
-import csv
-
-from datetime import datetime
 
 dbcxn = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
 
 londontime = pytz.timezone("Europe/London")
 
-dataReader = csv.reader(open('oyster.csv', 'rb'))
+dataReader = csv.reader(open("oyster.csv", "rb"))
 
 
-s_sql = 'replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);'
+s_sql = "replace into lifestream (`type`, `systemid`, `title`, `date_created`, `url`, `source`) values (%s, %s, %s, %s, %s, %s);"
 
 
 headers = False
@@ -44,9 +41,7 @@ for row in dataReader:
             time_from = "00:00"
 
         # print row
-        timestamp = datetime.strptime(
-            "%s %s" %
-            (date, time_from), "%d-%b-%Y %H:%M")
+        timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
         loc_date = londontime.localize(timestamp)
         utcdate = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
@@ -56,10 +51,5 @@ for row in dataReader:
 
         print(action, utcdate)
         cursor.execute(
-            s_sql,
-            ("oyster",
-             id.hexdigest(),
-             action,
-             utcdate,
-             "#",
-             "oyster"))
+            s_sql, ("oyster", id.hexdigest(), action, utcdate, "#", "oyster")
+        )
