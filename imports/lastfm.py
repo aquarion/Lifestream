@@ -6,13 +6,12 @@ import sys
 
 import dateutil.parser
 import feedparser
-import pytz
 
 # Local
 import lifestream
+import pytz
 
 # Libraries
-
 
 
 logger = logging.getLogger("Last.FM")

@@ -5,20 +5,22 @@ import configparser  # For the exceptions
 import logging
 import pickle
 import socket
+
 # Python
 import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
+import CodeFetcher9000
+
 # Libraries
 import facebook
+
+# Local
+import lifestream
 import pymysql
 import requests
 from dateutil import parser as dtparser
-
-import CodeFetcher9000
-# Local
-import lifestream
 
 Lifestream = lifestream.Lifestream()
 
@@ -143,7 +145,7 @@ def some_action(post, graph, profile):
     else:
         image = False
 
-    if not "message" in post:
+    if "message" not in post:
         post["message"] = ""
 
     show = True

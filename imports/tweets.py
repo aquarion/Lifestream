@@ -1,19 +1,19 @@
 #!/usr/bin/python
 # Python
 import logging
-import os
 import re
 import socket
 import sys
 from urllib.error import URLError
 
 import dateutil.parser
-import pytz
-# Libraries
-import twitter
 
 # Local
 import lifestream
+import pytz
+
+# Libraries
+import twitter
 from lifestream.oauth_utils import read_token_file
 
 Lifestream = lifestream.Lifestream()

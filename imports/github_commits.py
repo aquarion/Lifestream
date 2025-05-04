@@ -3,15 +3,14 @@
 import logging
 
 import dateutil.parser
+
+# Local
+import lifestream
 import pytz
 import requests
 import simplejson as json
 
-# Local
-import lifestream
-
 # Libraries
-
 
 
 Lifestream = lifestream.Lifestream()

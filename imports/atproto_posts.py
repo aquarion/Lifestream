@@ -8,12 +8,10 @@ from pprint import pprint
 from urllib.parse import urlparse
 
 import dateutil.parser
-import ipdb
-import simplejson as json
-from atproto import Client as atClient
 
 # Local
 import lifestream
+from atproto import Client as atClient
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False

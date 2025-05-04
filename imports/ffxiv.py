@@ -1,22 +1,19 @@
 #!/usr/bin/python
 # Python
-import hashlib
 import logging
 import math
 import re
 import sqlite3
-from ctypes.wintypes import CHAR
 from datetime import datetime
-from pprint import pprint
 
 import bs4
-import ipdb
-# Libraries
-import requests
-import simplejson
 
 # Local
 import lifestream
+
+# Libraries
+import requests
+import simplejson
 
 Lifestream = lifestream.Lifestream()
 

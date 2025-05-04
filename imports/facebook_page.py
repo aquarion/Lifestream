@@ -9,13 +9,14 @@ import socket
 import sys
 from datetime import datetime, timedelta
 
+import CodeFetcher9000
+
 # Libraries
 import facebook
-import requests
 
-import CodeFetcher9000
 # Local
 import lifestream
+import requests
 
 UTF8Writer = codecs.getwriter("utf8")
 sys.stdout = UTF8Writer(sys.stdout)
@@ -163,7 +164,7 @@ def some_action(post, graph, profile):
     else:
         pass
 
-    if not "message" in post:
+    if "message" not in post:
         post["message"] = ""
 
     # Lifestream.add_entry(

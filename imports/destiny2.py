@@ -7,16 +7,16 @@ import socket
 import sys
 import time
 from datetime import datetime, timedelta
-from pprint import pprint
-
-import dateutil.parser
-import pytz
-# Libraries
-import requests
 
 import CodeFetcher9000
+import dateutil.parser
+
 # Local
 import lifestream
+import pytz
+
+# Libraries
+import requests
 from lifestream import destiny_exceptions
 
 Lifestream = lifestream.Lifestream()

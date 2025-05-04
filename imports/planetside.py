@@ -3,16 +3,14 @@
 import configparser
 import hashlib
 import logging
-import sys
 from datetime import datetime
-from pprint import pprint
-
-import pytz
-# Libraries
-import requests
 
 # Local
 import lifestream
+import pytz
+
+# Libraries
+import requests
 
 logger = logging.getLogger("Planetside2")
 args = lifestream.arguments.parse_args()

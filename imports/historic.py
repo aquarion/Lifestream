@@ -4,20 +4,20 @@
 import datetime
 import logging
 import pickle as pickle
-# Python
-import sys
-import urllib.parse
 
-import oauth2 as oauth
-import simplejson
-from dateutil.relativedelta import relativedelta
-# Libraries
-from pytumblr import TumblrRestClient
+# Python
+import urllib.parse
 
 # Local
 import lifestream
+import oauth2 as oauth
+import simplejson
+from dateutil.relativedelta import relativedelta
+
 # Libraries
-from lifestream.oauth_utils import read_token_file
+
+# Libraries
+from pytumblr import TumblrRestClient
 
 Lifestream = lifestream.Lifestream()
 

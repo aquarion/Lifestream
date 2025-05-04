@@ -7,10 +7,10 @@ import re
 import sys
 from datetime import datetime, timezone
 
-import requests
-
 # Local
 import lifestream
+import requests
+
 # Libraries
 from lifestream.oauth_utils import read_token_file
 
@@ -55,7 +55,7 @@ r = requests.get(URL_BASE % "users/self/checkins", params=payload)
 
 try:
     data = r.json()
-except Exception as e:
+except Exception:
     print(URL_BASE, "users/self/checkins", payload)
     print(r.text)
     sys.exit(5)

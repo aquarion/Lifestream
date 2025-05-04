@@ -5,12 +5,12 @@ import configparser
 import logging
 import sys
 
+# Local
+import lifestream
+
 # Libraries
 from wordpress_xmlrpc import Client
 from wordpress_xmlrpc.methods.posts import GetPosts
-
-# Local
-import lifestream
 
 lifestream.arguments.add_argument(
     "site", type=str, help="Site, as defined in config.ini", nargs="*"

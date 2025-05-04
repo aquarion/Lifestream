@@ -5,15 +5,13 @@ import logging
 import os
 from datetime import datetime
 from io import BytesIO
-from pprint import pprint
 from xml.dom import minidom
 from xml.parsers.expat import ExpatError
 
-import pytz
-import requests
-
 # Local
 import lifestream
+import pytz
+import requests
 
 # Libraries
 

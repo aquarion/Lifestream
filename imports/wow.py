@@ -9,16 +9,15 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
+import CodeFetcher9000
+
+# Local
+import lifestream
 import pytz
 import requests
-from ipdb import set_trace
 from oauthlib.oauth2 import BackendApplicationClient
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
-
-import CodeFetcher9000
-# Local
-import lifestream
 
 SCOPE = [
     "wow.profile",
@@ -211,7 +210,7 @@ class BlizzardAPI:
                 f = open(CHARACTER_CACHE, "rb")
                 profile = pickle.load(f)
                 f.close()
-            except OSError as e:
+            except OSError:
                 raise BlizzardForceRefreshProfile("Cache file not found")
 
             if "error" in profile:
@@ -335,7 +334,7 @@ if datetime.now() >= creation_date + expiry:
     )
 else:
     logger.info("User access token is {} days old".format(delta.days))
-    logger.info("User access expires at ".format(creation_date + expiry))
+    logger.info("User access expires at ")
 
 profile = api.get_profile()
 
@@ -379,7 +378,7 @@ for character in profile["characters"]:
             try:
                 achievement = api.get_achievement(completed[index])
                 log_achievement(achievement, completed_ts[index], character)
-            except BlizzardAchivementNotFound as e:
+            except BlizzardAchivementNotFound:
                 logger.warning("Achievement {} not found".format(achievement))
     else:
 

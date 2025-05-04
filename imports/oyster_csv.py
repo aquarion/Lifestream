@@ -5,13 +5,11 @@ import hashlib
 import logging
 from datetime import datetime
 
-import pytz
-
 # Local
 import lifestream
+import pytz
 
 # Libraries
-
 
 
 Lifestream = lifestream.Lifestream()

@@ -5,13 +5,14 @@ import pickle as pickle
 import urllib.parse
 
 import dateutil.parser
-import oauth2 as oauth
-import pytz
-# Libraries
-from pytumblr import TumblrRestClient
 
 # Local
 import lifestream
+import oauth2 as oauth
+import pytz
+
+# Libraries
+from pytumblr import TumblrRestClient
 
 logger = logging.getLogger("Tumblr")
 lifestream.arguments.add_argument(

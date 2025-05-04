@@ -4,13 +4,10 @@
 import configparser
 import logging
 import sys
-from pprint import pprint
-
-import mastodon as mastodonpy
-import simplejson as json
 
 # Local
 import lifestream
+import mastodon as mastodonpy
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False

@@ -1,23 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import codecs
-import configparser  # For the exceptions
-import hashlib
 import logging
+
 # Python
-import pickle
-import socket
 import sys
 from datetime import datetime
 from pprint import pprint
 
-import pytz
-from InstagramAPI import InstagramAPI
 
-import CodeFetcher9000
 # Local
 import lifestream
+from InstagramAPI import InstagramAPI
 
 Lifestream = lifestream.Lifestream()
 

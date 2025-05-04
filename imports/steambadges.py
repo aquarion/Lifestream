@@ -2,18 +2,17 @@
 # Python
 import hashlib
 import logging
-import signal
 import sys
 from datetime import datetime
 
+# Local
+import lifestream
 import pytz
+
 # Libraries
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
-
-# Local
-import lifestream
 
 logger = logging.getLogger("Steam Badges")
 args = lifestream.arguments.parse_args()

@@ -3,13 +3,11 @@
 
 import logging
 from datetime import datetime
-from pprint import pprint
-
-import requests
 
 # Local
 import lifestream
 import lifestreamutils
+import requests
 
 logger = logging.getLogger("switchbot")
 

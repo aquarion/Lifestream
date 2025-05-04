@@ -7,12 +7,13 @@ import pprint
 from datetime import datetime, timedelta
 
 import fitbit
-# Libraries
-from fitbit.api import FitbitOauthClient
 
 # Local
 import lifestream
 import lifestreamutils
+
+# Libraries
+from fitbit.api import FitbitOauthClient
 
 Lifestream = lifestream.Lifestream()
 

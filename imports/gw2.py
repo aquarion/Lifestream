@@ -2,15 +2,15 @@
 # Python
 import logging
 import sys
-from datetime import datetime, timedelta
-
-import requests
-from guildwars2api.base import GuildWars2APIError
-# Libraries
-from guildwars2api.v2 import GuildWars2API
+from datetime import datetime
 
 # Local
 import lifestream
+import requests
+from guildwars2api.base import GuildWars2APIError
+
+# Libraries
+from guildwars2api.v2 import GuildWars2API
 
 Lifestream = lifestream.Lifestream()
 
@@ -106,7 +106,7 @@ for category in get_categories():
             achievements_library[achievement_id]["category"] = category
 
 for ident, achievement in achievements_library.items():
-    if not "info" in achievement:
+    if "info" not in achievement:
         continue
 
     icon = False
