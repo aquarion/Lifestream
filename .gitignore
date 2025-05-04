@@ -16,5 +16,6 @@ dayze/annual
 .direnv
 crontab
 *.log
-datafiles/ffxiv_achievements.csv
-datafiles/ffxiv_achievements.db
+datafiles/ffxiv_achievements.*
+.mypy_cache/
+super-linter-output/
