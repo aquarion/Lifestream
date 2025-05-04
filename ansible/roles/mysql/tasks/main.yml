@@ -1,8 +1,0 @@
-# Create a new database with name 'bobdata'
-- mysql_db: name=lifestream state=present
-
-# Copy database dump file to remote host and restore it to database 'my_db'
-- copy: src=../schema.sql dest=/tmp
-- mysql_db: name=lifestream state=import target=/tmp/schema.sql
-
-- mysql_user: name=lifestream password=lifestream priv=*.*:ALL state=present
