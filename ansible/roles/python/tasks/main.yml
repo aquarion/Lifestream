@@ -1,4 +1,3 @@
-
 - pip: requirements=/vagrant/requirements.pip virtualenv=/home/vagrant/venv virtualenv_site_packages=yes
 
 # Dev modules

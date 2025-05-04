@@ -1,4 +1,3 @@
-
 - name: Send deploy notification message via Slack
   local_action:
     module: slack

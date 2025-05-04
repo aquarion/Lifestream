@@ -6,13 +6,13 @@
     http_port: 80
     domain: lifestream.dev
   roles:
-  - apt
-  - mysql
-  - apache
+    - apt
+    - mysql
+    - apache
   tasks:
-  - hostname: name={{ domain }}
+    - hostname: name={{ domain }}
 
 - hosts: all
   remote_user: vagrant
   roles:
-  - python
+    - python

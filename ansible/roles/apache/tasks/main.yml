@@ -1,8 +1,6 @@
 ---
-
 - name: Install Apache
-  apt: name=apache2 
-
+  apt: name=apache2
 
 - name: Install virtualhost
   template: src=httpd.conf.j2 dest=/etc/apache2/sites-available/{{ domain }}.conf
@@ -10,14 +8,14 @@
 - name: Create symlink to Domain
   file: src=/vagrant/dayze state=link dest=/var/www/{{ domain }}
   notify:
-  - restart apache2
+    - restart apache2
 
 - name: a2ensite {{ domain }}
   command: a2ensite {{ domain }}
   args:
     creates: /etc/apache2/sites-enabled/{{ domain }}.conf
   notify:
-  - restart apache2
+    - restart apache2
 
 - name: enabled mod_rewrite
   apache2_module: name=rewrite state=present

@@ -5,5 +5,4 @@
 - copy: src=../schema.sql dest=/tmp
 - mysql_db: name=lifestream state=import target=/tmp/schema.sql
 
-
 - mysql_user: name=lifestream password=lifestream priv=*.*:ALL state=present
