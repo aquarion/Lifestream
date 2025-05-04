@@ -2,103 +2,110 @@
 name = "lifestream"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Nicholas Avenell",email = "nicholas@istic.net"}
-]
+authors = [{ name = "Nicholas Avenell", email = "nicholas@istic.net" }]
 readme = "README.md"
-package-mode = false
 
-requires-python = ">=3.13,<3.14"
-dependencies = [
-    "asttokens (==2.4.1)",
-    "attrs (==23.2.0)",
-    "autopep8 (==2.3.1)",
-    "beautifulsoup4 (==4.12.3)",
-    "blurhash (==1.1.4)",
-    "bs4 (==0.0.2)",
-    "cachetools (==5.3.3)",
-    "certifi (==2024.6.2)",
-    "chardet (==5.2.0)",
-    "charset-normalizer (==3.3.2)",
-    "colorama (==0.4.6)",
-    "cymysql (==1.0.1)",
-    "decorator (==5.1.1)",
-    "exceptiongroup (==1.2.1)",
-    "executing (==2.0.1)",
-    "facebook-sdk (==3.1.0)",
-    "feedparser (==6.0.11)",
-    "flickrapi (==2.4.0)",
-    "future (==1.0.0)",
-    "google-api-core (==2.19.1)",
-    "google-api-python-client (==2.135.0)",
-    "google-auth (==2.30.0)",
-    "google-auth-httplib2 (==0.2.0)",
-    "googleapis-common-protos (==1.63.2)",
-    "guildwars2api @ https://github.com/aquarion/guildwars2api/archive/refs/tags/0.1a.tar.gz",
-    "h11 (==0.14.0)",
-    "httplib2 (==0.22.0)",
-    "httpretty (==1.1.4)",
-    "idna (==3.7)",
-    "ipdb (==0.13.13)",
-    "ipython (==8.26.0)",
-    "jedi (==0.19.1)",
-    "mastodon-py (>=1.8,<2.0)",
-    "matplotlib-inline (==0.1.7)",
-    "oauth2 (==1.9.0.post1)",
-    "oauthlib (==3.2.2)",
-    "outcome (==1.3.0.post0)",
-    "parso (==0.8.4)",
-    "pbr (==6.0.0)",
-    "pep8 (==1.7.1)",
-    "pexpect (==4.9.0)",
-    "prompt-toolkit (==3.0.47)",
-    "proto-plus (==1.24.0)",
-    "protobuf (==5.27.2)",
-    "ptyprocess (==0.7.0)",
-    "pure-eval (==0.2.2)",
-    "pyasn1 (==0.6.0)",
-    "pyasn1-modules (==0.4.0)",
-    "pycodestyle (==2.12.0)",
-    "pygments (==2.18.0)",
-    "pymysql (==1.1.1)",
-    "pyparsing (==3.1.2)",
-    "pysocks (==1.7.1)",
-    "python-dateutil (==2.9.0.post0)",
-    "python-gflags (==3.1.2)",
-    "python-magic (==0.4.27)",
-    "python-memcached (==1.62)",
-    "python-twitter (==3.5)",
-    "python-wordpress-xmlrpc @ https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip",
-    "pytumblr (==0.1.2)",
-    "pytz (==2024.1)",
-    "requests (==2.32.3)",
-    "requests-oauthlib (==2.0.0)",
-    "requests-toolbelt (==1.0.0)",
-    "selenium (==4.22.0)",
-    "sgmllib3k (==1.0.0)",
-    "simplejson (==3.19.2)",
-    "six (==1.16.0)",
-    "sniffio (==1.3.1)",
-    "sortedcontainers (==2.4.0)",
-    "soupsieve (==2.5)",
-    "stack-data (==0.6.3)",
-    "stevedore (==5.2.0)",
-    "toml (==0.10.2)",
-    "tomli (==2.0.1)",
-    "traitlets (==5.14.3)",
-    "trio (==0.25.1)",
-    "trio-websocket (==0.11.1)",
-    "typing-extensions (==4.12.2)",
-    "uritemplate (==4.1.1)",
-    "urllib3 (==2.2.2)",
-    "wcwidth (==0.2.13)",
-    "websocket-client (==1.8.0)",
-    "wsproto (==1.2.0)",
-    "pyutil (==3.3.6)",
-    "redis (==5.2.0)",
-    "paramiko (==3.5.0)",
-    "tqdm (==4.67.1)"
-]
+requires-python = ">=3.11,<4.0"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
+asttokens = "^2.4.1"
+attrs = "^23.2.0"
+autopep8 = "^2.3.1"
+beautifulsoup4 = "^4.12.3"
+blurhash = "^1.1.4"
+bs4 = "^0.0.2"
+cachetools = "^5.3.3"
+certifi = "^2024.6.2"
+chardet = "^5.2.0"
+charset-normalizer = "^3.3.2"
+colorama = "^0.4.6"
+cymysql = "^1.0.1"
+decorator = "^5.1.1"
+exceptiongroup = "^1.2.1"
+executing = "^2.0.1"
+facebook-sdk = "^3.1.0"
+feedparser = "^6.0.11"
+flickrapi = "^2.4.0"
+future = "^1.0.0"
+google-api-core = "^2.19.1"
+google-api-python-client = "^2.135.0"
+google-auth = "^2.30.0"
+google-auth-httplib2 = "^0.2.0"
+googleapis-common-protos = "^1.63.2"
+#guildwars2api @ https://github.com/aquarion/guildwars2api/archive/refs/tags/0.1a.tar.gz
+guildwars2api = { git = "git@github.com:aquarion/guildwars2api.git", tag = "0.1a" }
+h11 = "^0.14.0"
+httplib2 = "^0.22.0"
+httpretty = "^1.1.4"
+idna = "^3.7"
+ipdb = "^0.13.13"
+ipython = "^8.26.0"
+jedi = "^0.19.1"
+mastodon-py = ">=1.8,<2.0"
+matplotlib-inline = "^0.1.7"
+oauth2 = "^1.9.0.post1"
+oauthlib = "^3.2.2"
+outcome = "^1.3.0.post0"
+parso = "^0.8.4"
+pbr = "^6.0.0"
+pep8 = "^1.7.1"
+pexpect = "^4.9.0"
+prompt-toolkit = "^3.0.47"
+proto-plus = "^1.24.0"
+protobuf = "^5.27.2"
+ptyprocess = "^0.7.0"
+pure-eval = "^0.2.2"
+pyasn1 = "^0.6.0"
+pyasn1-modules = "^0.4.0"
+pycodestyle = "^2.12.0"
+pygments = "^2.18.0"
+pymysql = "^1.1.1"
+pyparsing = "^3.1.2"
+pysocks = "^1.7.1"
+python-dateutil = "^2.9.0.post0"
+python-gflags = "^3.1.2"
+python-magic = "^0.4.27"
+python-memcached = "^1.62"
+python-twitter = "^3.5"
+#python-wordpress-xmlrpc @ https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip
+# python-wordpress-xmlrpc = {url = "https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip"}
+python-wordpress-xmlrpc = { git = "https://git@github.com/emsi/python-wordpress-xmlrpc.git", branch = "master" }
+
+pytumblr = "^0.1.2"
+pytz = "^2024.1"
+requests = "^2.32.3"
+requests-oauthlib = "^2.0.0"
+requests-toolbelt = "^1.0.0"
+selenium = "^4.22.0"
+sgmllib3k = "^1.0.0"
+simplejson = "^3.19.2"
+six = "^1.16.0"
+sniffio = "^1.3.1"
+sortedcontainers = "^2.4.0"
+soupsieve = "^2.5"
+stack-data = "^0.6.3"
+stevedore = "^5.2.0"
+toml = "^0.10.2"
+tomli = "^2.0.1"
+traitlets = "^5.14.3"
+trio = "^0.25.1"
+trio-websocket = "^0.11.1"
+typing-extensions = "^4.12.2"
+uritemplate = "^4.1.1"
+urllib3 = "^2.2.2"
+wcwidth = "^0.2.13"
+websocket-client = "^1.8.0"
+wsproto = "^1.2.0"
+pyutil = "^3.3.6"
+redis = "^5.2.0"
+paramiko = "^3.5.0"
+tqdm = "^4.67.1"
+
+
+[tool.poetry]
+
+package-mode = false
 
 
 [build-system]
@@ -106,6 +113,5 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
-black = "^25.1.0"
-isort = "^6.0.1"
-
+black = "^25"
+isort = "^6"
