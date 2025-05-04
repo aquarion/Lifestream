@@ -1,97 +1,137 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en-EN">
-	<head>
-		<meta charset="utf-8">
-		<meta http-equiv="X-UA-Compatible" content="IE=edge">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>Code collected</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Code collected</title>
 
-		<!-- Bootstrap CSS -->
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+      integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
+      crossorigin="anonymous"
+    />
 
-		<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-		<!--[if lt IE 9]>
-			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.2/html5shiv.min.js"></script>
-			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-		<![endif]-->
-		<style type="text/css">
-			body{
-			    width: 50%;
-			    max-width: 250px;
-			    margin: 0 auto;
-			    color: #FFF;
-			    stroke: #FFF;
-			    background: #b52235;
-			    padding-top: 10%;
-			}
-			.circ{
-			    opacity: 0;
-			    stroke-dasharray: 130;
-			    stroke-dashoffset: 130;
-			    -webkit-transition: all 1s;
-			    -moz-transition: all 1s;
-			    -ms-transition: all 1s;
-			    -o-transition: all 1s;
-			    transition: all 1s;
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <style type="text/css">
+      body {
+        width: 50%;
+        max-width: 250px;
+        margin: 0 auto;
+        color: #fff;
+        stroke: #fff;
+        background: #b52235;
+        padding-top: 10%;
+      }
+      .circ {
+        opacity: 0;
+        stroke-dasharray: 130;
+        stroke-dashoffset: 130;
+        -webkit-transition: all 1s;
+        -moz-transition: all 1s;
+        -ms-transition: all 1s;
+        -o-transition: all 1s;
+        transition: all 1s;
+      }
+      .tick {
+        stroke-dasharray: 50;
+        stroke-dashoffset: 50;
+        -webkit-transition: stroke-dashoffset 1s 0.5s ease-out;
+        -moz-transition: stroke-dashoffset 1s 0.5s ease-out;
+        -ms-transition: stroke-dashoffset 1s 0.5s ease-out;
+        -o-transition: stroke-dashoffset 1s 0.5s ease-out;
+        transition: stroke-dashoffset 1s 0.5s ease-out;
+      }
+      .drawn + svg .path {
+        opacity: 1;
+        stroke-dashoffset: 0;
+      }
 
-			}
-			.tick{
-			    stroke-dasharray: 50;
-			    stroke-dashoffset: 50;
-			    -webkit-transition: stroke-dashoffset 1s 0.5s ease-out;
-			    -moz-transition: stroke-dashoffset 1s 0.5s ease-out;
-			    -ms-transition: stroke-dashoffset 1s 0.5s ease-out;
-			    -o-transition: stroke-dashoffset 1s 0.5s ease-out;
-			    transition: stroke-dashoffset 1s 0.5s ease-out;
-			}
-			.drawn + svg .path{
-			    opacity: 1;
-			    stroke-dashoffset: 0;
-			}
-
-			.words {
-				display: none;
-			}
-		</style>
-	</head>
-	<body>
-
-
-		<div class="trigger"></div>
-<svg version="1.1" id="tick" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 37 37" style="enable-background:new 0 0 37 37;" xml:space="preserve">
-<path class="circ path" style="fill:none;stroke-width:3;stroke-linejoin:round;stroke-miterlimit:10;" d="
+      .words {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="trigger"></div>
+    <svg
+      version="1.1"
+      id="tick"
+      xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+      x="0px"
+      y="0px"
+      viewBox="0 0 37 37"
+      style="enable-background: new 0 0 37 37"
+      xml:space="preserve"
+    >
+      <path
+        class="circ path"
+        style="
+          fill: none;
+          stroke-width: 3;
+          stroke-linejoin: round;
+          stroke-miterlimit: 10;
+        "
+        d="
 	M30.5,6.5L30.5,6.5c6.6,6.6,6.6,17.4,0,24l0,0c-6.6,6.6-17.4,6.6-24,0l0,0c-6.6-6.6-6.6-17.4,0-24l0,0C13.1-0.2,23.9-0.2,30.5,6.5z"
-	/>
-<polyline class="tick path" style="fill:none;stroke-width:3;stroke-linejoin:round;stroke-miterlimit:10;" points="
-	10,10 27,27 "/>
-<polyline class="tick path" style="fill:none;stroke-width:3;stroke-linejoin:round;stroke-miterlimit:10;" points="
-	 10,27 27,10 "/>
-</svg>
-<div class="words">
-<h1>Sorry...</h1>
-<p>I got the parameters: [[params]]</p>
-<p>I am looking for: [[key_wanted]]</p>
-<script type="text/javascript">
-                if (window.location.hash) {
-                    paramstring = window.location.hash.substring(1);
-                    window.location = '/keyback/?'+paramstring;
-                } else {
-                    console.log("No Fragment");
-                }
-
-            </script>
-</div>
-		<!-- jQuery -->
-		<script src="//code.jquery.com/jquery.js"></script>
-		<!-- Bootstrap JavaScript -->
-		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
-		<script type="text/javascript">
-		$(document).ready(function(){
-			$(".trigger").toggleClass("drawn");
-			$('.words').fadeIn(1500)
-		})
-		</script>
-	</body>
+      />
+      <polyline
+        class="tick path"
+        style="
+          fill: none;
+          stroke-width: 3;
+          stroke-linejoin: round;
+          stroke-miterlimit: 10;
+        "
+        points="
+	10,10 27,27 "
+      />
+      <polyline
+        class="tick path"
+        style="
+          fill: none;
+          stroke-width: 3;
+          stroke-linejoin: round;
+          stroke-miterlimit: 10;
+        "
+        points="
+	 10,27 27,10 "
+      />
+    </svg>
+    <div class="words">
+      <h1>Sorry...</h1>
+      <p>I got the parameters: [[params]]</p>
+      <p>I am looking for: [[key_wanted]]</p>
+      <script type="text/javascript">
+        if (window.location.hash) {
+          paramstring = window.location.hash.substring(1);
+          window.location = "/keyback/?" + paramstring;
+        } else {
+          console.log("No Fragment");
+        }
+      </script>
+    </div>
+    <!-- jQuery -->
+    <script src="//code.jquery.com/jquery.js"></script>
+    <!-- Bootstrap JavaScript -->
+    <script
+      src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
+      integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
+      crossorigin="anonymous"
+    ></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        $(".trigger").toggleClass("drawn");
+        $(".words").fadeIn(1500);
+      });
+    </script>
+  </body>
 </html>

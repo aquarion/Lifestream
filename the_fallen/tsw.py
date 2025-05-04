@@ -1,17 +1,15 @@
 #!/usr/bin/python
 # Python
-import sys
 import hashlib
-from datetime import datetime
 import logging
-
-# Libraries
-from BeautifulSoup import BeautifulSoup
-from mechanize import Browser, RobustFactory
+from datetime import datetime
 
 # Local
 import lifestream
 
+# Libraries
+from BeautifulSoup import BeautifulSoup
+from mechanize import Browser, RobustFactory
 
 Lifestream = lifestream.Lifestream()
 
@@ -22,7 +20,7 @@ br.set_handle_robots(False)
 
 # Login
 
-logger = logging.getLogger('TSW')
+logger = logging.getLogger("TSW")
 args = lifestream.arguments.parse_args()
 
 for character in CHARACTERS.split(","):
@@ -46,8 +44,7 @@ for character in CHARACTERS.split(","):
     rank_n = rank.findAll("div", {"class": "rank wf"})[0]
     rank_t = rank.findAll("div", {"class": "title wf"})[0]
 
-    text = "%s achieved %s&ndash;%s" % (
-        character, rank_n.string, rank_t.string)
+    text = "%s achieved %s&ndash;%s" % (character, rank_n.string, rank_t.string)
 
     logger.info(text)
 
@@ -60,4 +57,5 @@ for character in CHARACTERS.split(","):
         "The Secret World",
         datetime.now(),
         url=url,
-        image=src)
+        image=src,
+    )

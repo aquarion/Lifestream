@@ -1,6 +1,6 @@
-require 'java'
-require 'rubygems'
-require 'jdbc/mysql'
+require "java"
+require "rubygems"
+require "jdbc/mysql"
 include_class "com.mysql.jdbc.Driver"
 
 class JdbcMysql
@@ -12,7 +12,7 @@ class JdbcMysql
     @connection = java.sql.DriverManager.getConnection(address, username, password)
   end
 
-  def query sql
+  def query(sql)
     resultSet = @connection.createStatement.executeQuery sql
 
     meta = resultSet.getMetaData
@@ -37,28 +37,28 @@ class JdbcMysql
     end
     rows
   end
-  
-  def preparedQuery(sql,values)
-    
+
+  def preparedQuery(sql, values)
+
     statement = @connection.prepareStatement(sql)
-    
+
     i = 1;
-    
+
     values.each { |value|
       if value.class == String
         statement.setString(i, value)
       elsif value.class == Number
         statement.setFloat(i, value)
       else
-        throw "Error converting "+value
+        throw "Error converting " + value
       end
       i += 1
     }
-    
+
     rs = statement.execute
-    
+
     return rs
-    
+
   end
-  
+
 end
