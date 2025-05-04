@@ -9,7 +9,7 @@ LOCKDIR=/tmp
 # Adapted by Nicholas Avenell <nicholas@aquarionics.com> for lifestream.
 
 # lock file creation and removal
-LOCKFILE=$LOCKDIR/`basename $0`.lock
+LOCKFILE=$LOCKDIR/$(basename $0).lock
 [ -f $LOCKFILE ] && echo $LOCKFILE exists && exit 0
 trap "{ rm -f $LOCKFILE; exit 255; }" 2
 trap "{ rm -f $LOCKFILE; exit 255; }" 9
@@ -17,22 +17,20 @@ trap "{ rm -f $LOCKFILE; exit 255; }" 15
 trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
-rm ~/Dropbox/File\ Transfer/TFL/*.png 2> /dev/null
+rm ~/Dropbox/File\ Transfer/TFL/*.png 2>/dev/null
 
-files=`ls -1 ~/Dropbox/File\ Transfer/TFL/*.csv 2> /dev/null | wc -l`
+files=$(ls -1 ~/Dropbox/File\ Transfer/TFL/*.csv 2>/dev/null | wc -l)
 
-if [[ $files == 0 ]]
-then
+if [[ $files == 0 ]]; then
 	#echo "Nothing to do";
 	exit 0
 fi
 
 source ~/.virtualenvs/lifestream/bin/activate
 
-for fle in ~/Dropbox/File\ Transfer/TFL/*.csv;
-do
-	echo $fle;
-	python `dirname $0`/../imports/oyster_csv.py "$fle"
+for fle in ~/Dropbox/File\ Transfer/TFL/*.csv; do
+	echo $fle
+	python $(dirname $0)/../imports/oyster_csv.py "$fle"
 	mv "$fle" ~/Dropbox/File\ Transfer/TFL/complete/
 done
 

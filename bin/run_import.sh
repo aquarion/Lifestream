@@ -18,7 +18,7 @@ trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
 touch $LOCKFILE
 
 export DIRENV_LOG_FORMAT=""
-DIRNAME=`dirname $0`/../
+DIRNAME=$(dirname $0)/../
 cd $DIRNAME
 eval "$(direnv export bash)"
 
