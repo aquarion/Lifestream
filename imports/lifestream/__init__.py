@@ -382,6 +382,19 @@ class Lifestream:
             return False
         else:
             return redisCxn.ttl(warning_id)
+    
+    def i_said_back_off(self, warning_id, hours=24):
+        redisCxn = getRedisConnection()
+        redisCxn.set(warning_id, "1", ex=hours * 3600)
+
+    def i_should_back_off(self, warning_id):
+        redisCxn = getRedisConnection()
+        lastSent = redisCxn.get(warning_id)
+
+        if lastSent:
+            return True
+        else:
+            return False
 
 
 class FoursquareAPI:

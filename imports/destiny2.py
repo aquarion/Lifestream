@@ -38,7 +38,6 @@ lifestream.arguments.add_argument(
 
 args = lifestream.arguments.parse_args()
 
-
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
@@ -162,9 +161,19 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
     oauth_token = extend_token.json()
 
     if "error" in oauth_token:
-        logger.error(
-            "Error refreshing token: {}".format(oauth_token["error_description"])
-        )
+
+        if oauth_token["error"] == "DestinyThrottledByGameServer":
+            lifestream.i_said_back_off("destiny2:api_error:throttled")
+
+        ttl = Lifestream.warned_recently("destiny2:api_error:%".format(oauth_token["error"]))
+        message = "Error refreshing token: {}".format(oauth_token["error"])
+        if ttl:
+            logger.warning(message)
+            logger.info(
+                "Error already sent {} ago".format(lifestream.niceTimeDelta(ttl))
+            )
+        else:
+            logger.error(message)
         sys.exit(1)
         return False
 
@@ -285,6 +294,12 @@ def dt_parse(t):
         raise Exception("Bad time format %s, %s" % (t, t[15]))
     return ret.replace(tzinfo=pytz.UTC)
 
+
+### MAIN LOOP ###
+
+if lifestream.i_should_back_off("destiny2:api_error:throttled"):
+    logger.warning("Throttled, exiting")
+    sys.exit(1)
 
 for member_data in memberships["destinyMemberships"]:
     # [{u'displayName': u'Aquarionic',
