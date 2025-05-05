@@ -8,7 +8,6 @@ import sys
 from datetime import datetime
 from pprint import pprint
 
-
 # Local
 import lifestream
 from InstagramAPI import InstagramAPI

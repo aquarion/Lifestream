@@ -15,9 +15,10 @@ import simplejson
 from dateutil.relativedelta import relativedelta
 
 # Libraries
+from pytumblr import TumblrRestClient
 
 # Libraries
-from pytumblr import TumblrRestClient
+
 
 Lifestream = lifestream.Lifestream()
 
