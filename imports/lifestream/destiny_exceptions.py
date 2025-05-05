@@ -4,3 +4,6 @@ class DestinyException(Exception):
 
 class DestinyAccountNotFound(DestinyException):
     pass
+
+class DestinyThrottledByGameServer(DestinyException):
+    pass
