@@ -54,6 +54,9 @@ for site in sites:
     except configparser.NoOptionError as e:
         logger.error(e.message)
         sys.exit(5)
+    except wordpress_xmlrpc.exceptions.InvalidCredentialsError as e:
+        logger.error("Invalid credentials for %s: " % (source, str(e)))
+        sys.exit(5)
 
     wp = Client(url, user, passwd)
 
