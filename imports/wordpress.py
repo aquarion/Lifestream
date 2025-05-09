@@ -64,9 +64,12 @@ for site in sites:
     keep_going = True
 
     while keep_going:
-        options = {"number": 30, "offset": this_page *
-                   30, "post_status": "publish"}
-        posts = wp.call(GetPosts(options))
+        options = {"number": 30, "offset": this_page * 30, "post_status": "publish"}
+        try:
+            posts = wp.call(GetPosts(options))
+        except wordpress_xmlrpc.exceptions.InvalidCredentialsError as e:
+            logger.error("Invalid credentials for %s: " % (source, str(e)))
+            sys.exit(5)
         for post in posts:
             if len(post.title):
                 title = post.title
