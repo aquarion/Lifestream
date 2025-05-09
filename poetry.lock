@@ -536,17 +536,6 @@ test = ["certifi (>=2024)", "cryptography-vectors (==44.0.3)", "pretend (>=0.7)"
 test-randomorder = ["pytest-randomly"]
 
 [[package]]
-name = "cymysql"
-version = "1.0.8"
-description = "Python MySQL Driver using Cython"
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "cymysql-1.0.8.tar.gz", hash = "sha256:994d504102220f9f8cc3ea3e811b0d2a9f5ce83e74756a384eb8da735f029189"},
-]
-
-[[package]]
 name = "decorator"
 version = "5.2.1"
 description = "Decorators for Humans"
@@ -2091,4 +2080,4 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "12ef91d2a67176b9b93a5f4ae1b7a8cfdf3ce7f40ca9bbab78fe647a587d7d2a"
+content-hash = "9087d6eb3463ada1a6c14cd31f9863adc42ffaa27c6d449b0d6b0d7694a84816"
