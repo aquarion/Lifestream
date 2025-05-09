@@ -3,12 +3,12 @@
 import logging
 
 import dateutil.parser
-
-# Local
-import lifestream
 import pytz
 import requests
 import simplejson as json
+
+# Local
+import lifestream
 
 # Libraries
 
@@ -29,7 +29,8 @@ args = lifestream.arguments.parse_args()
 
 def github_call(path, token, page=1, perpage=100):
     logger.debug("Calling %s" % path)
-    gh_url = "https://api.github.com/%s?page=%d&perpage=%d" % (path, page, perpage)
+    gh_url = "https://api.github.com/%s?page=%d&perpage=%d" % (
+        path, page, perpage)
     headers = {"Authorization": "token %s" % token}
     r = requests.get(gh_url, headers=headers)
     if not r.status_code == 200:

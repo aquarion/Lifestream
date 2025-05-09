@@ -7,9 +7,10 @@ import re
 import sys
 from datetime import datetime, timezone
 
+import requests
+
 # Local
 import lifestream
-import requests
 
 # Libraries
 from lifestream.oauth_utils import read_token_file

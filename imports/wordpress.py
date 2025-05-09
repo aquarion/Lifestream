@@ -5,12 +5,12 @@ import configparser
 import logging
 import sys
 
-# Local
-import lifestream
-
 # Libraries
 from wordpress_xmlrpc import Client
 from wordpress_xmlrpc.methods.posts import GetPosts
+
+# Local
+import lifestream
 
 lifestream.arguments.add_argument(
     "site", type=str, help="Site, as defined in config.ini", nargs="*"
@@ -25,7 +25,6 @@ lifestream.arguments.add_argument(
     default=1,
     required=False,
 )
-
 args = lifestream.arguments.parse_args()
 
 if args.site:
@@ -62,7 +61,8 @@ for site in sites:
     keep_going = True
 
     while keep_going:
-        options = {"number": 30, "offset": this_page * 30, "post_status": "publish"}
+        options = {"number": 30, "offset": this_page *
+                   30, "post_status": "publish"}
         posts = wp.call(GetPosts(options))
         for post in posts:
             if len(post.title):

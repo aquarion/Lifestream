@@ -8,10 +8,10 @@ from pprint import pprint
 from urllib.parse import urlparse
 
 import dateutil.parser
+from atproto import Client as atClient
 
 # Local
 import lifestream
-from atproto import Client as atClient
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False
@@ -70,7 +70,7 @@ for site in sites:
     if server_base:
         atserver = atClient(server_base)
     else:
-        atserver = atClient()  ## Default to bsky.app
+        atserver = atClient()  # Default to bsky.app
 
     atserver.login(username, password)
 
@@ -92,12 +92,14 @@ for site in sites:
 
         for item in atResponse.feed:
             if item.post.author.handle != handle:
-                logger.debug("Skipping retweet from %s" % item.post.author.handle)
+                logger.debug("Skipping retweet from %s" %
+                             item.post.author.handle)
                 continue
 
             if item.post.record.reply:
                 pprint(item.post.record.reply)
-                logger.debug("Skipping reply to %s" % item.post.record.reply.parent.uri)
+                logger.debug("Skipping reply to %s" %
+                             item.post.record.reply.parent.uri)
                 continue
 
             post = item.post.record

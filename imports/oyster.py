@@ -9,12 +9,13 @@ import sys
 from datetime import datetime
 from time import sleep
 
-# Local
-import lifestream
 import pytz
 
 # Libraries
 from mechanize import Browser, RobustFactory
+
+# Local
+import lifestream
 
 logger = logging.getLogger("Oyster")
 args = lifestream.arguments.parse_args()
@@ -99,7 +100,8 @@ for row in dataReader:
         elif not time_from:
             time_from = "00:00"
 
-        timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
+        timestamp = datetime.strptime(
+            "%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
         loc_date = londontime.localize(timestamp)
         utcdate = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
@@ -109,4 +111,5 @@ for row in dataReader:
 
         # print action, utcdate
         logger.info(action)
-        Lifestream.add_entry("oyster", id.hexdigest(), action, "oyster", utcdate)
+        Lifestream.add_entry("oyster", id.hexdigest(),
+                             action, "oyster", utcdate)

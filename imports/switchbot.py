@@ -4,10 +4,11 @@
 import logging
 from datetime import datetime
 
-# Local
-import lifestream
 import lifestreamutils
 import requests
+
+# Local
+import lifestream
 
 logger = logging.getLogger("switchbot")
 

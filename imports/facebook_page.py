@@ -13,10 +13,10 @@ import CodeFetcher9000
 
 # Libraries
 import facebook
+import requests
 
 # Local
 import lifestream
-import requests
 
 UTF8Writer = codecs.getwriter("utf8")
 sys.stdout = UTF8Writer(sys.stdout)
@@ -36,7 +36,8 @@ args = lifestream.arguments.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/facebook.oauth" % (lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/facebook.oauth" % (
+    lifestream.config.get("global", "secrets_dir"))
 APP_KEY = lifestream.config.get("facebook", "appid")
 APP_SECRET = lifestream.config.get("facebook", "secret")
 
@@ -50,7 +51,8 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     except CodeFetcher9000.WeSayNotToday:
         try:
             redirect_uri = (
-                "{}/facebook/catch.php".format(lifestream.config.get("dayze", "base")),
+                "{}/facebook/catch.php".format(
+                    lifestream.config.get("dayze", "base")),
             )
             UseCodeFetcher = False
         except configparser.Error:
@@ -140,7 +142,8 @@ def some_action(post, graph, profile):
 
     if post["privacy"]["value"] == "CUSTOM":
         if not post["privacy"]["allow"]:
-            logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
+            logger.info(
+                "Ignoring post %s due to an ad-hoc privacy filter" % url)
         elif post["privacy"]["allow"] in filters:
             filter_name = filters[post["privacy"]["allow"]]
             # print "... That's the %s filter" % filter_name
@@ -152,7 +155,8 @@ def some_action(post, graph, profile):
                 show = False
         else:
             logger.error(
-                "[ERROR] on %s - List ID %s not known" % (url, post["privacy"]["allow"])
+                "[ERROR] on %s - List ID %s not known" % (
+                    url, post["privacy"]["allow"])
             )
             show = False
 
@@ -220,7 +224,8 @@ page = 0
 while True:
     page += 1
     sys.stderr.write("Page %s \n" % page)
-    [some_action(post=post, graph=graph, profile=profile) for post in posts["data"]]
+    [some_action(post=post, graph=graph, profile=profile)
+     for post in posts["data"]]
     # if page >= 5:
     # break
     #     pass

@@ -4,12 +4,12 @@ import hashlib
 import logging
 from datetime import datetime
 
-# Local
-import lifestream
-
 # Libraries
 from BeautifulSoup import BeautifulSoup
 from mechanize import Browser, RobustFactory
+
+# Local
+import lifestream
 
 Lifestream = lifestream.Lifestream()
 
@@ -44,7 +44,8 @@ for character in CHARACTERS.split(","):
     rank_n = rank.findAll("div", {"class": "rank wf"})[0]
     rank_t = rank.findAll("div", {"class": "title wf"})[0]
 
-    text = "%s achieved %s&ndash;%s" % (character, rank_n.string, rank_t.string)
+    text = "%s achieved %s&ndash;%s" % (
+        character, rank_n.string, rank_t.string)
 
     logger.info(text)
 

@@ -4,13 +4,14 @@ import logging
 import sys
 from datetime import datetime
 
-# Local
-import lifestream
 import requests
 from guildwars2api.base import GuildWars2APIError
 
 # Libraries
 from guildwars2api.v2 import GuildWars2API
+
+# Local
+import lifestream
 
 Lifestream = lifestream.Lifestream()
 
@@ -19,7 +20,8 @@ APIKEY = Lifestream.config.get("guildwars2", "apikey")
 logger = logging.getLogger("GW2")
 args = lifestream.arguments.parse_args()
 
-api = GuildWars2API(user_agent="Lifestream <nicholas@istic.net>", api_key=APIKEY)
+api = GuildWars2API(
+    user_agent="Lifestream <nicholas@istic.net>", api_key=APIKEY)
 
 
 @Lifestream.cache_this("gw2.categories", 86400)
@@ -33,10 +35,12 @@ def get_categories():
     step = 200
     for i in range(0, len(category_list), step):
         logger.debug(
-            "Fetching Category {} to {} of {}".format(i, i + step, len(category_list))
+            "Fetching Category {} to {} of {}".format(
+                i, i + step, len(category_list))
         )
 
-        category_data = {"ids": ",".join(str(x) for x in category_list[i : i + step])}
+        category_data = {"ids": ",".join(str(x)
+                                         for x in category_list[i: i + step])}
         category_request = requests.get(
             "https://api.guildwars2.com/v2/achievements/categories", data=category_data
         ).json()
@@ -54,7 +58,8 @@ def get_all_my_achievements(api):
         if ttl:
             logger.warning("Error fetching achievements: {}".format(e))
             logger.info(
-                "Error already sent {} ago".format(lifestream.niceTimeDelta(ttl))
+                "Error already sent {} ago".format(
+                    lifestream.niceTimeDelta(ttl))
             )
         else:
             logger.error("Error fetching achievements: {}".format(e))
@@ -81,7 +86,7 @@ def get_all_my_achievements(api):
     list_size = len(fetch_list)
 
     for ach_index in range(0, list_size, ach_pagesize):
-        fetch_chunk = fetch_list[ach_index : ach_index + ach_pagesize]
+        fetch_chunk = fetch_list[ach_index: ach_index + ach_pagesize]
         logger.debug(
             "Fetching Achivement {} to {} of {}".format(
                 ach_index, ach_index + ach_pagesize, len(fetch_chunk)
@@ -121,7 +126,8 @@ for ident, achievement in achievements_library.items():
         logger.warn(achievement["info"]["name"], " - has no icon")
 
     text = (
-        achievement["info"]["name"] + " &ndash; " + achievement["info"]["requirement"]
+        achievement["info"]["name"] + " &ndash; " +
+        achievement["info"]["requirement"]
     )
 
     logger.info(text)

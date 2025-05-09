@@ -7,13 +7,13 @@ import sys
 from urllib.error import URLError
 
 import dateutil.parser
-
-# Local
-import lifestream
 import pytz
 
 # Libraries
 import twitter
+
+# Local
+import lifestream
 from lifestream.oauth_utils import read_token_file
 
 Lifestream = lifestream.Lifestream()
@@ -38,7 +38,8 @@ args = lifestream.arguments.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/twitter.oauth" % (lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/twitter.oauth" % (
+    lifestream.config.get("global", "secrets_dir"))
 CONSUMER_KEY = lifestream.config.get("twitter", "consumer_key")
 CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
 

@@ -5,9 +5,10 @@ import configparser
 import logging
 import sys
 
+import mastodon as mastodonpy
+
 # Local
 import lifestream
-import mastodon as mastodonpy
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False
@@ -49,9 +50,12 @@ for site in sites:
     type = "mastodon"
     try:
         base_url = lifestream.config.get("mastodon:%s" % source, "base_url")
-        client_key = lifestream.config.get("mastodon:%s" % source, "client_key")
-        client_secret = lifestream.config.get("mastodon:%s" % source, "client_secret")
-        access_token = lifestream.config.get("mastodon:%s" % source, "access_token")
+        client_key = lifestream.config.get(
+            "mastodon:%s" % source, "client_key")
+        client_secret = lifestream.config.get(
+            "mastodon:%s" % source, "client_secret")
+        access_token = lifestream.config.get(
+            "mastodon:%s" % source, "access_token")
     except configparser.NoSectionError:
         logger.error("No [mastodon:%s] section found in config" % source)
         sys.exit(5)

@@ -8,9 +8,10 @@ import sys
 from datetime import datetime
 from pprint import pprint
 
+from InstagramAPI import InstagramAPI
+
 # Local
 import lifestream
-from InstagramAPI import InstagramAPI
 
 Lifestream = lifestream.Lifestream()
 
@@ -59,7 +60,8 @@ if api.login():
             else:
                 raise Exception("No image thumbnail found")
 
-            logger.info("{}: {}".format(timestamp, caption.encode("ascii", "ignore")))
+            logger.info("{}: {}".format(
+                timestamp, caption.encode("ascii", "ignore")))
 
             Lifestream.add_entry(
                 "photo",

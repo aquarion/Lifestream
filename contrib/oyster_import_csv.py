@@ -6,8 +6,9 @@ import csv
 import hashlib
 from datetime import datetime
 
-import lifestream
 import pytz
+
+import lifestream
 
 dbcxn = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)
@@ -41,7 +42,8 @@ for row in dataReader:
             time_from = "00:00"
 
         # print row
-        timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
+        timestamp = datetime.strptime(
+            "%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
         loc_date = londontime.localize(timestamp)
         utcdate = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 

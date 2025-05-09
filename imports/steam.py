@@ -8,10 +8,11 @@ from io import BytesIO
 from xml.dom import minidom
 from xml.parsers.expat import ExpatError
 
-# Local
-import lifestream
 import pytz
 import requests
+
+# Local
+import lifestream
 
 # Libraries
 
@@ -36,7 +37,8 @@ steamtime = pytz.timezone("US/Pacific")
 
 user = lifestream.config.get("steam", "username")
 
-logger.info("Opening https://steamcommunity.com/id/%s/games?tab=recent&xml=1" % user)
+logger.info(
+    "Opening https://steamcommunity.com/id/%s/games?tab=recent&xml=1" % user)
 
 try:
     gameslist_xml = requests.get(
@@ -95,7 +97,8 @@ while foundGames < maxGames and thisGame != len(gamesList):
         response = requests.get(statspagexml)
         game = minidom.parse(BytesIO(response.content))
     except IOError:
-        logger.info("       + Got socket error fetching %s achievement list" % gamename)
+        logger.info(
+            "       + Got socket error fetching %s achievement list" % gamename)
         continue
     except ExpatError:
         logger.info("       + XML Error reading file. Not a real stats page.")
@@ -114,7 +117,8 @@ while foundGames < maxGames and thisGame != len(gamesList):
 
         m = hashlib.md5()
 
-        image = achievement.getElementsByTagName("iconClosed")[0].firstChild.data
+        image = achievement.getElementsByTagName("iconClosed")[
+            0].firstChild.data
 
         try:
             unlocked = achievement.getElementsByTagName("unlockTimestamp")[
@@ -125,7 +129,8 @@ while foundGames < maxGames and thisGame != len(gamesList):
         except IndexError:
             local_timestamp = datetime.now()
 
-        logger.info("         + %s (Achieved at %s )" % (name, local_timestamp))
+        logger.info("         + %s (Achieved at %s )" %
+                    (name, local_timestamp))
 
         message = "%s &ndash; %s" % (gamename, name)
 

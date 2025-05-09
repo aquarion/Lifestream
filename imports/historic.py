@@ -8,14 +8,15 @@ import pickle as pickle
 # Python
 import urllib.parse
 
-# Local
-import lifestream
 import oauth2 as oauth
 import simplejson
 from dateutil.relativedelta import relativedelta
 
 # Libraries
 from pytumblr import TumblrRestClient
+
+# Local
+import lifestream
 
 # Libraries
 
@@ -53,7 +54,8 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         request_token = dict(urllib.parse.parse_qsl(content))
         print("Go to the following link in your browser:")
-        print("%s?oauth_token=%s" % (authorize_url, request_token["oauth_token"]))
+        print("%s?oauth_token=%s" %
+              (authorize_url, request_token["oauth_token"]))
         print()
 
         accepted = "n"

@@ -10,13 +10,13 @@ from datetime import datetime, timedelta
 
 import CodeFetcher9000
 import dateutil.parser
-
-# Local
-import lifestream
 import pytz
 
 # Libraries
 import requests
+
+# Local
+import lifestream
 from lifestream import destiny_exceptions
 
 Lifestream = lifestream.Lifestream()
@@ -41,7 +41,8 @@ args = lifestream.arguments.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/bungie.oauth" % (lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/bungie.oauth" % (
+    lifestream.config.get("global", "secrets_dir"))
 APP_KEY = lifestream.config.get("bungie", "key")
 APP_CLIENT_ID = lifestream.config.get("bungie", "client_id")
 APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
@@ -165,12 +166,15 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
         if oauth_token["error"] == "DestinyThrottledByGameServer":
             lifestream.i_said_back_off("destiny2:api_error:throttled")
 
-        ttl = Lifestream.warned_recently("destiny2:api_error:%".format(oauth_token["error"]))
+        ttl = Lifestream.warned_recently(
+            "destiny2:api_error:%".format(oauth_token["error"])
+        )
         message = "Error refreshing token: {}".format(oauth_token["error"])
         if ttl:
             logger.warning(message)
             logger.info(
-                "Error already sent {} ago".format(lifestream.niceTimeDelta(ttl))
+                "Error already sent {} ago".format(
+                    lifestream.niceTimeDelta(ttl))
             )
         else:
             logger.error(message)
@@ -179,7 +183,8 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
 
     delta = timedelta(seconds=int(oauth_token["expires_in"]))
     oauth_token["expire_dt"] = datetime.now() + delta
-    logger.info("New token expires in {}".format(lifestream.niceTimeDelta(delta)))
+    logger.info("New token expires in {}".format(
+        lifestream.niceTimeDelta(delta)))
 
     refresh_delta = timedelta(seconds=int(oauth_token["refresh_expires_in"]))
     oauth_token["refresh_expire_dt"] = datetime.now() + refresh_delta
@@ -207,11 +212,13 @@ logger.info("Token will expire in {}!".format(lifestream.niceTimeDelta(delta)))
 delta = credentials["refresh_expire_dt"] - datetime.now()
 if delta.days <= 7:
     logger.warning(
-        "Refresh Token will expire in {}!".format(lifestream.niceTimeDelta(delta))
+        "Refresh Token will expire in {}!".format(
+            lifestream.niceTimeDelta(delta))
     )
 else:
     logger.info(
-        "Refresh Token will expire in {}!".format(lifestream.niceTimeDelta(delta))
+        "Refresh Token will expire in {}!".format(
+            lifestream.niceTimeDelta(delta))
     )
 
 NEXT_REQUEST = datetime.now()
@@ -314,7 +321,8 @@ for member_data in memberships["destinyMemberships"]:
             )
         )
         membership = destinyCall(
-            "Destiny2/{membershipType}/Profile/{membershipId}/".format(**member_data),
+            "Destiny2/{membershipType}/Profile/{membershipId}/".format(
+                **member_data),
             {"components": "Characters"},
         )
     except destiny_exceptions.DestinyAccountNotFound:
@@ -370,7 +378,8 @@ for member_data in memberships["destinyMemberships"]:
             id.update("destiny2".encode("utf-8"))
             id.update(character_id.encode("utf-8"))
             id.update(
-                str(instance["activityDetails"]["directorActivityHash"]).encode("utf-8")
+                str(instance["activityDetails"]
+                    ["directorActivityHash"]).encode("utf-8")
             )
 
             display = activity["displayProperties"]

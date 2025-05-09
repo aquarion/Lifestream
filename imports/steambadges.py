@@ -5,14 +5,15 @@ import logging
 import sys
 from datetime import datetime
 
-# Local
-import lifestream
 import pytz
 
 # Libraries
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+
+# Local
+import lifestream
 
 logger = logging.getLogger("Steam Badges")
 args = lifestream.arguments.parse_args()
@@ -41,7 +42,8 @@ for badge in badges:
         "src"
     )
     text = badge.find_element(By.CLASS_NAME, "badge_info_title").text.strip()
-    date = badge.find_element(By.CLASS_NAME, "badge_info_unlocked").text.strip()[9:]
+    date = badge.find_element(
+        By.CLASS_NAME, "badge_info_unlocked").text.strip()[9:]
 
     try:
         parseddate = datetime.strptime(date, "%b %d, %Y @ %I:%M%p")

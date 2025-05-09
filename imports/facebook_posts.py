@@ -15,12 +15,12 @@ import CodeFetcher9000
 
 # Libraries
 import facebook
-
-# Local
-import lifestream
 import pymysql
 import requests
 from dateutil import parser as dtparser
+
+# Local
+import lifestream
 
 Lifestream = lifestream.Lifestream()
 
@@ -49,7 +49,8 @@ args = lifestream.arguments.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if facebook doesn't respond
 
 
-OAUTH_FILENAME = "%s/facebook.oauth" % (lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/facebook.oauth" % (
+    lifestream.config.get("global", "secrets_dir"))
 APP_KEY = lifestream.config.get("facebook", "appid")
 APP_SECRET = lifestream.config.get("facebook", "secret")
 
@@ -63,7 +64,8 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     except CodeFetcher9000.WeSayNotToday:
         try:
             redirect_uri = (
-                "{}/facebook/catch.php".format(lifestream.config.get("dayze", "base")),
+                "{}/facebook/catch.php".format(
+                    lifestream.config.get("dayze", "base")),
             )
             UseCodeFetcher = False
         except configparser.Error:
@@ -165,26 +167,31 @@ def some_action(post, graph, profile):
 
     if post["privacy"]["value"] == "CUSTOM":
         if not post["privacy"]["allow"]:
-            logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
+            logger.info(
+                "Ignoring post %s due to an ad-hoc privacy filter" % url)
         elif len(filter_ids.intersection(post_filter_ids)):
             for filter_id in list(post_filter_ids):
                 if filter_id not in filters:
                     logger.info("... Filter ID %s unidentified" % filter_id)
 
                 elif filters[filter_id] in visible_filters:
-                    logger.info("... [%s] filter post, vote KEEP" % filters[filter_id])
+                    logger.info("... [%s] filter post, vote KEEP" %
+                                filters[filter_id])
                     # show = True
                     pass
                 else:
-                    logger.info("... [%s] filter post, vote HIDE" % filters[filter_id])
+                    logger.info("... [%s] filter post, vote HIDE" %
+                                filters[filter_id])
                     show = False
         else:
             logger.error(
-                "[ERROR] on %s - List ID %s not known" % (url, post["privacy"]["allow"])
+                "[ERROR] on %s - List ID %s not known" % (
+                    url, post["privacy"]["allow"])
             )
             show = False
     else:
-        logger.info("... %s privacy post, vote KEEP" % post["privacy"]["value"])
+        logger.info("... %s privacy post, vote KEEP" %
+                    post["privacy"]["value"])
 
     if show:
         logger.info("... KEEP carries")
@@ -264,7 +271,8 @@ while True:
         pprint(posts)
         raise Exception("Err...")
 
-    [some_action(post=post, graph=graph, profile=profile) for post in posts["data"]]
+    [some_action(post=post, graph=graph, profile=profile)
+     for post in posts["data"]]
 
     logger.info("Page %d of %d" % (page, args.pages))
     if not INFINITE and page >= args.pages:

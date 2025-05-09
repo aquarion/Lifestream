@@ -8,9 +8,10 @@ import mailbox
 import sys
 import time
 
+import lifestreamutils
+
 # Local
 import lifestream
-import lifestreamutils
 
 if len(sys.argv) < 2:
     print("Usage: %s statistic filename" % (sys.argv[0]))

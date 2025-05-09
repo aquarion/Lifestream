@@ -5,12 +5,13 @@ import hashlib
 import logging
 from datetime import datetime
 
-# Local
-import lifestream
 import pytz
 
 # Libraries
 import requests
+
+# Local
+import lifestream
 
 logger = logging.getLogger("Planetside2")
 args = lifestream.arguments.parse_args()
@@ -60,7 +61,8 @@ for character_name in characters:
     character_name = name = profile["name"]["first"]
 
     ##
-    ranki = requests.get("{}/experience_rank?rank={}".format(api_base, br["value"]))
+    ranki = requests.get(
+        "{}/experience_rank?rank={}".format(api_base, br["value"]))
 
     rank = ranki.json()["experience_rank_list"][0][faction]["title"]["en"]
     text = "In Planetside 2, {} achieved the rank {}".format(name, rank)
@@ -100,7 +102,8 @@ for character_name in characters:
         name = achievement["achievement_id_join_achievement"]["name"]["en"]
         text = "{} earnt {}".format(character_name, name)
         image = (
-            image_base + achievement["achievement_id_join_achievement"]["image_path"]
+            image_base +
+            achievement["achievement_id_join_achievement"]["image_path"]
         )
         date = achievement["finish_date"]
         id = hashlib.md5()

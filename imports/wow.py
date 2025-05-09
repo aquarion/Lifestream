@@ -10,14 +10,14 @@ from datetime import datetime, timedelta
 from pprint import pprint
 
 import CodeFetcher9000
-
-# Local
-import lifestream
 import pytz
 import requests
 from oauthlib.oauth2 import BackendApplicationClient
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
+
+# Local
+import lifestream
 
 SCOPE = [
     "wow.profile",
@@ -33,7 +33,8 @@ OAUTH_FILENAME = "%s/blizzard_user.oauth" % (
 CLIENT_AUTH_FILENAME = "%s/blizzard_app.oauth" % (
     lifestream.config.get("global", "secrets_dir")
 )
-CHARACTER_CACHE = "%s/blizzard.cache" % (lifestream.config.get("global", "secrets_dir"))
+CHARACTER_CACHE = "%s/blizzard.cache" % (
+    lifestream.config.get("global", "secrets_dir"))
 
 APP_KEY = lifestream.config.get("blizzard", "key")
 APP_SECRET = lifestream.config.get("blizzard", "secret")
@@ -71,7 +72,8 @@ def fetch_new_code():
     except CodeFetcher9000.WeSayNotToday:
         try:
             redirect_uri = (
-                "{}/keyback/wow.py".format(lifestream.config.get("dayze", "base")),
+                "{}/keyback/wow.py".format(
+                    lifestream.config.get("dayze", "base")),
             )
             UseCodeFetcher = False
         except ConfigParser.Error:
@@ -108,7 +110,8 @@ def fetch_new_code():
         "code": oauth_verifier,
     }
 
-    r = requests.post("{}/oauth/token".format(BASE_OAUTH_URL), data=data, auth=auth)
+    r = requests.post("{}/oauth/token".format(BASE_OAUTH_URL),
+                      data=data, auth=auth)
 
     token = r.json()
 
@@ -225,7 +228,8 @@ class BlizzardAPI:
 
             if not r.ok:
                 logger.error(
-                    "Error {} getting characters: {}".format(r.status_code, r.text)
+                    "Error {} getting characters: {}".format(
+                        r.status_code, r.text)
                 )
                 sys.exit(5)
 
@@ -290,7 +294,8 @@ def log_achievement(item, timestamp, character):
     id = hashlib.md5()
     id.update("%d-wow" % item["id"])
 
-    logger.info("{}, {}, {}".format(character["realm"], character["name"], text))
+    logger.info("{}, {}, {}".format(
+        character["realm"], character["name"], text))
 
     # print text, image, utcdate, item['accountWide']
 
@@ -383,7 +388,8 @@ for character in profile["characters"]:
     else:
 
         if since_login > 7:
-            logger.debug("{} is > 7 days since login, skipping".format(since_login))
+            logger.debug(
+                "{} is > 7 days since login, skipping".format(since_login))
             continue
 
         character_data = api.get_character(
@@ -393,7 +399,8 @@ for character in profile["characters"]:
         for item in character_data["feed"]:
             if item["type"] in ("ACHIEVEMENT"):
                 # pprint(item)
-                log_achievement(item["achievement"], item["timestamp"], character)
+                log_achievement(item["achievement"],
+                                item["timestamp"], character)
 
             elif item["type"] in ("LOOT", "BOSSKILL", "CRITERIA"):
                 pass

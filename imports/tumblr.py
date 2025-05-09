@@ -5,14 +5,14 @@ import pickle as pickle
 import urllib.parse
 
 import dateutil.parser
-
-# Local
-import lifestream
 import oauth2 as oauth
 import pytz
 
 # Libraries
 from pytumblr import TumblrRestClient
+
+# Local
+import lifestream
 
 logger = logging.getLogger("Tumblr")
 lifestream.arguments.add_argument(
@@ -63,7 +63,8 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         request_token = dict(urllib.parse.parse_qsl(content))
         print("Go to the following link in your browser:")
-        print("%s?oauth_token=%s" % (authorize_url, request_token["oauth_token"]))
+        print("%s?oauth_token=%s" %
+              (authorize_url, request_token["oauth_token"]))
         print()
 
         accepted = "n"
@@ -109,7 +110,8 @@ for blog in blogs:
     startat = 0.0
 
     if "errors" in details:
-        logger.error("Error in tumbling {}:  {} ".format(blog, details["meta"]["msg"]))
+        logger.error("Error in tumbling {}:  {} ".format(
+            blog, details["meta"]["msg"]))
         continue
 
     if FULL_IMPORT:

@@ -5,9 +5,10 @@ import hashlib
 import logging
 from datetime import datetime
 
+import pytz
+
 # Local
 import lifestream
-import pytz
 
 # Libraries
 
@@ -47,7 +48,8 @@ for row in dataReader:
         elif not time_from:
             time_from = "00:00"
 
-        timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
+        timestamp = datetime.strptime(
+            "%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
         loc_date = londontime.localize(timestamp)
         utcdate = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 

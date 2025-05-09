@@ -25,7 +25,8 @@ class WeSayNotToday(Exception):
 class MyHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, req, client_addr, server):
-        http.server.BaseHTTPRequestHandler.__init__(self, req, client_addr, server)
+        http.server.BaseHTTPRequestHandler.__init__(
+            self, req, client_addr, server)
 
     # def do_POST(s):
     #     global code

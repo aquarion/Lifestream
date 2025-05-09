@@ -7,13 +7,13 @@ import pprint
 from datetime import datetime, timedelta
 
 import fitbit
-
-# Local
-import lifestream
 import lifestreamutils
 
 # Libraries
 from fitbit.api import FitbitOauthClient
+
+# Local
+import lifestream
 
 Lifestream = lifestream.Lifestream()
 
@@ -107,7 +107,8 @@ for sleep in fbcxn.sleep()["sleep"]:
     Lifestream.add_entry(
         type=type, id=id, title=title, source="fitbit", date=date, fulldata_json=sleep
     )
-    lifestreamutils.newstat(sleep["startTime"], "sleep", sleep["minutesAsleep"])
+    lifestreamutils.newstat(
+        sleep["startTime"], "sleep", sleep["minutesAsleep"])
 
 for badge in fbcxn.get_badges()["badges"]:
     type = "badge"
@@ -160,4 +161,5 @@ for day in range(0, 7):
                 fulldata_json=score,
                 update=True,
             )
-            lifestreamutils.newstat(score["dateTime"], "activeScore", score["value"])
+            lifestreamutils.newstat(
+                score["dateTime"], "activeScore", score["value"])

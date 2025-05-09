@@ -81,6 +81,7 @@ else:
     console.setLevel(logging.ERROR)
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="")
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -187,6 +188,7 @@ def i_said_back_off(warning_id, hours=24):
     redisCxn = getRedisConnection()
     redisCxn.set(warning_id, "1", ex=hours * 3600)
 
+
 def i_should_back_off(warning_id):
     redisCxn = getRedisConnection()
     lastSent = redisCxn.get(warning_id)
@@ -195,6 +197,7 @@ def i_should_back_off(warning_id):
         return True
     else:
         return False
+
 
 class AnAttributeError(Exception):
     pass
@@ -313,7 +316,8 @@ class Lifestream:
                 # print "Update - %s" % title
                 s_sql = "UPDATE lifestream set `title`=%s, `url`=%s, `date_created`=%s, `source`=%s, `image`=%s, `fulldata_json`=%s where `systemid`=%s and `type`=%s"
                 self.cursor.execute(
-                    s_sql, (title, url, date, source, image, fulldata_json, id, type)
+                    s_sql, (title, url, date, source,
+                            image, fulldata_json, id, type)
                 )
                 if debug:
                     print(self.cursor._executed)
@@ -321,7 +325,8 @@ class Lifestream:
             # print "Insert - %s" % title
             s_sql = "INSERT INTO lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)"
             self.cursor.execute(
-                s_sql, (type, id, title, url, date, source, image, fulldata_json)
+                s_sql, (type, id, title, url, date,
+                        source, image, fulldata_json)
             )
             if debug:
                 print(self.cursor._executed)
@@ -364,11 +369,13 @@ class Lifestream:
                     logger.debug("Found cache file at '{}'".format(cachefile))
                     now = time.time()
                     if now > (modified + maxage):
-                        logger.debug("Ignoring old cache file {}'".format(cachefile))
+                        logger.debug(
+                            "Ignoring old cache file {}'".format(cachefile))
                     else:
                         with open(cachefile, "rb") as cachehandle:
                             logger.info(
-                                "using cached result from '{}'".format(cachefile)
+                                "using cached result from '{}'".format(
+                                    cachefile)
                             )
                             return pickle.load(cachehandle)
 
@@ -377,7 +384,8 @@ class Lifestream:
 
                 # write to cache file
                 with open(cachefile, "wb") as cachehandle:
-                    logger.info("saving result to cache '{}'".format(cachefile))
+                    logger.info(
+                        "saving result to cache '{}'".format(cachefile))
                     pickle.dump(res, cachehandle)
 
                 return res
@@ -395,7 +403,6 @@ class Lifestream:
             return False
         else:
             return redisCxn.ttl(warning_id)
-    
 
 
 class FoursquareAPI:
@@ -439,7 +446,8 @@ class FoursquareAPI:
         if res:
             return json.loads(res)
 
-        r = requests.get(self.url_base % "users/self/checkins", params=self.payload)
+        r = requests.get(self.url_base %
+                         "users/self/checkins", params=self.payload)
         self.mc.set(key, json.dumps(r.json()))
         return r.json()
 

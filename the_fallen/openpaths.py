@@ -8,9 +8,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 
+import oauth2
+
 # Local
 import lifestream
-import oauth2
 
 # Libraries
 
@@ -92,7 +93,8 @@ for datum in data:
     ):
 
         accuracy = 100
-        logger.info("Found %s %s/%s" % (timestamp, latitude_best, longitude_best))
+        logger.info("Found %s %s/%s" %
+                    (timestamp, latitude_best, longitude_best))
         #                                (`id`,                 `lat`,             `long`,            `lat_vague`,   `long_vague`, `timestamp`, `accuracy`)
         cursor.execute(
             s_sql,
