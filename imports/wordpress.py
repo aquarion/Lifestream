@@ -68,8 +68,8 @@ for site in sites:
         options = {"number": 30, "offset": this_page * 30, "post_status": "publish"}
         try:
             posts = wp.call(GetPosts(options))
-        except wordpress_xmlrpc.exceptions.InvalidCredentialsError as e:
-            logger.error("Invalid credentials for %s: " % (source, str(e)))
+        except wordpress_exceptions.InvalidCredentialsError as e:
+            logger.error("Invalid credentials for %s: %s" % (source, str(e)))
             sys.exit(5)
         for post in posts:
             if len(post.title):
