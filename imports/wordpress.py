@@ -51,13 +51,10 @@ for site in sites:
         passwd = lifestream.config.get("wordpress:%s" % source, "password")
     except configparser.NoSectionError:
         logger.error("No [wordpress:%s] section found in config" % source)
-        sys.exit(5)
+        continue
     except configparser.NoOptionError as e:
         logger.error(e.message)
-        sys.exit(5)
-    except wordpress_exceptions.InvalidCredentialsError as e:
-        logger.error("Invalid credentials for %s: " % (source, str(e)))
-        sys.exit(5)
+        continue
 
     wp = Client(url, user, passwd)
 
@@ -70,7 +67,8 @@ for site in sites:
             posts = wp.call(GetPosts(options))
         except wordpress_exceptions.InvalidCredentialsError as e:
             logger.error("Invalid credentials for %s: %s" % (source, str(e)))
-            sys.exit(5)
+            keep_going = False
+            continue
         for post in posts:
             if len(post.title):
                 title = post.title
