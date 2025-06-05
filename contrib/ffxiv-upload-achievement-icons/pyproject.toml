@@ -10,6 +10,7 @@ python = "^3.12"
 paramiko = "^3.5.1"
 requests = "^2.32.3"
 tqdm = "^4.67.1"
+pylint = "^3.3.7"
 
 
 [tool.poetry.group.dev.dependencies]
