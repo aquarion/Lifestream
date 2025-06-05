@@ -250,9 +250,49 @@ class XIVClient:
         return achievements
 
 
+def update_achivement_database(DB_FILE):
+    URL = "https://github.com/xivapi/ffxiv-datamining/raw/master/csv/Achievement.csv"
+    logger.info("Updating achievement database from %s", URL)
+    response = requests.get(URL, timeout=10)
+    if response.status_code != 200:
+        logger.error(
+            "Unable to download achievement database from %s: %s",
+            URL, response.status_code
+        )
+        sys.exit(1)
+    if os.path.exists(DB_FILE):
+        os.remove(DB_FILE)
+
+    conn = sqlite3.connect(DB_FILE)
+    schema_file = os.path.join(basedir, "etc", "achievements_schema.sql")
+    with open(schema_file, "r", encoding="utf-8") as schema_file:
+        schema_sql = schema_file.read()
+        
+    conn.executescript(schema_sql)
+    cur = conn.cursor()
+
+    csvfile = io.StringIO(response.text)
+    reader = csv.reader(csvfile)
+    
+    
+    for row in range(0, 3):
+        skipped_row = next(reader)
+        logger.debug("Skipping row %d: %s", row, skipped_row)
+    
+    logger.info("Inserting achievements into database %s", DB_FILE)
+
+    for row in reader:
+        cur.execute(
+            f'INSERT INTO achievements VALUES ({",".join(["?"]*len(row))})', row
+        )
+    conn.commit()
+    conn.close()
+
+
 #  Main
 
-print("Updating achievement icons")
+    
+    update_achivement_database(config.get("local", "saintcoinach_db"))
 
 logger.info(
     "Connecting to local database {}".format(config.get("local", "saintcoinach_db"))
