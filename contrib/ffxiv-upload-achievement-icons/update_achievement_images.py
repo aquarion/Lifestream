@@ -57,11 +57,11 @@ class CustomFormatter(logging.Formatter):
         logging.ERROR: red + format_tmpl + reset,
         logging.CRITICAL: bold_red + format_tmpl + reset,
     }
+
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
-
 
 
 logger = logging.getLogger(__name__)
@@ -177,10 +177,10 @@ class SSHClient:
                     all_files[f"{remotepath}/{file.filename}"] = file
             return all_files
         except IOError as e:
-            logger.error(f"Error listing directory {remotepath}: {e}")
+            logger.error("Error listing directory %s: %s", remotepath, e)
             return []
 
-    def put(self, localpath, remotepath, achviement_name="Achievement"):
+    def put(self, localpath, remotepath):
 
         if not self.sftp:
             self.sftp = self.ssh.open_sftp()
@@ -188,22 +188,22 @@ class SSHClient:
             remote_stat = self.sftp.stat(remotepath)
             local_stat = os.stat(localpath)
             if remote_stat.st_size == local_stat.st_size:
-                logger.debug("File {} already exists".format(remotepath))
+                logger.debug("File %s already exists", remotepath)
                 return False
             else:
-                logger.debug("File {} exists but is different size".format(remotepath))
+                logger.debug("File %s exists but is different size", remotepath)
                 raise XIVImageUpgraded
 
         except (IOError, XIVImageUpgraded):
             exploded_path = remotepath.split(os.path.sep)
             imploded_path = os.path.sep.join(exploded_path[:-1])
-            logger.debug("Checking for directory {}".format(imploded_path))
+            logger.debug("Checking for directory %s", imploded_path)
             try:
                 self.sftp.stat(imploded_path)
             except IOError:
                 self.sftp.mkdir(imploded_path)
-                logger.debug("Created directory {}".format(imploded_path))
-            logger.info("Uploading file {} to {}".format(localpath, remotepath))
+                logger.debug("Created directory %s", imploded_path)
+            logger.info("Uploading file %s to %s", localpath, remotepath)
             self.sftp.put(localpath, remotepath)
             return True
 
@@ -260,7 +260,8 @@ def update_achivement_database(DB_FILE):
     if response.status_code != 200:
         logger.error(
             "Unable to download achievement database from %s: %s",
-            URL, response.status_code
+            URL,
+            response.status_code,
         )
         sys.exit(1)
     if os.path.exists(DB_FILE):
@@ -270,18 +271,17 @@ def update_achivement_database(DB_FILE):
     schema_file = os.path.join(basedir, "etc", "achievements_schema.sql")
     with open(schema_file, "r", encoding="utf-8") as schema_file:
         schema_sql = schema_file.read()
-        
+
     conn.executescript(schema_sql)
     cur = conn.cursor()
 
     csvfile = io.StringIO(response.text)
     reader = csv.reader(csvfile)
-    
-    
+
     for row in range(0, 3):
         skipped_row = next(reader)
         logger.debug("Skipping row %d: %s", row, skipped_row)
-    
+
     logger.info("Inserting achievements into database %s", DB_FILE)
 
     for row in reader:
@@ -298,7 +298,7 @@ def update_achivement_database(DB_FILE):
 def main():
 
     print("Updating achievement icons")
-    
+
     update_achivement_database(config.get("local", "saintcoinach_db"))
 
     logger.info(
@@ -373,9 +373,7 @@ def main():
                         icon_path,
                     )
                     result = ssh_client.put(
-                        f"{local_icons}/{icon_image}",
-                        f"{REMOTE_ICONS}/{icon_path}",
-                        achievement["Name"],
+                        f"{local_icons}/{icon_image}", f"{REMOTE_ICONS}/{icon_path}"
                     )
                     if result:
                         upload_count += 1
