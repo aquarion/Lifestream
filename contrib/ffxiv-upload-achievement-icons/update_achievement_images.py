@@ -3,6 +3,8 @@
 
 import argparse
 import configparser
+import csv
+import io
 import logging
 import math
 import os
@@ -11,7 +13,6 @@ import site
 import sqlite3
 import sys
 from glob import iglob
-from pprint import pprint
 from stat import S_ISDIR, S_ISREG
 
 import paramiko
@@ -45,22 +46,22 @@ class CustomFormatter(logging.Formatter):
     red = "\x1b[31;20m"
     bold_red = "\x1b[31;1m"
     reset = "\x1b[0m"
-    format = (
+    format_tmpl = (
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
     )
 
     FORMATS = {
-        logging.DEBUG: grey + format + reset,
-        logging.INFO: white + format + reset,
-        logging.WARNING: yellow + format + reset,
-        logging.ERROR: red + format + reset,
-        logging.CRITICAL: bold_red + format + reset,
+        logging.DEBUG: grey + format_tmpl + reset,
+        logging.INFO: white + format_tmpl + reset,
+        logging.WARNING: yellow + format_tmpl + reset,
+        logging.ERROR: red + format_tmpl + reset,
+        logging.CRITICAL: bold_red + format_tmpl + reset,
     }
-
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
+
 
 
 logger = logging.getLogger(__name__)
@@ -146,9 +147,9 @@ class SaintCoinach:
             raise IOError(
                 f"Unable to find icon directory {icon_local_base}/XXXX.XX.XX.0000.0000"
             )
-        dir = sorted(dirs).pop() + "/ui/icon"
-        logger.info(f"Using icon directory {dir}")
-        return dir
+        icon_directory_path = sorted(dirs).pop() + "/ui/icon"
+        logger.info("Using icon directory %s", icon_directory_path)
+        return icon_directory_path
 
 
 class SSHClient:
@@ -162,7 +163,7 @@ class SSHClient:
             os.path.expanduser(os.path.join("~", ".ssh", "known_hosts"))
         )
         self.ssh.connect(server, username=username, compress=True)
-        
+
     def ls(self, remotepath):
         all_files = {}
         if not self.sftp:
@@ -226,11 +227,11 @@ class XIVClient:
         if page > 1:
             params["page"] = page
 
-        response = requests.get(url_base + url, params=params)
+        response = requests.get(url_base + url, params=params, timeout=10)
         return response.json()
 
-    def get_achievement(self, id):
-        url = f"/achievement/{id}"
+    def get_achievement(self, identifier):
+        url = f"/achievement/{identifier}"
         return self.__call(url)
 
     def list_achievements(self):
@@ -241,11 +242,13 @@ class XIVClient:
         achievements += this_page["Results"]
         while this_page["Pagination"]["PageNext"]:
             logger.debug(
-                f"Getting page {this_page['Pagination']['PageNext']}/{this_page['Pagination']['PageTotal']} of achievements"
+                "Getting page %s/%s of achievements",
+                this_page["Pagination"]["PageNext"],
+                this_page["Pagination"]["PageTotal"],
             )
             this_page = self.__call(url, page=this_page["Pagination"]["PageNext"])
             achievements += this_page["Results"]
-            logger.debug("Next page is {}".format(this_page["Pagination"]["PageNext"]))
+            logger.debug("Next page is %s", this_page["Pagination"]["PageNext"])
 
         return achievements
 
@@ -291,93 +294,107 @@ def update_achivement_database(DB_FILE):
 
 #  Main
 
+
+def main():
+
+    print("Updating achievement icons")
     
     update_achivement_database(config.get("local", "saintcoinach_db"))
 
-logger.info(
-    "Connecting to local database {}".format(config.get("local", "saintcoinach_db"))
-)
+    logger.info(
+        "Connecting to local database %s", config.get("local", "saintcoinach_db")
+    )
 
-client = SaintCoinach(config.get("local", "saintcoinach_db"))
+    client = SaintCoinach(config.get("local", "saintcoinach_db"))
 
-logger.info(
-    "Connecting to remote server {}".format(config.get("remote", "remote_server"))
-)
-ssh_client = SSHClient(
-    config.get("remote", "remote_server"), config.get("remote", "remote_user")
-)
+    logger.info("Connecting to remote server %s", config.get("remote", "remote_server"))
+    ssh_client = SSHClient(
+        config.get("remote", "remote_server"), config.get("remote", "remote_user")
+    )
 
-logger.info("Getting achievements")
-rowcount = client.count_achievements()
-achievements = client.list_achievements()
+    logger.info("Getting achievements")
+    rowcount = client.count_achievements()
+    achievements = client.list_achievements()
 
-files = ssh_client.ls(REMOTE_ICONS)
-logger.info(f"Found {len(files)} files in {REMOTE_ICONS}")   
-       
-# with logging_redirect_tqdm(loggers=[logger]):
-local_icons = client.find_icons_path(LOCAL_ICONS_BASE)
-upload_count = 0
-for achievement in tqdm(
-    achievements, desc="Achievements", unit=" achievement", total=rowcount
-):
+    files = ssh_client.ls(REMOTE_ICONS)
+    logger.info("Found %d files in %s", len(files), REMOTE_ICONS)
 
-    #  {'ID': 3210,
-    #   'Icon': '/i/000000/000116.png',
-    #   'Name': 'On the Proteion I',
-    #   'Url': '/Achievement/3210'},
-    # logger.info("{}: ".format(achievement['Name']))
-    warning = False
-    message = False
-    if not achievement["Name"]:
-        message = f"No name for {achievement['ID']}"
-        continue
-    if not achievement["Icon"]:
-        warning = True
-        message = f"No icon set for {achievement['Name']}"
-        continue
-    icon_path = client.icon_path(achievement["Icon"])
-    icon_image = client.icon_image(achievement["Icon"])
-    if not os.path.isfile(f"{local_icons}/{icon_image}"):
-        warning = True
-        message = f"Unable find icon for {achievement['Name']}: {local_icons}/{icon_image}"
-    else:
-        try:
-            remote_filepath = f"{REMOTE_ICONS}/{icon_path}"
-            if remote_filepath in files:
-                remote_file = files[remote_filepath]
-                if remote_file.st_size == os.stat(f"{local_icons}/{icon_image}").st_size:
-                    logger.debug(f"File {remote_filepath} already exists")
-                    continue
-                else:
+    local_icons = client.find_icons_path(LOCAL_ICONS_BASE)
+    upload_count = 0
+
+    with logging_redirect_tqdm(loggers=[logger]):
+        for achievement in tqdm(
+            achievements, desc="Achievements", unit=" achievement", total=rowcount
+        ):
+
+            #  {'ID': 3210,
+            #   'Icon': '/i/000000/000116.png',
+            #   'Name': 'On the Proteion I',
+            #   'Url': '/Achievement/3210'},
+            # logger.info("{}: ".format(achievement['Name']))
+            warning = False
+            message = False
+            if not achievement["Name"]:
+                message = f"No name for {achievement['ID']}"
+                continue
+            if not achievement["Icon"]:
+                warning = True
+                message = f"No icon set for {achievement['Name']}"
+                continue
+            icon_path = client.icon_path(achievement["Icon"])
+            icon_image = client.icon_image(achievement["Icon"])
+            if not os.path.isfile(f"{local_icons}/{icon_image}"):
+                warning = True
+                message = f"Unable find icon for {achievement['Name']}: {local_icons}/{icon_image}"
+            else:
+                try:
+                    remote_filepath = f"{REMOTE_ICONS}/{icon_path}"
+                    if remote_filepath in files:
+                        remote_file = files[remote_filepath]
+                        if (
+                            remote_file.st_size
+                            == os.stat(f"{local_icons}/{icon_image}").st_size
+                        ):
+                            logger.debug("File %s already exists", remote_filepath)
+                            continue
+                        else:
+                            logger.debug(
+                                "File %s exists but is different size", remote_filepath
+                            )
+
                     logger.debug(
-                        f"File {remote_filepath} exists but is different size"
+                        "File %s does not exist on remote server", remote_filepath
                     )
-        
-            logger.debug(f"File {remote_filepath} does not exist on remote server")
-            logger.debug(
-                f"Uploading {local_icons}/{icon_image} to {REMOTE_ICONS}/{icon_path}"
-            )
-            result = ssh_client.put(
-                f"{local_icons}/{icon_image}",
-                f"{REMOTE_ICONS}/{icon_path}",
-                achievement["Name"],
-            )
-            if result:
-                upload_count += 1
-                if icon_path == icon_image:
-                    message = (
-                        f"Uploaded icon for {achievement['Name']}: {icon_path}"
+                    logger.debug(
+                        "Uploading %s/%s to %s/%s",
+                        local_icons,
+                        icon_image,
+                        REMOTE_ICONS,
+                        icon_path,
                     )
-                else:
-                    message = (
-                        f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
+                    result = ssh_client.put(
+                        f"{local_icons}/{icon_image}",
+                        f"{REMOTE_ICONS}/{icon_path}",
+                        achievement["Name"],
                     )
-        except IOError:
-            warning = True
-            message = f"Unable to upload icon for {achievement['Name']}: {REMOTE_ICONS}/{icon_path}"
-    if warning:
-        logger.warning(f"{achievement['name']} : {message}")
-    elif message:
-        logger.info(f"{achievement['name']} : {message}")
+                    if result:
+                        upload_count += 1
+                        if icon_path == icon_image:
+                            message = (
+                                f"Uploaded icon for {achievement['Name']}: {icon_path}"
+                            )
+                        else:
+                            message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
+                except IOError:
+                    warning = True
+                    message = f"Unable to upload icon for {achievement['Name']}: {REMOTE_ICONS}/{icon_path}"
+            if warning:
+                logger.warning("%s : %s", achievement["name"], message)
+            elif message:
+                logger.info("%s : %s", achievement["name"], message)
 
-print(f"Uploaded {upload_count} icons")
+    print(f"Uploaded {upload_count} icons")
+
+
+if __name__ == "__main__":
+    main()
