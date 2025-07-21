@@ -59,8 +59,8 @@ LOG_DIR = config.get("global", "log_location")
 
 LOG_FORMAT = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
 
-logging.getLogger("").setLevel(logging.DEBUG)
 
+logging.getLogger("").setLevel(logging.WARNING)
 formatter = logging.Formatter(LOG_FORMAT)
 filename = "%s/lifestream.log" % LOG_DIR
 logfile = TimedRotatingFileHandler(filename, when="W0", interval=1, utc=True)
@@ -75,8 +75,10 @@ logging.getLogger("").addHandler(console)
 
 if "--debug" in sys.argv:
     console.setLevel(logging.DEBUG)
+    logging.getLogger("").setLevel(logging.DEBUG)
 if "--verbose" in sys.argv:
     console.setLevel(logging.INFO)
+    logging.getLogger("").setLevel(logging.INFO)
 else:
     console.setLevel(logging.ERROR)
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="")
