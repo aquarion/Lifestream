@@ -72,7 +72,7 @@ python-twitter = "^3.5"
 python-wordpress-xmlrpc = { git = "https://git@github.com/emsi/python-wordpress-xmlrpc.git", branch = "master" }
 
 pytumblr = "^0.1.2"
-pytz = "^2024.1"
+pytz = "^2025.2"
 requests = "^2.32.4"
 requests-oauthlib = "^2.0.0"
 requests-toolbelt = "^1.0.0"
