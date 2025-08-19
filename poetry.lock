@@ -911,14 +911,14 @@ testing = ["Django", "attrs", "colorama", "docopt", "pytest (<9.0.0)"]
 
 [[package]]
 name = "mastodon-py"
-version = "2.0.1"
+version = "2.1.0"
 description = "Python wrapper for the Mastodon API"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "mastodon_py-2.0.1-py3-none-any.whl", hash = "sha256:5bb543ecbd7526bd50675d5d617ec04caa6b10d4002454cbf5641ad612723455"},
-    {file = "mastodon_py-2.0.1.tar.gz", hash = "sha256:f0a9cf59071347c7ff2ee49487d2520ca661f349f369b68845bdf3e43db1fff3"},
+    {file = "mastodon_py-2.1.0-py3-none-any.whl", hash = "sha256:96d0e17f2c00fcc3d688b40812174af86c1f3a352bc584fc22e41b3e859a7ef9"},
+    {file = "mastodon_py-2.1.0.tar.gz", hash = "sha256:ddab1cfd3e1d07e84dbca11cfde6c16128cccce8d8c69401cfc3def4265396cc"},
 ]
 
 [package.dependencies]
@@ -932,8 +932,9 @@ requests = ">=2.4.2"
 [package.extras]
 blurhash = ["blurhash (>=1.1.4)"]
 docs = ["sphinx-rtd-theme"]
-test = ["pytest", "pytest-cov", "pytest-mock", "pytest-retry", "pytest-vcr", "pytz", "requests-mock", "vcrpy"]
-test-old = ["pytest", "pytest-cov", "pytest-mock", "pytest-vcr", "pytz", "requests-mock", "vcrpy"]
+grapheme = ["grapheme (>=0.6.0)"]
+test = ["pytest", "pytest-cov", "pytest-mock", "pytest-recording", "pytest-retry", "pytz", "requests-mock", "vcrpy"]
+test-old = ["pytest", "pytest-cov", "pytest-mock", "pytest-recording", "pytz", "requests-mock", "vcrpy"]
 webpush = ["cryptography (>=1.6.0)", "http_ece (>=1.0.5)"]
 
 [[package]]
