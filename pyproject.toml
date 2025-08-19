@@ -97,7 +97,7 @@ wcwidth = "^0.2.13"
 websocket-client = "^1.8.0"
 wsproto = "^1.2.0"
 pyutil = "^3.3.6"
-redis = "^5.2.0"
+redis = "^6.4.0"
 paramiko = "^3.5.0"
 tqdm = "^4.67.1"
 
