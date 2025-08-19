@@ -50,21 +50,7 @@ def get_categories():
 
 
 def get_all_my_achievements(api):
-    try:
-        my_achievements = api.account_achievements.get()
-    except GuildWars2APIError as e:
-
-        ttl = Lifestream.warned_recently("gw2:api_error:warning_sent")
-        if ttl:
-            logger.warning("Error fetching achievements: {}".format(e))
-            logger.info(
-                "Error already sent {} ago".format(
-                    lifestream.niceTimeDelta(ttl))
-            )
-        else:
-            logger.error("Error fetching achievements: {}".format(e))
-
-        sys.exit(1)
+    my_achievements = api.account_achievements.get()
 
     fetch_list = []
 
@@ -102,38 +88,68 @@ def get_all_my_achievements(api):
     return achievements_library
 
 
-achievements_library = get_all_my_achievements(api)
 
+def run_import():
+        
+    try:
+        achievements_library = get_all_my_achievements(api)
+    except GuildWars2APIError as e:
+        ttl = Lifestream.warned_recently("gw2:api_error:warning_sent")
+        if ttl:
+            logger.warning("Error fetching achievements: {}".format(e))
+            logger.info(
+                "Error already sent {} ago".format(
+                    lifestream.niceTimeDelta(ttl))
+            )
+        else:
+            logger.error("Error fetching achievements: {}".format(e))
+        sys.exit(1)
 
-for category in get_categories():
-    for achievement_id in category["achievements"]:
-        if achievement_id in achievements_library:
-            achievements_library[achievement_id]["category"] = category
+    for category in get_categories():
+        for achievement_id in category["achievements"]:
+            if achievement_id in achievements_library:
+                achievements_library[achievement_id]["category"] = category
 
-for ident, achievement in achievements_library.items():
-    if "info" not in achievement:
-        continue
+    for ident, achievement in achievements_library.items():
+        if "info" not in achievement:
+            continue
 
-    icon = False
-    if "icon" in achievement["info"]:
-        icon = achievement["info"]["icon"]
-    elif "category" in achievement:
-        icon = achievement["category"]["icon"]
+        icon = False
+        if "icon" in achievement["info"]:
+            icon = achievement["info"]["icon"]
+        elif "category" in achievement:
+            icon = achievement["category"]["icon"]
+        else:
+            icon = "https://wiki.guildwars2.com/images/d/d9/Retired_Achievements.png"
+
+        if not icon:
+            logger.warn(achievement["info"]["name"], " - has no icon")
+
+        text = (
+            achievement["info"]["name"] + " &ndash; " +
+            achievement["info"]["requirement"]
+        )
+
+        logger.info(text)
+
+        #     id = hashlib.md5()
+        # id.update(text)
+        Lifestream.add_entry(
+            "achievement", ident, text, "Guild Wars 2", datetime.now(), image=icon
+        )
+
+def main():
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
     else:
-        icon = "https://wiki.guildwars2.com/images/d/d9/Retired_Achievements.png"
+        logging.basicConfig(level=logging.INFO)
 
-    if not icon:
-        logger.warn(achievement["info"]["name"], " - has no icon")
+    logger.info("Starting Guild Wars 2 import")
 
-    text = (
-        achievement["info"]["name"] + " &ndash; " +
-        achievement["info"]["requirement"]
-    )
 
-    logger.info(text)
+    run_import()
 
-    #     id = hashlib.md5()
-    # id.update(text)
-    Lifestream.add_entry(
-        "achievement", ident, text, "Guild Wars 2", datetime.now(), image=icon
-    )
+    logger.info("Guild Wars 2 import finished")
+
+if __name__ == "__main__":
+    main()
