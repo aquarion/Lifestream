@@ -923,14 +923,14 @@ testing = ["Django", "attrs", "colorama", "docopt", "pytest (<9.0.0)"]
 
 [[package]]
 name = "mastodon-py"
-version = "2.1.2"
+version = "2.1.3"
 description = "Python wrapper for the Mastodon API"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "mastodon_py-2.1.2-py3-none-any.whl", hash = "sha256:c1caa16e5eec22c3f4aba25131d7c8ad7954607d976271b0a0a81797f79834b1"},
-    {file = "mastodon_py-2.1.2.tar.gz", hash = "sha256:e06cdcc937fa5ac704ac3b107a2e5fe49a0ee26bf46d30015fa1774bdd1e0c0c"},
+    {file = "mastodon_py-2.1.3-py3-none-any.whl", hash = "sha256:e67571f1f2d8db12f08dfcf9b3c93aa70325092d5f3d4d6711f67aa540f60452"},
+    {file = "mastodon_py-2.1.3.tar.gz", hash = "sha256:7beb61597b7a2083ed02a980836232496fb2fcc724cae305d4f128e4cd6c9d81"},
 ]
 
 [package.dependencies]
