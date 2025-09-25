@@ -233,6 +233,7 @@ delta = credentials["expire_dt"] - datetime.now()
 if datetime.now() > credentials["expire_dt"]:
     logger.error("Token has expired! {} days!".format(delta.days))
     print("Token has expired!")
+    sys.exit(7)
 
 
 if delta.days <= 7:
