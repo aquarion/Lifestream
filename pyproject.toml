@@ -35,7 +35,7 @@ googleapis-common-protos = "^1.63.2"
 #guildwars2api @ https://github.com/aquarion/guildwars2api/archive/refs/tags/0.1a.tar.gz
 guildwars2api = { git = "git@github.com:aquarion/guildwars2api.git", tag = "0.1a" }
 h11 = "^0.16.0"
-httplib2 = "^0.22.0"
+httplib2 = "^0.31.0"
 httpretty = "^1.1.4"
 idna = "^3.7"
 ipdb = "^0.13.13"
