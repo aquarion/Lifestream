@@ -4,7 +4,6 @@
 import configparser
 import logging
 import sys
-from pprint import pprint
 from urllib.parse import urlparse
 
 import dateutil.parser
@@ -97,7 +96,6 @@ for site in sites:
                 continue
 
             if item.post.record.reply:
-                pprint(item.post.record.reply)
                 logger.debug("Skipping reply to %s" %
                              item.post.record.reply.parent.uri)
                 continue
@@ -134,7 +132,6 @@ for site in sites:
             )
 
             logger.info("%s: %s" % (date.strftime("%Y-%m-%d"), title))
-            pprint(post)
 
         if not len(atResponse.feed):
             logger.info("No more posts")
