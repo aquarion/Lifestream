@@ -61,6 +61,8 @@ LOG_FORMAT = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
 
 
 logging.getLogger("").setLevel(logging.WARNING)
+logging.captureWarnings(True)
+
 formatter = logging.Formatter(LOG_FORMAT)
 filename = "%s/lifestream.log" % LOG_DIR
 logfile = TimedRotatingFileHandler(filename, when="W0", interval=1, utc=True)
