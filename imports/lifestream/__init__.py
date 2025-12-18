@@ -71,23 +71,20 @@ logfile.setLevel(logging.DEBUG)
 logfile.setFormatter(formatter)
 logging.getLogger("").addHandler(logfile)
 
-console = logging.StreamHandler()
-console.setFormatter(formatter)
-logging.getLogger("").addHandler(console)
+consoleLogger = logging.StreamHandler()
+consoleLogger.setFormatter(formatter)
+logging.getLogger("").addHandler(consoleLogger)
 
 if "--debug" in sys.argv:
-    console.setLevel(logging.DEBUG)
+    print("Debug mode enabled")
+    consoleLogger.setLevel(logging.DEBUG)
     logging.getLogger("").setLevel(logging.DEBUG)
-if "--verbose" in sys.argv:
-    console.setLevel(logging.INFO)
+elif "--verbose" in sys.argv:
+    consoleLogger.setLevel(logging.INFO)
     logging.getLogger("").setLevel(logging.INFO)
 else:
-    console.setLevel(logging.ERROR)
+    consoleLogger.setLevel(logging.ERROR)
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="")
-
-
-logger = logging.getLogger(__name__)
-
 
 def getDatabaseConnection():
 
@@ -288,6 +285,26 @@ class Lifestream:
             return
         self.dbcxn = getDatabaseConnection()
         self.cursor = cursor(self.dbcxn)
+        
+    def get_by_id(self, type, entry_id):
+        self.init_db()
+        cursor = self.dbcxn.cursor(MySQLdb.cursors.DictCursor)
+        sql = "select * from lifestream where type = %s and systemid = %s"
+        cursor.execute(sql, (type, entry_id))
+        return cursor.fetchone()
+    
+    def get_by_title(self, type, title):
+        self.init_db()
+        cursor = self.dbcxn.cursor(MySQLdb.cursors.DictCursor)
+        sql = "select * from lifestream where type = %s and title = %s"
+        cursor.execute(sql, (type, title))
+        return cursor.fetchone()
+    
+    def delete_entry(self, type, entry_id):
+        self.init_db()
+        sql = "delete from lifestream where type = %s and systemid = %s"
+        self.cursor.execute(sql, (type, entry_id))
+        self.dbcxn.commit()
 
     # Lifestream.add_entry(type, id, title, source, date, url='', image='', fulldata_json=False)
     def add_entry(
