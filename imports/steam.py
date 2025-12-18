@@ -1,15 +1,14 @@
 #!/usr/bin/python
-# Python
-import hashlib
-import logging
-import os
-from datetime import datetime
-from io import BytesIO
-from xml.dom import minidom
-from xml.parsers.expat import ExpatError
 
+import sys
+import requests
+
+import logging
 import pytz
 import requests
+from datetime import datetime
+from pprint import pprint
+import hashlib
 
 # Local
 import lifestream
@@ -33,117 +32,184 @@ args = lifestream.arguments.parse_args()
 
 Lifestream = lifestream.Lifestream()
 
-steamtime = pytz.timezone("US/Pacific")
+STEAMTIME = pytz.timezone("US/Pacific")
 
-user = lifestream.config.get("steam", "username")
+USER = lifestream.config.get("steam", "username")
+STEAMID = lifestream.config.get("steam", "steamid")
+API_KEY = lifestream.config.get("steam", "apikey")
 
-logger.info(
-    "Opening https://steamcommunity.com/id/%s/games?tab=recent&xml=1" % user)
 
-try:
-    gameslist_xml = requests.get(
-        "https://steamcommunity.com/id/%s/games?tab=recent&xml=1" % user
-    )
-except IOError:
-    # print >> sys.stderr, "Got socket error fetching games list"
-    os._exit(5)
-
-games = minidom.parse(BytesIO(gameslist_xml.content))
-
-gamesList = games.getElementsByTagName("game")
-
-maxGames = 10000
-thisGame = 0
-foundGames = 0
-
-# for game in gameslist:
-while foundGames < maxGames and thisGame != len(gamesList):
-
-    # Get the current game
-    game = gamesList[thisGame]
-
-    # Iterate Loop counter to get the next game next time
-    thisGame = thisGame + 1
-
-    statspage = game.getElementsByTagName("statsLink")
-    gamename = game.getElementsByTagName("name")[0].firstChild.data
-
-    hoursFortnight = game.getElementsByTagName("hoursLast2Weeks")
-    hoursEver = game.getElementsByTagName("hoursOnRecord")
-
-    logger.info("% 3d % 3d %s" % (foundGames, thisGame, gamename))
-
-    if len(statspage) == 0:
-        logger.info("       + Skipping %s (No stats page)" % gamename)
-        continue
-
-    if not hoursEver:
-        logger.info("       + Skipping %s (Not played)" % gamename)
-        continue
-
-    if not args.catchup and not hoursFortnight:
-        logger.info("       + Skipping %s (Not in last fortnight)" % gamename)
-        continue
-
-    # If we found a statspage, carry on. Iterate foundGames
-
-    foundGames = foundGames + 1
-
-    statspage = game.getElementsByTagName("statsLink")[0].firstChild.data
-    statspagexml = "%s?xml=1" % statspage
-
+class SteamAPI:
+  BASE_URL = "http://api.steampowered.com/"
+  
+  def __init__(self, api_key):
+    self.api_key = api_key
+    
+  def make_steam_call(self, interface, method, version, params):
+    url = f"{self.BASE_URL}{interface}/{method}/v{int(version):04d}/"
+    params['key'] = self.api_key
+    response = requests.get(url, params=params)
+    response.raise_for_status()
+    return response.json()
+  
+  def get_news_for_app(self, appid, count=3, maxlength=300):
+    params = {
+      'appid': appid,
+      'count': count,
+      'maxlength': maxlength
+    }
+    return self.make_steam_call("ISteamNews", "GetNewsForApp", "2", params)
+  
+  def get_global_achievements(self, appid):
+    params = {
+      'appid': appid
+    }
+    return self.make_steam_call("ISteamUserStats", "GetGlobalAchievementPercentagesForApp", "2", params)
+  
+  def get_player_summaries(self, steamids):
+    params = {
+      'steamids': ','.join(steamids)
+    }
+    return self.make_steam_call("ISteamUser", "GetPlayerSummaries", "2", params) 
+  
+  def get_friend_list(self, steamid, relationship="friend"):
+    params = {
+      'steamid': steamid,
+      'relationship': relationship
+    }
+    return self.make_steam_call("ISteamUser", "GetFriendList", "1", params)
+  
+  def get_player_achievements(self, steamid, appid):
+    params = {
+      'steamid': steamid,
+      'appid': appid
+    }
+    return self.make_steam_call("ISteamUserStats", "GetPlayerAchievements", "1", params)
+  
+  def get_user_stats_for_game(self, steamid, appid):
+    params = {
+      'steamid': steamid,
+      'appid': appid
+    }
+    return self.make_steam_call("ISteamUserStats", "GetUserStatsForGame", "2", params)
+  
+  def get_owned_games(self, steamid, include_appinfo=True, include_played_free_games=True):
+    params = {
+      'steamid': steamid,
+      'include_appinfo': int(include_appinfo),
+      'include_played_free_games': int(include_played_free_games)
+    }
+    return self.make_steam_call("IPlayerService", "GetOwnedGames", "1", params)
+  
+  def get_recently_played_games(self, steamid, count=5):
+    params = {
+      'steamid': steamid,
+      'count': count
+    }
+    return self.make_steam_call("IPlayerService", "GetRecentlyPlayedGames", "1", params)
+  
+  
+  def get_badges(self, steamid):
+    params = {
+      'steamid': steamid
+    }
+    return self.make_steam_call("IPlayerService", "GetBadges", "1", params)
+  
+  
+  def get_game_achievements(self, appid):
+    params = {
+      'appid': appid
+    }
+    return self.make_steam_call("ISteamUserStats", "GetSchemaForGame", "2", params)
+  
+  def get_global_stats_for_game(self, appid, count, name):
+    params = {
+      'appid': appid,
+      'count': count,
+      'name': name
+    }
+    return self.make_steam_call("ISteamUserStats", "GetGlobalStatsForGame", "1", params)
+  
+if __name__ == "__main__":
+  steam_cxn = SteamAPI(API_KEY)
+  if args.catchup:
+    logger.info("CATCHUP MODE: Fetching all achievements.")
+    games = steam_cxn.get_owned_games(STEAMID, include_appinfo=True)
+  else:
+    logger.info("NORMAL MODE: Fetching only recent achievements.")
+    games = steam_cxn.get_recently_played_games(STEAMID, count=10)
+  
+  logger.info(f"Found {len(games['response'].get('games', []))} games to check for achievements.")
+    
+  for game in games['response']['games']:
+    appid = game['appid']
+    name = game['name']
+    playtime_2weeks = game.get('playtime_2weeks', 0)
+    playtime_forever = game['playtime_forever']
+    
+    text = f"Played {name}: {playtime_2weeks} mins in last 2 weeks, {playtime_forever} mins total."
+    logger.info(text)
+    
     try:
-        logger.info("       + Getting Stats: %s" % statspagexml)
-        response = requests.get(statspagexml)
-        game = minidom.parse(BytesIO(response.content))
-    except IOError:
-        logger.info(
-            "       + Got socket error fetching %s achievement list" % gamename)
-        continue
-    except ExpatError:
-        logger.info("       + XML Error reading file. Not a real stats page.")
-        continue
+      player_achievements = steam_cxn.get_player_achievements(STEAMID, appid)
+    except requests.HTTPError as e:
+      logger.warning(f"Error fetching achievements for {name} ({appid}): {e}")
+      pprint(game)
+      sys.exit(1)
+      continue
+      
+    unsorted_game_achievements = steam_cxn.get_game_achievements(appid)
+    
+    game_achievements = {}
+    if 'availableGameStats' not in unsorted_game_achievements['game'] or 'achievements' not in unsorted_game_achievements['game']['availableGameStats']:
+      logger.info(f"   + No achievements found for {name} ({appid}).")
+      continue
+      
+    for achievement in unsorted_game_achievements['game']['availableGameStats']['achievements']:
+      game_achievements[achievement['name']] = achievement
+    
+    
+    if 'playerstats' in player_achievements and 'achievements' in player_achievements['playerstats']:
+      for player_achievement in player_achievements['playerstats']['achievements']:
+        if player_achievement['achieved'] == 1:
+          ach_id = player_achievement['apiname']
+          game_achievement = game_achievements.get(ach_id, {})
+          ach_name = game_achievement.get('displayName', 'Unknown Achievement')
+          text_ach = f"Earned achievement in {name}: {ach_id}"
+          
+          message = "%s &ndash; %s" % (name, ach_name)
+          
+          # pprint(player_achievement)
+          # pprint(game_achievement)
+          achieved_date = datetime.fromtimestamp(player_achievement['unlocktime'])
+          
+          
+          logger.info(message)
+          
+          closedImage = game_achievement.get('icongray', None)
+          openImage = game_achievement.get('icon', None)
+          
+          id = hashlib.md5()
+          id.update(f"{appid}-{ach_id}".encode("utf-8"))
+          
+          entry = Lifestream.get_by_title("achievement", message)
+          if entry and not entry['systemid'] == id.hexdigest():
+              logger.info("           + Achievement already in Lifestream, deleting.")
+              logger.info(f"             + Entry ID: {entry['title']}")
+              Lifestream.delete_entry(entry['type'], entry['systemid'])
+          else:
+              logger.info("           + Adding Achievement to Lifestream.")
+                    
+          statsPage = f"https://steamcommunity.com/id/%s/stats/%s/?tab=achievements" % (USER, appid)
+          
+          Lifestream.add_entry(
+              "achievement",
+              id.hexdigest(),
+              message,
+              "steam",
+              achieved_date,
+              url=statsPage,
+              image=openImage,
+          )
 
-    for achievement in game.getElementsByTagName("achievement"):
-        closed = achievement.getAttribute("closed")
-        if not achievement.getElementsByTagName("name")[0].firstChild:
-            logger.info("         +  (Empty Name)")
-            continue
-
-        name = achievement.getElementsByTagName("name")[0].firstChild.data
-        if closed == "0":
-            logger.info("         + %s (Not Achieved)" % name)
-            continue
-
-        m = hashlib.md5()
-
-        image = achievement.getElementsByTagName("iconClosed")[
-            0].firstChild.data
-
-        try:
-            unlocked = achievement.getElementsByTagName("unlockTimestamp")[
-                0
-            ].firstChild.data
-            us_timestamp = datetime.fromtimestamp(int(unlocked))
-            local_timestamp = steamtime.localize(us_timestamp)
-        except IndexError:
-            local_timestamp = datetime.now()
-
-        logger.info("         + %s (Achieved at %s )" %
-                    (name, local_timestamp))
-
-        message = "%s &ndash; %s" % (gamename, name)
-
-        m.update(gamename.encode("utf-8"))
-        m.update(name.encode("utf-8"))
-        id = image
-
-        Lifestream.add_entry(
-            "achievement",
-            id,
-            message,
-            "steam",
-            local_timestamp,
-            url=statspage,
-            image=image,
-        )
+            
