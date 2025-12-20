@@ -42,6 +42,7 @@ args = parser.parse_args()
 
 class CustomFormatter(logging.Formatter):
     """Custom formatter for colored logging output."""
+
     grey = "\x1b[38;20m"
     white = "\x1b[1;20m"
     yellow = "\x1b[33;20m"
@@ -69,7 +70,9 @@ class CustomFormatter(logging.Formatter):
 logger = logging.getLogger(__name__)
 # logging.basicConfig(level=logging.WARNING)
 logging.getLogger("fabric").setLevel(logging.WARNING)  # for example
-logging.getLogger("paramiko").setLevel(logging.WARNING)  # fabric uses paramiko underneath
+logging.getLogger("paramiko").setLevel(
+    logging.WARNING
+)  # fabric uses paramiko underneath
 
 ch = logging.StreamHandler()
 ch.setFormatter(CustomFormatter())
@@ -169,7 +172,9 @@ class SSHClient:
 
     def __init__(self, server, username):
         try:
-            self.connection = Connection(host=server, user=username, connect_kwargs={'compress': True})
+            self.connection = Connection(
+                host=server, user=username, connect_kwargs={"compress": True}
+            )
         except SSH_Exception.AuthenticationException as e:
             logger.error("Failed to connect to %s as %s: %s", server, username, e)
             self.connection = None
@@ -318,18 +323,16 @@ def main():
     """Main function to update achievement icons."""
 
     print("Updating achievement icons")
-    
+
     data_dir = config.get("local", "data_directory")
     if not os.path.isdir(data_dir):
         os.makedirs(data_dir)
-    
+
     database_path = data_dir + "/saintcoinach_achievements.db"
 
     update_achievement_database(database_path)
 
-    logger.info(
-        "Connecting to local database %s", database_path
-    )
+    logger.info("Connecting to local database %s", database_path)
 
     client = SaintCoinach(database_path)
 
