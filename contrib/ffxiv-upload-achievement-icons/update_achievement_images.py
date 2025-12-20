@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Script to update FFXIV achievement icons from local Saint Coinach data to remote server."""
 
 import argparse
 import configparser
@@ -15,18 +16,19 @@ import sys
 from glob import iglob
 from stat import S_ISDIR, S_ISREG
 
-import paramiko
+from fabric import Connection
 import requests
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
+from paramiko import ssh_exception as SSH_Exception
+
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
-site.addsitedir(basedir + "/../imports")
+site.addsitedir(os.path.join(basedir, "..", "imports"))
 
 config = configparser.ConfigParser()
 config.read("ffxiv_config.ini")
 
-APIKEY = config.get("xivapi", "apikey")
 LOCAL_ICONS_BASE = config.get("local", "icon_local_base")
 REMOTE_ICONS = config.get("remote", "icon_remote_location")
 
@@ -40,6 +42,7 @@ args = parser.parse_args()
 
 
 class CustomFormatter(logging.Formatter):
+    """Custom formatter for colored logging output."""
     grey = "\x1b[38;20m"
     white = "\x1b[1;20m"
     yellow = "\x1b[33;20m"
@@ -65,8 +68,9 @@ class CustomFormatter(logging.Formatter):
 
 
 logger = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.WARN)
-logging.getLogger("paramiko").setLevel(logging.WARN)  # for example
+# logging.basicConfig(level=logging.WARNING)
+logging.getLogger("fabric").setLevel(logging.WARNING)  # for example
+logging.getLogger("paramiko").setLevel(logging.WARNING)  # fabric uses paramiko underneath
 
 ch = logging.StreamHandler()
 ch.setFormatter(CustomFormatter())
@@ -84,10 +88,11 @@ if args.verbose:
 
 
 class XIVImageUpgraded(Exception):
-    pass
+    """Exception raised when an image has been upgraded."""
 
 
 class SaintCoinach:
+    """Interface for working with SaintCoinach achievement database."""
 
     db_connection = False
 
@@ -96,16 +101,19 @@ class SaintCoinach:
         self.db_connection.row_factory = sqlite3.Row  # add this row
 
     def count_achievements(self):
+        """Count the number of achievements in the database."""
         cursor = self.db_connection.cursor()
         result = cursor.execute("SELECT COUNT(*) FROM achievements")
         return result.fetchone()[0]
 
     def list_achievements(self):
+        """List all achievements in the database."""
         cursor = self.db_connection.cursor()
         result = cursor.execute("SELECT * FROM achievements")
         return result
 
     def get_achievement(self, achievement_id):
+        """Get a specific achievement by ID."""
         cursor = self.db_connection.cursor()
         result = cursor.execute(
             "SELECT * FROM achievements WHERE ID = ?", (achievement_id,)
@@ -114,25 +122,27 @@ class SaintCoinach:
         return record
 
     def icon_path(self, icon_id):
+        """Get the icon path for a given icon ID."""
         icon_id = int(icon_id)
-        filename = "{:06d}".format(icon_id)
-        foldername = "{:06d}".format(math.floor(icon_id / 1000) * 1000)
-        return "{}/{}.png".format(foldername, filename)
+        filename = f"{icon_id:06d}"
+        foldername = f"{math.floor(icon_id / 1000) * 1000:06d}"
+        return f"{foldername}/{filename}.png"
 
     def icon_image(self, icon_id):
+        """Get the icon image filename for a given icon ID, preferring high quality."""
         local_icons = self.find_icons_path(LOCAL_ICONS_BASE)
 
         icon_id = int(icon_id)
-        filename = "{:06d}".format(icon_id)
-        foldername = "{:06d}".format(math.floor(icon_id / 1000) * 1000)
-        low_quality = "{}/{}.png".format(foldername, filename)
-        high_quality = "{}/{}_hr1.png".format(foldername, filename)
+        filename = f"{icon_id:06d}"
+        foldername = f"{math.floor(icon_id / 1000) * 1000:06d}"
+        low_quality = f"{foldername}/{filename}.png"
+        high_quality = f"{foldername}/{filename}_hr1.png"
         if os.path.isfile(f"{local_icons}/{high_quality}"):
             return high_quality
-        else:
-            return low_quality
+        return low_quality
 
     def find_icons_path(self, icon_local_base):
+        """Find the path to the icon directory in the local Saint Coinach data."""
         if not os.path.isdir(icon_local_base):
             raise IOError(f"Unable to find icon location {icon_local_base}")
 
@@ -148,26 +158,28 @@ class SaintCoinach:
                 f"Unable to find icon directory {icon_local_base}/XXXX.XX.XX.0000.0000"
             )
         icon_directory_path = sorted(dirs).pop() + "/ui/icon"
-        logger.info("Using icon directory %s", icon_directory_path)
+        # logger.info("Using icon directory %s", icon_directory_path)
         return icon_directory_path
 
 
 class SSHClient:
+    """SSH client for uploading files to remote server."""
 
-    ssh = False
+    connection = None
     sftp = False
 
     def __init__(self, server, username):
-        self.ssh = paramiko.SSHClient()
-        self.ssh.load_host_keys(
-            os.path.expanduser(os.path.join("~", ".ssh", "known_hosts"))
-        )
-        self.ssh.connect(server, username=username, compress=True)
+        try:
+            self.connection = Connection(host=server, user=username, connect_kwargs={'compress': True})
+        except SSH_Exception.AuthenticationException as e:
+            logger.error("Failed to connect to %s as %s: %s", server, username, e)
+            self.connection = None
 
     def ls(self, remotepath):
+        """List files in remote directory recursively."""
         all_files = {}
         if not self.sftp:
-            self.sftp = self.ssh.open_sftp()
+            self.sftp = self.connection.sftp()
         try:
             files = self.sftp.listdir_attr(remotepath)
             for file in files:
@@ -178,12 +190,13 @@ class SSHClient:
             return all_files
         except IOError as e:
             logger.error("Error listing directory %s: %s", remotepath, e)
-            return []
+            return {}
 
     def put(self, localpath, remotepath):
+        """Upload a file to the remote server if it doesn't exist or differs."""
 
         if not self.sftp:
-            self.sftp = self.ssh.open_sftp()
+            self.sftp = self.connection.sftp()
         try:
             remote_stat = self.sftp.stat(remotepath)
             local_stat = os.stat(localpath)
@@ -210,16 +223,20 @@ class SSHClient:
         return False
 
     def __del__(self):
-        self.sftp.close()
-        self.ssh.close()
+        if self.sftp:
+            self.sftp.close()
+        if self.connection:
+            self.connection.close()
 
 
 class XIVClient:
+    """Client for interacting with XIVAPI."""
 
     def __init__(self, api_key):
         self.api_key = api_key
 
-    def __call(self, url, limit=1000, page=1):
+    def _call(self, url, limit=1000, page=1):
+        """Make a call to the XIVAPI."""
         url_base = "https://xivapi.com"
         params = {"private_key": self.api_key}
         if limit:
@@ -231,14 +248,16 @@ class XIVClient:
         return response.json()
 
     def get_achievement(self, identifier):
+        """Get a specific achievement by identifier."""
         url = f"/achievement/{identifier}"
-        return self.__call(url)
+        return self._call(url)
 
     def list_achievements(self):
+        """List all achievements from the API."""
         logger.info("Getting achievements")
         url = "/achievement"
         achievements = []
-        this_page = self.__call(url)
+        this_page = self._call(url)
         achievements += this_page["Results"]
         while this_page["Pagination"]["PageNext"]:
             logger.debug(
@@ -246,30 +265,31 @@ class XIVClient:
                 this_page["Pagination"]["PageNext"],
                 this_page["Pagination"]["PageTotal"],
             )
-            this_page = self.__call(url, page=this_page["Pagination"]["PageNext"])
+            this_page = self._call(url, page=this_page["Pagination"]["PageNext"])
             achievements += this_page["Results"]
             logger.debug("Next page is %s", this_page["Pagination"]["PageNext"])
 
         return achievements
 
 
-def update_achivement_database(DB_FILE):
-    URL = "https://github.com/xivapi/ffxiv-datamining/raw/master/csv/Achievement.csv"
-    logger.info("Updating achievement database from %s", URL)
-    response = requests.get(URL, timeout=10)
+def update_achievement_database(db_file):
+    """Update the achievement database from the remote CSV file."""
+    url = "https://github.com/xivapi/ffxiv-datamining/raw/master/csv/Achievement.csv"
+    logger.info("Updating achievement database from %s", url)
+    response = requests.get(url, timeout=10)
     if response.status_code != 200:
         logger.error(
             "Unable to download achievement database from %s: %s",
-            URL,
+            url,
             response.status_code,
         )
         sys.exit(1)
-    if os.path.exists(DB_FILE):
-        os.remove(DB_FILE)
+    if os.path.exists(db_file):
+        os.remove(db_file)
 
-    conn = sqlite3.connect(DB_FILE)
-    schema_file = os.path.join(basedir, "etc", "achievements_schema.sql")
-    with open(schema_file, "r", encoding="utf-8") as schema_file:
+    conn = sqlite3.connect(db_file)
+    schema_file_path = os.path.join(basedir, "etc", "achievements_schema.sql")
+    with open(schema_file_path, "r", encoding="utf-8") as schema_file:
         schema_sql = schema_file.read()
 
     conn.executescript(schema_sql)
@@ -282,7 +302,7 @@ def update_achivement_database(DB_FILE):
         skipped_row = next(reader)
         logger.debug("Skipping row %d: %s", row, skipped_row)
 
-    logger.info("Inserting achievements into database %s", DB_FILE)
+    logger.info("Inserting achievements into database %s", db_file)
 
     for row in reader:
         cur.execute(
@@ -296,16 +316,23 @@ def update_achivement_database(DB_FILE):
 
 
 def main():
+    """Main function to update achievement icons."""
 
     print("Updating achievement icons")
+    
+    data_dir = config.get("local", "data_directory")
+    if not os.path.isdir(data_dir):
+        os.makedirs(data_dir)
+    
+    database_path = data_dir + "/saintcoinach_achievements.db"
 
-    update_achivement_database(config.get("local", "saintcoinach_db"))
+    update_achievement_database(database_path)
 
     logger.info(
-        "Connecting to local database %s", config.get("local", "saintcoinach_db")
+        "Connecting to local database %s", database_path
     )
 
-    client = SaintCoinach(config.get("local", "saintcoinach_db"))
+    client = SaintCoinach(database_path)
 
     logger.info("Connecting to remote server %s", config.get("remote", "remote_server"))
     ssh_client = SSHClient(
@@ -345,7 +372,10 @@ def main():
             icon_image = client.icon_image(achievement["Icon"])
             if not os.path.isfile(f"{local_icons}/{icon_image}"):
                 warning = True
-                message = f"Unable find icon for {achievement['Name']}: {local_icons}/{icon_image}"
+                message = (
+                    f"Unable to find icon for {achievement['Name']}: "
+                    f"{local_icons}/{icon_image}"
+                )
             else:
                 try:
                     remote_filepath = f"{REMOTE_ICONS}/{icon_path}"
@@ -357,10 +387,9 @@ def main():
                         ):
                             logger.debug("File %s already exists", remote_filepath)
                             continue
-                        else:
-                            logger.debug(
-                                "File %s exists but is different size", remote_filepath
-                            )
+                        logger.debug(
+                            "File %s exists but is different size", remote_filepath
+                        )
 
                     logger.debug(
                         "File %s does not exist on remote server", remote_filepath
@@ -385,11 +414,14 @@ def main():
                             message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
                 except IOError:
                     warning = True
-                    message = f"Unable to upload icon for {achievement['Name']}: {REMOTE_ICONS}/{icon_path}"
+                    message = (
+                        f"Unable to upload icon for {achievement['Name']}: "
+                        f"{REMOTE_ICONS}/{icon_path}"
+                    )
             if warning:
-                logger.warning("%s : %s", achievement["name"], message)
+                logger.warning("%s : %s", achievement["Name"], message)
             elif message:
-                logger.info("%s : %s", achievement["name"], message)
+                logger.info("%s : %s", achievement["Name"], message)
 
     print(f"Uploaded {upload_count} icons")
 
