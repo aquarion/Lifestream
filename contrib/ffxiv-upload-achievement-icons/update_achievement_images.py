@@ -16,12 +16,11 @@ import sys
 from glob import iglob
 from stat import S_ISDIR, S_ISREG
 
-from fabric import Connection
 import requests
+from fabric import Connection
+from paramiko import ssh_exception as SSH_Exception
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
-
-from paramiko import ssh_exception as SSH_Exception
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(os.path.join(basedir, "..", "imports"))
