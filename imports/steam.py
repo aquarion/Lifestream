@@ -7,7 +7,6 @@ import logging
 import pytz
 import requests
 from datetime import datetime
-from pprint import pprint
 import hashlib
 
 # Local
@@ -154,7 +153,6 @@ if __name__ == "__main__":
       player_achievements = steam_cxn.get_player_achievements(STEAMID, appid)
     except requests.HTTPError as e:
       logger.warning(f"Error fetching achievements for {name} ({appid}): {e}")
-      pprint(game)
       sys.exit(1)
       continue
       
@@ -179,8 +177,6 @@ if __name__ == "__main__":
           
           message = "%s &ndash; %s" % (name, ach_name)
           
-          # pprint(player_achievement)
-          # pprint(game_achievement)
           achieved_date = datetime.fromtimestamp(player_achievement['unlocktime'])
           
           
