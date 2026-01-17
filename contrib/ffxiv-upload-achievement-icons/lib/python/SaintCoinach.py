@@ -20,6 +20,7 @@ class SaintCoinach:
 
     db_connection = False
     config = None
+    icons_path = None
 
     def __init__(self, dbpath, config):
         self.db_connection = sqlite3.connect(dbpath)
@@ -68,13 +69,17 @@ class SaintCoinach:
             return high_quality
         return low_quality
 
-    def find_icons_path(self, icon_local_base):
+    def find_icons_path(self, icon_directory):
         """Find the path to the icon directory in the local Saint Coinach data."""
-        if not os.path.isdir(icon_local_base):
-            raise IOError(f"Unable to find icon location {icon_local_base}")
+        
+        if self.find_icons_path is not None:
+            return self.icons_path
+        
+        if not os.path.isdir(icon_directory):
+            raise IOError(f"Unable to find icon location {icon_directory}")
 
         dirs = []
-        for icon_location in iglob(f"{icon_local_base}/*"):
+        for icon_location in iglob(f"{icon_directory}/*"):
             if os.path.isdir(icon_location):
                 dirname = os.path.basename(icon_location)
                 # 0000.00.00.0000.0000
@@ -82,10 +87,11 @@ class SaintCoinach:
                     dirs.append(icon_location)
         if not dirs:
             raise IOError(
-                f"Unable to find icon directory {icon_local_base}/XXXX.XX.XX.0000.0000"
+                f"Unable to find icon directory {icon_directory}/XXXX.XX.XX.0000.0000"
             )
         icon_directory_path = sorted(dirs).pop() + "/ui/icon"
         # logger.info("Using icon directory %s", icon_directory_path)
+        self.icons_path = icon_directory_path
         return icon_directory_path
 
     def update_achievement_database(self, schema_file_path=None):

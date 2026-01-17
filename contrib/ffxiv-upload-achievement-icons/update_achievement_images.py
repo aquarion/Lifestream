@@ -62,7 +62,7 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
+        formatter = logging.Formatter()
         return formatter.format(record)
 
 
@@ -172,10 +172,79 @@ class SSHClient:
 
 
 def validate_config(config):
-    required_keys = ['remote.remote_server', 'remote.remote_user', ...]
+    """Validate that required configuration values are present."""
+    required_keys = ["remote.remote_server", "remote.remote_user", "remote.remote_icon_directory", "local.icon_directory"]
     for key in required_keys:
-        if not config.get(*key.split('.')):
+        if not config.get(*key.split(".")):
             raise ValueError(f"Missing required config: {key}")
+
+
+def process_achivement(achievement, saint_coinach_client, ssh_client, files, config):
+    """Process a single achievement for icon upload."""
+    #  {'ID': 3210,
+    #   'Icon': '/i/000000/000116.png',
+    #   'Name': 'On the Proteion I',
+    #   'Url': '/Achievement/3210'},
+    # logger.info("{}: ".format(achievement['Name']))
+    if not achievement["Name"]:
+        logger.warning("Achievement %d has no name", achievement["ID"])
+        return False
+    if not achievement["Icon"]:
+        message = f"No icon set for {achievement['Name']}"
+        logger.warning(message)
+        return False
+
+    icon_path = saint_coinach_client.icon_path(achievement["Icon"])
+    icon_image = saint_coinach_client.icon_image(achievement["Icon"])
+    remote_icons = config.get("remote", "remote_icon_directory")
+    local_icons_base = config.get("local", "icon_directory")
+    local_icons = saint_coinach_client.find_icons_path(local_icons_base)
+
+    if not os.path.isfile(f"{local_icons}/{icon_image}"):
+        message = (
+            f"Unable to find icon for {achievement['Name']}: "
+            f"{local_icons}/{icon_image}"
+        )
+        logger.warning(message)
+        return False
+    else:
+        try:
+            remote_filepath = f"{remote_icons}/{icon_path}"
+            if remote_filepath in files:
+                remote_file = files[remote_filepath]
+                if (
+                    remote_file.st_size
+                    == os.stat(f"{local_icons}/{icon_image}").st_size
+                ):
+                    logger.debug("File %s already exists", remote_filepath)
+
+                logger.debug("File %s exists but is different size", remote_filepath)
+
+            logger.debug("File %s does not exist on remote server", remote_filepath)
+            logger.debug(
+                "Uploading %s/%s to %s/%s",
+                local_icons,
+                icon_image,
+                remote_icons,
+                icon_path,
+            )
+            result = ssh_client.put(
+                f"{local_icons}/{icon_image}", f"{remote_icons}/{icon_path}"
+            )
+            if result:
+                if icon_path == icon_image:
+                    message = f"Uploaded icon for {achievement['Name']}: {icon_path}"
+                else:
+                    message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
+                logger.info(message)
+                return True
+        except IOError:
+            message = (
+                f"Unable to upload icon for {achievement['Name']}: "
+                f"{remote_icons}/{icon_path}"
+            )
+            logger.error(message)
+            return False
 
 
 def main():
@@ -186,7 +255,7 @@ def main():
     # Load and extract all configuration values
     config = configparser.ConfigParser()
     config.read("ffxiv_config.ini")
-    
+
     data_dir = config.get("local", "data_directory")
     icon_directory = config.get("local", "icon_directory")
     remote_server = config.get("remote", "remote_server")
@@ -199,97 +268,31 @@ def main():
     # Update the local Saint Coinach achievement database
     database_path = data_dir + "/saintcoinach_achievements.db"
     logger.info("Connecting to local database %s", database_path)
-    client = SaintCoinach(database_path, config)
+    saint_coinach_client = SaintCoinach(database_path, config)
     schema_file_path = os.path.join(basedir, "etc", "achievements_schema.sql")
-    client.update_achievement_database(schema_file_path=schema_file_path)
+    saint_coinach_client.update_achievement_database(schema_file_path=schema_file_path)
 
     logger.info("Connecting to remote server %s", remote_server)
     ssh_client = SSHClient(remote_server, remote_user)
 
     logger.info("Getting achievements")
-    rowcount = client.count_achievements()
-    achievements = client.list_achievements()
+    rowcount = saint_coinach_client.count_achievements()
+    achievements = saint_coinach_client.list_achievements()
 
     files = ssh_client.ls(remote_icons)
     logger.info("Found %d files in %s", len(files), remote_icons)
 
-    local_icons = client.find_icons_path(icon_directory)
     upload_count = 0
 
     with logging_redirect_tqdm(loggers=[logger]):
         for achievement in tqdm(
             achievements, desc="Achievements", unit=" achievement", total=rowcount
         ):
-
-            #  {'ID': 3210,
-            #   'Icon': '/i/000000/000116.png',
-            #   'Name': 'On the Proteion I',
-            #   'Url': '/Achievement/3210'},
-            # logger.info("{}: ".format(achievement['Name']))
-            warning = False
-            message = False
-            if not achievement["Name"]:
-                message = f"No name for {achievement['ID']}"
-                continue
-            if not achievement["Icon"]:
-                warning = True
-                message = f"No icon set for {achievement['Name']}"
-                continue
-            icon_path = client.icon_path(achievement["Icon"])
-            icon_image = client.icon_image(achievement["Icon"])
-            if not os.path.isfile(f"{local_icons}/{icon_image}"):
-                warning = True
-                message = (
-                    f"Unable to find icon for {achievement['Name']}: "
-                    f"{local_icons}/{icon_image}"
-                )
-            else:
-                try:
-                    remote_filepath = f"{remote_icons}/{icon_path}"
-                    if remote_filepath in files:
-                        remote_file = files[remote_filepath]
-                        if (
-                            remote_file.st_size
-                            == os.stat(f"{local_icons}/{icon_image}").st_size
-                        ):
-                            logger.debug("File %s already exists", remote_filepath)
-                            continue
-                        logger.debug(
-                            "File %s exists but is different size", remote_filepath
-                        )
-
-                    logger.debug(
-                        "File %s does not exist on remote server", remote_filepath
-                    )
-                    logger.debug(
-                        "Uploading %s/%s to %s/%s",
-                        local_icons,
-                        icon_image,
-                        remote_icons,
-                        icon_path,
-                    )
-                    result = ssh_client.put(
-                        f"{local_icons}/{icon_image}", f"{remote_icons}/{icon_path}"
-                    )
-                    if result:
-                        upload_count += 1
-                        if icon_path == icon_image:
-                            message = (
-                                f"Uploaded icon for {achievement['Name']}: {icon_path}"
-                            )
-                        else:
-                            message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
-                except IOError:
-                    warning = True
-                    message = (
-                        f"Unable to upload icon for {achievement['Name']}: "
-                        f"{remote_icons}/{icon_path}"
-                    )
-            if warning:
-                logger.warning("%s : %s", achievement["Name"], message)
-            elif message:
-                logger.info("%s : %s", achievement["Name"], message)
-
+            result = process_achivement(
+                achievement, saint_coinach_client, ssh_client, files, config
+            )
+            if result:
+                upload_count += 1
     print(f"Uploaded {upload_count} icons")
 
 
