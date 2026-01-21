@@ -30,7 +30,7 @@ future = "^1.0.0"
 google-api-core = "^2.19.1"
 google-api-python-client = "^2.182.0"
 google-auth = "^2.30.0"
-google-auth-httplib2 = "^0.2.0"
+google-auth-httplib2 = "^0.3.0"
 googleapis-common-protos = "^1.63.2"
 #guildwars2api @ https://github.com/aquarion/guildwars2api/archive/refs/tags/0.1a.tar.gz
 guildwars2api = { git = "git@github.com:aquarion/guildwars2api.git", tag = "0.1a" }
