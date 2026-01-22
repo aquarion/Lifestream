@@ -94,10 +94,6 @@ elif args.verbose:
     logger.info("Verbose mode enabled")
 
 
-class XIVImageUpgraded(Exception):
-    """Exception raised when an image has been upgraded."""
-
-
 class AchievementFileNotFoundError(Exception):
     """Exception raised when a file is not found."""
 
@@ -170,13 +166,16 @@ class SSHClient:
             logger.error("Error creating directory %s: %s", imploded_path, e)
             sys.exit(1)
 
-        remote_stat = self.sftp.stat(remotepath)
-        local_stat = os.stat(localpath)
-        if remote_stat.st_size == local_stat.st_size:
-            logger.debug("File %s already exists", remotepath)
-            return False
-        else:
-            logger.debug("File %s exists but is different size", remotepath)
+        try:
+            remote_stat = self.sftp.stat(remotepath)
+            local_stat = os.stat(localpath)
+            if remote_stat.st_size == local_stat.st_size:
+                logger.debug("File %s already exists", remotepath)
+                return False
+            else:
+                logger.debug("File %s exists but is different size", remotepath)
+        except IOError:
+            logger.debug("File %s does not exist on remote server", remotepath)
 
         logger.info("Uploading file %s to %s", localpath, remotepath)
         self.sftp.put(localpath, remotepath)
