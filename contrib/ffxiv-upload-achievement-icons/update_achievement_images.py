@@ -15,15 +15,19 @@ from paramiko import ssh_exception as SSH_Exception
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-#### Add imports from lib/python ####
+# # # # Add imports from lib/python ####
 
 # Add the lib/python directory to the sys.path
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(os.path.join(basedir, "lib", "python"))
 
-from SaintCoinach import SaintCoinach
 
-#### Setup ####
+# pylint: disable=wrong-import-position
+from SaintCoinach import SaintCoinach  # noqa: E402
+
+# pylint: enable=wrong-import-position
+
+# # # # Setup ####
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(os.path.join(basedir, "..", "imports"))
@@ -138,7 +142,7 @@ class SSHClient:
         logger.debug("Checking directory %s", path)
         if path in self.directories_cached:
             logger.debug("Directory %s already cached", path)
-            return
+            return True
 
         if not self.sftp:
             self.sftp = self.connection.sftp()
@@ -149,6 +153,7 @@ class SSHClient:
             logger.debug("Created directory %s", path)
 
         self.directories_cached.append(path)
+        return True
 
     def put(self, localpath, remotepath):
         """Upload a file to the remote server if it doesn't exist or differs."""
@@ -212,7 +217,9 @@ def validate_config(config):
             raise ValueError(f"Missing required config: {key}")
 
 
-def process_achivement(achievement, saint_coinach_client, ssh_client, files, config):
+def process_achivement(  # noqa: C901
+    achievement, saint_coinach_client, ssh_client, files, config
+):
     """Process a single achievement for icon upload."""
     #  {'ID': 3210,
     #   'Icon': '/i/000000/000116.png',
@@ -245,45 +252,42 @@ def process_achivement(achievement, saint_coinach_client, ssh_client, files, con
         )
         logger.warning(message)
         return False
-    else:
-        try:
-            remote_filepath = f"{remote_icons}/{icon_path}"
-            if remote_filepath in files:
-                remote_file = files[remote_filepath]
-                if (
-                    remote_file.st_size
-                    == os.stat(f"{local_icons}/{icon_image}").st_size
-                ):
-                    logger.debug("File %s already exists", remote_filepath)
 
-                logger.debug("File %s exists but is different size", remote_filepath)
+    try:
+        remote_filepath = f"{remote_icons}/{icon_path}"
+        if remote_filepath in files:
+            remote_file = files[remote_filepath]
+            if remote_file.st_size == os.stat(f"{local_icons}/{icon_image}").st_size:
+                logger.debug("File %s already exists", remote_filepath)
 
-            logger.debug("File %s does not exist on remote server", remote_filepath)
-            logger.debug(
-                "Uploading %s/%s to %s/%s",
-                local_icons,
-                icon_image,
-                remote_icons,
-                icon_path,
-            )
-            result = ssh_client.put(
-                f"{local_icons}/{icon_image}", f"{remote_icons}/{icon_path}"
-            )
-            if result:
-                if icon_path == icon_image:
-                    message = f"Uploaded icon for {achievement['Name']}: {icon_path}"
-                else:
-                    message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
-                logger.info(message)
-                tqdm.write(message)
-                return True
-        except IOError as e:
-            message = (
-                f"Unable to upload icon for {achievement['Name']}: "
-                f"{remote_icons}/{icon_path}: {e}"
-            )
-            logger.error(message)
-            return False
+            logger.debug("File %s exists but is different size", remote_filepath)
+
+        logger.debug("File %s does not exist on remote server", remote_filepath)
+        logger.debug(
+            "Uploading %s/%s to %s/%s",
+            local_icons,
+            icon_image,
+            remote_icons,
+            icon_path,
+        )
+        result = ssh_client.put(
+            f"{local_icons}/{icon_image}", f"{remote_icons}/{icon_path}"
+        )
+        if result:
+            if icon_path == icon_image:
+                message = f"Uploaded icon for {achievement['Name']}: {icon_path}"
+            else:
+                message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
+            logger.info(message)
+            tqdm.write(message)
+            return True
+    except IOError as e:
+        message = (
+            f"Unable to upload icon for {achievement['Name']}: "
+            f"{remote_icons}/{icon_path}: {e}"
+        )
+        logger.error(message)
+        return False
 
 
 def main():

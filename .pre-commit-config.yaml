@@ -29,16 +29,22 @@ repos:
       - id: forbid-new-submodules
       # - id: forbid-submodules
       - id: mixed-line-ending
-      - id: name-tests-test
+      # - id: name-tests-test
       # - id: no-commit-to-branch
       - id: requirements-txt-fixer
       - id: sort-simple-yaml
       - id: trailing-whitespace
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 23.7.0
+    rev: 24.10.0
     hooks:
       - id: black
   - repo: https://github.com/PyCQA/isort
     rev: 7.0.0
     hooks:
       - id: isort
+        args: ["--profile", "black"]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.2
+    hooks:
+      - id: flake8

@@ -116,3 +116,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.group.dev.dependencies]
 black = "^26"
 isort = "^7"
+pytest = "^9.0.2"
