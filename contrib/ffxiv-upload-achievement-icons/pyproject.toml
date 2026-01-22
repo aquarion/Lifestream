@@ -13,6 +13,7 @@ requests = "^2.32.4"
 tqdm = "^4.67.1"
 pylint = "^3.3.7"
 fabric = "^3.2.2"
+pre-commit = "^4.5.1"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^7.1.2"

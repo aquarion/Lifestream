@@ -1,10 +1,11 @@
 """XIVAPI Client Module."""
 
 import logging
+import sys
 
 import requests
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("XIVAPI")
 
 
 class XIVClient:
@@ -12,6 +13,26 @@ class XIVClient:
 
     def __init__(self, api_key):
         self.api_key = api_key
+
+    def set_log_level(self, level):
+        """Set the logging level for the module."""
+        logger.setLevel(level)
+
+        # Ensure the logger propagates to parent loggers (inherits handlers)
+        logger.propagate = True
+
+        # If the logger doesn't have handlers, add a basic handler
+        if not logger.handlers:
+            handler = logging.StreamHandler(sys.stdout)
+            formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+
+        if isinstance(level, int):
+            level = logging.getLevelName(level)
+        logger.debug("XIVAPI log level set to %s", level)
 
     def _call(self, url, limit=1000, page=1):
         """Make a call to the XIVAPI."""

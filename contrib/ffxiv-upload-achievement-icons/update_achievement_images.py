@@ -21,8 +21,8 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(os.path.join(basedir, "lib", "python"))
 
-from XIVAPI import XIVClient
 from SaintCoinach import SaintCoinach
+from XIVAPI import XIVClient
 
 #### Setup ####
 
@@ -34,6 +34,12 @@ site.addsitedir(os.path.join(basedir, "..", "imports"))
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
+# Toggle tqdm progress bars
+parser.add_argument(
+    "--disable-tqdm",
+    action="store_true",
+    help="Disable tqdm progress bars",
+)
 args = parser.parse_args()
 
 # Set up logging
@@ -62,11 +68,14 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter()
+        formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
 
 logger = logging.getLogger(__name__)
+logger.propagate = True
+# logger.addHandler(logging.StreamHandler(sys.stderr))
+
 # logging.basicConfig(level=logging.WARNING)
 logging.getLogger("fabric").setLevel(logging.WARNING)  # for example
 logging.getLogger("paramiko").setLevel(
@@ -77,19 +86,25 @@ ch = logging.StreamHandler()
 ch.setFormatter(CustomFormatter())
 logger.addHandler(ch)
 
-# Set debug level based on command line argument
+# Set default logging level and adjust based on command line arguments
+logger.setLevel(logging.WARNING)  # Default level
+
 if args.debug:
     logger.setLevel(logging.DEBUG)
     logger.debug("Debug mode enabled")
-    ch.setLevel(logging.DEBUG)
-if args.verbose:
+    # ch.setLevel(logging.DEBUG)
+elif args.verbose:
     logger.setLevel(logging.INFO)
     logger.info("Verbose mode enabled")
-    ch.setLevel(logging.INFO)
+    # ch.setLevel(logging.INFO)
 
 
 class XIVImageUpgraded(Exception):
     """Exception raised when an image has been upgraded."""
+
+
+class FileNotFoundError(Exception):
+    """Exception raised when a file is not found."""
 
 
 class SSHClient:
@@ -97,6 +112,8 @@ class SSHClient:
 
     connection = None
     sftp = False
+
+    directories_cached = []
 
     def __init__(self, server, username):
         try:
@@ -124,33 +141,49 @@ class SSHClient:
             logger.error("Error listing directory %s: %s", remotepath, e)
             return {}
 
-    def put(self, localpath, remotepath):
-        """Upload a file to the remote server if it doesn't exist or differs."""
+    def check_or_create_directory(self, path):
+        """Check if a directory exists on the remote server, and create it if not."""
+
+        logger.debug("Checking directory %s", path)
+        if path in self.directories_cached:
+            logger.debug("Directory %s already cached", path)
+            return
 
         if not self.sftp:
             self.sftp = self.connection.sftp()
         try:
-            remote_stat = self.sftp.stat(remotepath)
-            local_stat = os.stat(localpath)
-            if remote_stat.st_size == local_stat.st_size:
-                logger.debug("File %s already exists", remotepath)
-                return False
-            else:
-                logger.debug("File %s exists but is different size", remotepath)
-                raise XIVImageUpgraded
+            self.sftp.stat(path)
+        except IOError:
+            self.sftp.mkdir(path)
+            logger.debug("Created directory %s", path)
 
-        except (IOError, XIVImageUpgraded):
-            exploded_path = remotepath.split(os.path.sep)
-            imploded_path = os.path.sep.join(exploded_path[:-1])
-            logger.debug("Checking for directory %s", imploded_path)
-            try:
-                self.sftp.stat(imploded_path)
-            except IOError:
-                self.sftp.mkdir(imploded_path)
-                logger.debug("Created directory %s", imploded_path)
-            logger.info("Uploading file %s to %s", localpath, remotepath)
+        self.directories_cached.append(path)
+
+    def put(self, localpath, remotepath):
+        """Upload a file to the remote server if it doesn't exist or differs."""
+        logger.debug("Uploading %s to %s", localpath, remotepath)
+
+        if not self.sftp:
+            self.sftp = self.connection.sftp()
+
+        try:
+            exploded_path = remotepath.split("/")
+            imploded_path = "/".join(exploded_path[:-1])
+            logger.debug("Ensuring directory %s exists", imploded_path)
+            self.check_or_create_directory(imploded_path)
+        except IOError as e:
+            logger.error("Error creating directory %s: %s", imploded_path, e)
+            sys.exit(1)
+
+        remote_stat = self.sftp.stat(remotepath)
+        local_stat = os.stat(localpath)
+        if remote_stat.st_size == local_stat.st_size:
+            logger.debug("File %s already exists", remotepath)
+            return False
+        else:
+            logger.debug("File %s exists but is different size", remotepath)
+            logger.info("Uploading replacement file %s to %s", localpath, remotepath)
             self.sftp.put(localpath, remotepath)
-            return True
 
         return False
 
@@ -173,7 +206,12 @@ class SSHClient:
 
 def validate_config(config):
     """Validate that required configuration values are present."""
-    required_keys = ["remote.remote_server", "remote.remote_user", "remote.remote_icon_directory", "local.icon_directory"]
+    required_keys = [
+        "remote.remote_server",
+        "remote.remote_user",
+        "remote.remote_icon_directory",
+        "local.icon_directory",
+    ]
     for key in required_keys:
         if not config.get(*key.split(".")):
             raise ValueError(f"Missing required config: {key}")
@@ -187,7 +225,7 @@ def process_achivement(achievement, saint_coinach_client, ssh_client, files, con
     #   'Url': '/Achievement/3210'},
     # logger.info("{}: ".format(achievement['Name']))
     if not achievement["Name"]:
-        logger.warning("Achievement %d has no name", achievement["ID"])
+        logger.warning("Achievement %s has no name", achievement["ID"])
         return False
     if not achievement["Icon"]:
         message = f"No icon set for {achievement['Name']}"
@@ -199,6 +237,11 @@ def process_achivement(achievement, saint_coinach_client, ssh_client, files, con
     remote_icons = config.get("remote", "remote_icon_directory")
     local_icons_base = config.get("local", "icon_directory")
     local_icons = saint_coinach_client.find_icons_path(local_icons_base)
+
+    if not local_icons or not os.path.isdir(local_icons):
+        message = f"Local icon directory does not exist: {local_icons}"
+        logger.error(message)
+        raise FileNotFoundError(message)
 
     if not os.path.isfile(f"{local_icons}/{icon_image}"):
         message = (
@@ -238,10 +281,10 @@ def process_achivement(achievement, saint_coinach_client, ssh_client, files, con
                     message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
                 logger.info(message)
                 return True
-        except IOError:
+        except IOError as e:
             message = (
                 f"Unable to upload icon for {achievement['Name']}: "
-                f"{remote_icons}/{icon_path}"
+                f"{remote_icons}/{icon_path}: {e}"
             )
             logger.error(message)
             return False
@@ -257,7 +300,7 @@ def main():
     config.read("ffxiv_config.ini")
 
     data_dir = config.get("local", "data_directory")
-    icon_directory = config.get("local", "icon_directory")
+    # icon_directory = config.get("local", "icon_directory")
     remote_server = config.get("remote", "remote_server")
     remote_user = config.get("remote", "remote_user")
     remote_icons = config.get("remote", "remote_icon_directory")
@@ -265,10 +308,16 @@ def main():
     if not os.path.isdir(data_dir):
         os.makedirs(data_dir)
 
-    # Update the local Saint Coinach achievement database
     database_path = data_dir + "/saintcoinach_achievements.db"
-    logger.info("Connecting to local database %s", database_path)
+
     saint_coinach_client = SaintCoinach(database_path, config)
+    saint_coinach_client.set_log_level(logger.level)
+    saint_coinach_client.find_icons_path(config.get("local", "icon_directory"))
+
+    # Update the local Saint Coinach achievement database
+    # If the database is more than 7 days old, update it
+    logger.info("Connecting to local database %s", database_path)
+
     schema_file_path = os.path.join(basedir, "etc", "achievements_schema.sql")
     saint_coinach_client.update_achievement_database(schema_file_path=schema_file_path)
 
@@ -284,15 +333,28 @@ def main():
 
     upload_count = 0
 
-    with logging_redirect_tqdm(loggers=[logger]):
-        for achievement in tqdm(
-            achievements, desc="Achievements", unit=" achievement", total=rowcount
-        ):
+    if not args.disable_tqdm:
+        tqdm_args = {
+            "desc": "Achievements",
+            "unit": " achievement",
+            "total": rowcount,
+        }
+
+        with logging_redirect_tqdm(loggers=[logger]):
+            for achievement in tqdm(achievements, **tqdm_args):
+                result = process_achivement(
+                    achievement, saint_coinach_client, ssh_client, files, config
+                )
+                if result:
+                    upload_count += 1
+    else:
+        for achievement in achievements:
             result = process_achivement(
                 achievement, saint_coinach_client, ssh_client, files, config
             )
             if result:
                 upload_count += 1
+
     print(f"Uploaded {upload_count} icons")
 
 
