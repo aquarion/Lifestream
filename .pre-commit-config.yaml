@@ -22,7 +22,7 @@ repos:
       - id: destroyed-symlinks
       - id: detect-aws-credentials
       - id: detect-private-key
-      - id: double-quote-string-fixer
+      # - id: double-quote-string-fixer
       - id: end-of-file-fixer
       - id: file-contents-sorter
       - id: fix-byte-order-marker
