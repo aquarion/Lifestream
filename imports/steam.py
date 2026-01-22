@@ -153,7 +153,6 @@ if __name__ == "__main__":
       player_achievements = steam_cxn.get_player_achievements(STEAMID, appid)
     except requests.HTTPError as e:
       logger.warning(f"Error fetching achievements for {name} ({appid}): {e}")
-      sys.exit(1)
       continue
       
     unsorted_game_achievements = steam_cxn.get_game_achievements(appid)
