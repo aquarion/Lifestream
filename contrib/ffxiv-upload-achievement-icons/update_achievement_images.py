@@ -275,6 +275,7 @@ def process_achivement(achievement, saint_coinach_client, ssh_client, files, con
                 else:
                     message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
                 logger.info(message)
+                tqdm.write(message)
                 return True
         except IOError as e:
             message = (
