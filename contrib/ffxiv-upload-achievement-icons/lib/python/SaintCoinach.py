@@ -115,7 +115,6 @@ class SaintCoinach:
             )
         icon_directory_path = sorted(dirs).pop() + "/ui/icon"
         logger.debug("Found icon directory %s", icon_directory_path)
-        print(f"Found icon directory {icon_directory_path}")
         # logger.info("Using icon directory %s", icon_directory_path)
         self.icons_path = icon_directory_path
         return icon_directory_path
