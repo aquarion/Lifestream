@@ -220,11 +220,11 @@ def process_achivement(achievement, saint_coinach_client, ssh_client, files, con
     #   'Url': '/Achievement/3210'},
     # logger.info("{}: ".format(achievement['Name']))
     if not achievement["Name"]:
-        logger.warning("Achievement %s has no name", achievement["ID"])
+        logger.info("Achievement %s has no name", achievement["ID"])
         return False
     if not achievement["Icon"]:
         message = f"No icon set for {achievement['Name']}"
-        logger.warning(message)
+        logger.info(message)
         return False
 
     icon_path = saint_coinach_client.icon_path(achievement["Icon"])

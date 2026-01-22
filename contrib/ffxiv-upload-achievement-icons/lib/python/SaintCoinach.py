@@ -48,7 +48,6 @@ class SaintCoinach:
         if isinstance(level, int):
             level = logging.getLevelName(level)
         logger.debug("SaintCoinach log level set to %s", level)
-        print(f"SaintCoinach log level set to {level}")
 
     def count_achievements(self):
         """Count the number of achievements in the database."""
