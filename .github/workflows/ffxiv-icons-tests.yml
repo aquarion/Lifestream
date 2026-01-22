@@ -16,6 +16,10 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
     - uses: actions/checkout@v4
 
@@ -34,13 +38,12 @@ jobs:
     - name: Cache Poetry dependencies
       uses: actions/cache@v4
       with:
-        path: contrib/ffxiv-upload-achievement-icons/.venv
-        key: ${{ runner.os }}-poetry-${{ hashFiles('contrib/ffxiv-upload-achievement-icons/poetry.lock') }}
+        path: .venv
+        key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
         restore-keys: |
           ${{ runner.os }}-poetry-
 
     - name: Install dependencies
-      working-directory: contrib/ffxiv-upload-achievement-icons
       run: poetry install
 
     - name: Run pre-commit hooks
@@ -48,11 +51,9 @@ jobs:
         poetry run pre-commit install
         poetry run pre-commit run --all-files
 
-    - name: Run tests
-      working-directory: contrib/ffxiv-upload-achievement-icons
-      run: poetry run python run_tests.py
-
     - name: Run tests with pytest (alternative)
-      working-directory: contrib/ffxiv-upload-achievement-icons
       run: poetry run pytest
+
+    - name: Run tests
+      run: poetry run python run_tests.py
       if: failure()
