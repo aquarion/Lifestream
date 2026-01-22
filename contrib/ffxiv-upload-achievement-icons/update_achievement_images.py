@@ -22,7 +22,6 @@ basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 site.addsitedir(os.path.join(basedir, "lib", "python"))
 
 from SaintCoinach import SaintCoinach
-from XIVAPI import XIVClient
 
 #### Setup ####
 
@@ -74,7 +73,6 @@ class CustomFormatter(logging.Formatter):
 
 logger = logging.getLogger(__name__)
 logger.propagate = True
-# logger.addHandler(logging.StreamHandler(sys.stderr))
 
 # logging.basicConfig(level=logging.WARNING)
 logging.getLogger("fabric").setLevel(logging.WARNING)  # for example
@@ -103,7 +101,7 @@ class XIVImageUpgraded(Exception):
     """Exception raised when an image has been upgraded."""
 
 
-class FileNotFoundError(Exception):
+class AchievementFileNotFoundError(Exception):
     """Exception raised when a file is not found."""
 
 
