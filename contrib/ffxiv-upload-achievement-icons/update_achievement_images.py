@@ -217,77 +217,68 @@ def validate_config(config):
             raise ValueError(f"Missing required config: {key}")
 
 
-def process_achivement(  # noqa: C901
-    achievement, saint_coinach_client, ssh_client, files, config
-):
+def process_achivement(achievement, saint_coinach_client, ssh_client, files, config):
     """Process a single achievement for icon upload."""
-    #  {'ID': 3210,
-    #   'Icon': '/i/000000/000116.png',
-    #   'Name': 'On the Proteion I',
-    #   'Url': '/Achievement/3210'},
-    # logger.info("{}: ".format(achievement['Name']))
+    # Early validation
     if not achievement["Name"]:
         logger.info("Achievement %s has no name", achievement["ID"])
         return False
+
     if not achievement["Icon"]:
-        message = f"No icon set for {achievement['Name']}"
-        logger.info(message)
+        logger.info("No icon set for %s", achievement["Name"])
         return False
 
+    # Get paths and validate local icon exists
     icon_path = saint_coinach_client.icon_path(achievement["Icon"])
     icon_image = saint_coinach_client.icon_image(achievement["Icon"])
-    remote_icons = config.get("remote", "remote_icon_directory")
-    local_icons_base = config.get("local", "icon_directory")
-    local_icons = saint_coinach_client.find_icons_path(local_icons_base)
+    local_icons = saint_coinach_client.find_icons_path(
+        config.get("local", "icon_directory")
+    )
+    local_file_path = f"{local_icons}/{icon_image}"
 
     if not local_icons or not os.path.isdir(local_icons):
         message = f"Local icon directory does not exist: {local_icons}"
         logger.error(message)
         raise AchievementFileNotFoundError(message)
 
-    if not os.path.isfile(f"{local_icons}/{icon_image}"):
-        message = (
-            f"Unable to find icon for {achievement['Name']}: "
-            f"{local_icons}/{icon_image}"
+    if not os.path.isfile(local_file_path):
+        logger.warning(
+            "Unable to find icon for %s: %s", achievement["Name"], local_file_path
         )
-        logger.warning(message)
         return False
 
+    # Check if file already exists with same size
+    remote_icons = config.get("remote", "remote_icon_directory")
+    remote_filepath = f"{remote_icons}/{icon_path}"
+
+    if remote_filepath in files:
+        remote_file = files[remote_filepath]
+        local_size = os.stat(local_file_path).st_size
+        if remote_file.st_size == local_size:
+            logger.debug("File %s already exists with same size", remote_filepath)
+            return False
+
+    # Upload the file
     try:
-        remote_filepath = f"{remote_icons}/{icon_path}"
-        if remote_filepath in files:
-            remote_file = files[remote_filepath]
-            if remote_file.st_size == os.stat(f"{local_icons}/{icon_image}").st_size:
-                logger.debug("File %s already exists", remote_filepath)
+        logger.debug("Uploading %s to %s", local_file_path, remote_filepath)
+        result = ssh_client.put(local_file_path, remote_filepath)
 
-            logger.debug("File %s exists but is different size", remote_filepath)
-
-        logger.debug("File %s does not exist on remote server", remote_filepath)
-        logger.debug(
-            "Uploading %s/%s to %s/%s",
-            local_icons,
-            icon_image,
-            remote_icons,
-            icon_path,
-        )
-        result = ssh_client.put(
-            f"{local_icons}/{icon_image}", f"{remote_icons}/{icon_path}"
-        )
         if result:
-            if icon_path == icon_image:
-                message = f"Uploaded icon for {achievement['Name']}: {icon_path}"
-            else:
-                message = f"Uploaded HQ icon for {achievement['Name']}: {icon_path}"
+            icon_type = "HQ icon" if icon_path != icon_image else "icon"
+            message = f"Uploaded {icon_type} for {achievement['Name']}: {icon_path}"
             logger.info(message)
             tqdm.write(message)
             return True
+
     except IOError as e:
-        message = (
-            f"Unable to upload icon for {achievement['Name']}: "
-            f"{remote_icons}/{icon_path}: {e}"
+        logger.error(
+            "Unable to upload icon for %s: %s: %s",
+            achievement["Name"],
+            remote_filepath,
+            e,
         )
-        logger.error(message)
-        return False
+
+    return False
 
 
 def main():
