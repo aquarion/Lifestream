@@ -74,7 +74,6 @@ class CustomFormatter(logging.Formatter):
 logger = logging.getLogger(__name__)
 logger.propagate = True
 
-# logging.basicConfig(level=logging.WARNING)
 logging.getLogger("fabric").setLevel(logging.WARNING)  # for example
 logging.getLogger("paramiko").setLevel(
     logging.WARNING
@@ -90,11 +89,9 @@ logger.setLevel(logging.WARNING)  # Default level
 if args.debug:
     logger.setLevel(logging.DEBUG)
     logger.debug("Debug mode enabled")
-    # ch.setLevel(logging.DEBUG)
 elif args.verbose:
     logger.setLevel(logging.INFO)
     logger.info("Verbose mode enabled")
-    # ch.setLevel(logging.INFO)
 
 
 class XIVImageUpgraded(Exception):
@@ -180,10 +177,11 @@ class SSHClient:
             return False
         else:
             logger.debug("File %s exists but is different size", remotepath)
-            logger.info("Uploading replacement file %s to %s", localpath, remotepath)
-            self.sftp.put(localpath, remotepath)
 
-        return False
+        logger.info("Uploading file %s to %s", localpath, remotepath)
+        self.sftp.put(localpath, remotepath)
+
+        return True
 
     def __del__(self):
         if self.sftp:
@@ -239,7 +237,7 @@ def process_achivement(achievement, saint_coinach_client, ssh_client, files, con
     if not local_icons or not os.path.isdir(local_icons):
         message = f"Local icon directory does not exist: {local_icons}"
         logger.error(message)
-        raise FileNotFoundError(message)
+        raise AchievementFileNotFoundError(message)
 
     if not os.path.isfile(f"{local_icons}/{icon_image}"):
         message = (
