@@ -133,6 +133,9 @@ class Lodestone:
             logger.warning(
                 "Achivement DB Icon not found for {}".format(achievement_id))
             return False
+        
+        if icon_id == 0:
+            logger.warning("Achivement Icon ID is 0 for {}".format(achievement_id))
 
         filename = "{:06d}".format(icon_id)
         foldername = "{:06d}".format(math.floor(icon_id / 1000) * 1000)
