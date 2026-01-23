@@ -8,11 +8,13 @@ import os
 import re
 import sqlite3
 import sys
+from datetime import datetime, timedelta
 from glob import iglob
 
 import requests
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("SaintCoinach")
+logger.propagate = True
 
 
 class SaintCoinach:
@@ -26,6 +28,26 @@ class SaintCoinach:
         self.db_connection = sqlite3.connect(dbpath)
         self.db_connection.row_factory = sqlite3.Row  # add this row
         self.config = config
+
+    def set_log_level(self, level):
+        """Set the logging level for the module."""
+        logger.setLevel(level)
+
+        # Ensure the logger propagates to parent loggers (inherits handlers)
+        logger.propagate = True
+
+        # If the logger doesn't have handlers, add a basic handler
+        if not logger.handlers:
+            handler = logging.StreamHandler(sys.stdout)
+            formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+
+        if isinstance(level, int):
+            level = logging.getLevelName(level)
+        logger.debug("SaintCoinach log level set to %s", level)
 
     def count_achievements(self):
         """Count the number of achievements in the database."""
@@ -71,10 +93,11 @@ class SaintCoinach:
 
     def find_icons_path(self, icon_directory):
         """Find the path to the icon directory in the local Saint Coinach data."""
-        
-        if self.find_icons_path is not None:
+
+        if self.icons_path is not None:
+            logger.debug("Using cached icon path %s", self.icons_path)
             return self.icons_path
-        
+
         if not os.path.isdir(icon_directory):
             raise IOError(f"Unable to find icon location {icon_directory}")
 
@@ -90,12 +113,61 @@ class SaintCoinach:
                 f"Unable to find icon directory {icon_directory}/XXXX.XX.XX.0000.0000"
             )
         icon_directory_path = sorted(dirs).pop() + "/ui/icon"
+        logger.debug("Found icon directory %s", icon_directory_path)
         # logger.info("Using icon directory %s", icon_directory_path)
         self.icons_path = icon_directory_path
         return icon_directory_path
 
+    def save_update_timestamp(self, thing):
+        """Save the update timestamp to the database."""
+        conn = self.db_connection
+        cur = conn.cursor()
+
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS updates (thing TEXT PRIMARY KEY, timestamp DATETIME)"
+        )
+
+        cur.execute(
+            "INSERT OR REPLACE INTO updates (thing, timestamp) VALUES (?, DATETIME('now'))",
+            (thing,),
+        )
+        conn.commit()
+        logger.info("Saved update %s to database", thing)
+
+    def get_update_timestamp(self, thing):
+        """Get the last update timestamp for a given thing."""
+        conn = self.db_connection
+        cur = conn.cursor()
+
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS updates (thing TEXT PRIMARY KEY, timestamp DATETIME)"
+        )
+
+        cur.execute("SELECT timestamp FROM updates WHERE thing = ?", (thing,))
+        result = cur.fetchone()
+        if result:
+            return result["timestamp"]
+        return None
+
+    def was_timestamp_updated_within(self, thing, seconds):
+        """Check if a given thing was updated within the given number of seconds."""
+        last_update = self.get_update_timestamp(thing)
+        if last_update is None:
+            return False
+
+        last_update_time = datetime.strptime(last_update, "%Y-%m-%d %H:%M:%S")
+        if datetime.now() - last_update_time < timedelta(seconds=seconds):
+            return True
+        return False
+
     def update_achievement_database(self, schema_file_path=None):
         """Update the achievement database from the remote CSV file."""
+
+        if self.was_timestamp_updated_within("achievement_database", 86400):
+            logger.info(
+                "Achievement database was updated within the last 24 hours, skipping update."
+            )
+            return
 
         url = "https://github.com/xivapi/ffxiv-datamining/raw/master/csv/en/Achievement.csv"
         logger.info("Updating achievement database from %s", url)
@@ -141,3 +213,4 @@ class SaintCoinach:
             )
         conn.commit()
         logger.info("Achievement database update complete")
+        self.save_update_timestamp("achievement_database")
