@@ -41,7 +41,7 @@ badges = browser.find_elements(By.CSS_SELECTOR, "div.badge_row_inner")
 for badge in badges:
     image = badge.find_element(By.CSS_SELECTOR, ".badge_info_image img").get_attribute(
         "src"
-    )
+    ) or ""
     text = badge.find_element(By.CLASS_NAME, "badge_info_title").text.strip()
     date = badge.find_element(
         By.CLASS_NAME, "badge_info_unlocked").text.strip()[9:]

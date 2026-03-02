@@ -18,10 +18,10 @@ class FoursquareAPI:
 
     url_base = "https://api.foursquare.com/v2/%s"
 
-    payload = {}
+    payload: dict[str, str] = {}
 
-    mc = False
-    mcprefix = False
+    mc: Client | None = None
+    mcprefix: str | None = None
 
     def __init__(self, lifestream=None):
         OAUTH_FILENAME = config.get("foursquare", "secrets_file")
@@ -51,12 +51,14 @@ class FoursquareAPI:
         m.update(str(params).encode("utf-8"))
         key = m.hexdigest()
 
-        res = self.mc.get(key)
-        if res:
-            return json.loads(res)
+        if self.mc:
+            res = self.mc.get(key)
+            if res and isinstance(res, (str, bytes)):
+                return json.loads(res)
 
         r = requests.get(self.url_base % "users/self/checkins", params=self.payload)
-        self.mc.set(key, json.dumps(r.json()))
+        if self.mc:
+            self.mc.set(key, json.dumps(r.json()))
         return r.json()
 
     def my_checkins(self):
@@ -68,6 +70,6 @@ class FoursquareAPI:
         payload = self.payload.copy()
         payload["ll"] = "%s,%s" % (lat, lng)
         payload["intent"] = intent
-        payload["radius"] = radius
-        payload["limit"] = limit
+        payload["radius"] = str(radius)
+        payload["limit"] = str(limit)
         return self.cache_get(self.url_base % "venues/search", params=payload)
