@@ -8,12 +8,13 @@ import sys
 from datetime import datetime, timezone
 
 import requests
+from httplib2 import Http
 
 # Local
 import lifestream
 from lifestream.db import EntryStore
 from lifestream.db import get_connection, get_cursor
-from lifestream.oauth_utils import read_token_file
+from lifestream.oauth_utils import read_token_file, write_token_file
 
 type = "location"
 username = lifestream.config.get("foursquare", "username")
@@ -21,27 +22,99 @@ url = "http://foursquare.com/%s" % username
 
 
 logger = logging.getLogger("Foursquare")
+
+lifestream.arguments.add_argument(
+    "--reauth",
+    required=False,
+    help="Get new OAuth token",
+    default=False,
+    action="store_true",
+)
+lifestream.arguments.add_argument(
+    "--auth-code",
+    required=False,
+    help="OAuth authorization code from browser redirect",
+    default=None,
+)
+
 args = lifestream.parse_args()
-
-# DB Setup
-
-dbcxn = get_connection()
-cursor = get_cursor(dbcxn)
 
 
 # Oauth Setup
 
 OAUTH_FILENAME = lifestream.config.get("foursquare", "secrets_file")
-CONSUMER_KEY = lifestream.config.get("foursquare", "client_id")
-CONSUMER_SECRET = lifestream.config.get("foursquare", "secret")
+CLIENT_ID = lifestream.config.get("foursquare", "client_id")
+CLIENT_SECRET = lifestream.config.get("foursquare", "secret")
+CALLBACK_URL = "www.github.com/aquarion/lifestream"
 
-if not os.path.exists(OAUTH_FILENAME):
-    logger.error("No OAUTH found at %s" % OAUTH_FILENAME)
-    print("You need to run foursquare_oauth.py to generate the oauth key")
-    sys.exit(5)
 
-oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
+def authenticate(force_reauth=False, auth_code=None):
+    """Handle Foursquare OAuth2 authentication."""
+    
+    # If we have a valid token file and not forcing reauth, use it
+    if not force_reauth and os.path.exists(OAUTH_FILENAME):
+        oauth_token, _ = read_token_file(OAUTH_FILENAME)
+        if oauth_token:
+            return oauth_token
+    
+    # OAuth2 flow
+    if not auth_code:
+        # Step 1: Direct user to authorize
+        auth_url = (
+            "https://foursquare.com/oauth2/authenticate?"
+            f"client_id={CLIENT_ID}&response_type=code&redirect_uri={CALLBACK_URL}"
+        )
+        print("Go to the following link in your browser:")
+        print(auth_url)
+        print()
+        print(f"Then run: {sys.argv[0]} --auth-code [CODE_FROM_URL]")
+        sys.exit(0)
+    
+    # Step 2: Exchange code for access token
+    token_url = (
+        f"https://foursquare.com/oauth2/access_token?"
+        f"client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}"
+        f"&grant_type=authorization_code&redirect_uri={CALLBACK_URL}&code={auth_code}"
+    )
+    
+    web = Http()
+    resp, content = web.request(token_url)
+    
+    if resp.status != 200:
+        print(f"Error getting access token: {resp.status}")
+        print(content)
+        sys.exit(5)
+    
+    import json
+    token_data = json.loads(content)
+    access_token = token_data.get("access_token")
+    
+    if not access_token:
+        print("No access_token in response:")
+        print(token_data)
+        sys.exit(5)
+    
+    # Save token
+    write_token_file(OAUTH_FILENAME, access_token, "")
+    print(f"Token saved to {OAUTH_FILENAME}")
+    
+    return access_token
 
+
+# Handle auth if needed
+if args.reauth or args.auth_code or not os.path.exists(OAUTH_FILENAME):
+    oauth_token = authenticate(force_reauth=args.reauth, auth_code=args.auth_code)
+    if args.auth_code:
+        print("Authentication successful! You can now run without --auth-code")
+        sys.exit(0)
+else:
+    oauth_token, _ = read_token_file(OAUTH_FILENAME)
+
+
+# DB Setup (after auth handling so --reauth doesn't need DB)
+
+dbcxn = get_connection()
+cursor = get_cursor(dbcxn)
 
 # Loop setup
 

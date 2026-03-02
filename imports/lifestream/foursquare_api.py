@@ -38,7 +38,7 @@ class FoursquareAPI:
         if not os.path.exists(OAUTH_FILENAME):
             logger.error("No OAUTH found at %s" % OAUTH_FILENAME)
             raise Exception(
-                "You need to run foursquare_oauth.py to generate the oauth key"
+                "You need to run foursquare.py --reauth to generate the oauth key"
             )
 
         oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
