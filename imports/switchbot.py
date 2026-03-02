@@ -38,25 +38,29 @@ entry_store = EntryStore()
 class SwitchBotAPI:
 
     base_url = "https://api.switch-bot.com"
-    token = False
+    token: str = ""
     version = "v1.0"
 
-    def __init__(self, token=False) -> None:
+    def __init__(self, token: str | None = None) -> None:
         if token:
             self.token = token
         else:
             self.token = lifestream.config.get("switchbot", "token")
 
-    def call(self, method, callname, data={}):
+    def call(self, method, callname, data=None):
+        if data is None:
+            data = {}
         URL = "{}/{}/{}".format(self.base_url, self.version, callname)
 
-        headers = {"authorization": self.token}
+        headers: dict[str, str] = {"authorization": self.token}
 
         if method == "post":
             headers["content-type"] = "application/json; charset=utf8"
             r = requests.post(URL, data=data, headers=headers)
         elif method == "get":
             r = requests.get(URL, params=data, headers=headers)
+        else:
+            raise ValueError(f"Unknown method: {method}")
 
         return r.json()
 

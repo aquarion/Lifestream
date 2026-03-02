@@ -9,6 +9,43 @@ class AnAttributeError(Exception):
     pass
 
 
+def Denary2Binary(n):
+    """Convert denary (decimal) integer to binary string."""
+    if n < 0:
+        return "-" + Denary2Binary(-n)
+    if n == 0:
+        return "0"
+    binary = ""
+    while n > 0:
+        binary = str(n % 2) + binary
+        n = n // 2
+    return binary
+
+
+def int_to_roman(num):
+    """Convert an integer to a Roman numeral."""
+    val = [
+        1000, 900, 500, 400,
+        100, 90, 50, 40,
+        10, 9, 5, 4,
+        1
+    ]
+    syms = [
+        "M", "CM", "D", "CD",
+        "C", "XC", "L", "XL",
+        "X", "IX", "V", "IV",
+        "I"
+    ]
+    roman_num = ""
+    i = 0
+    while num > 0:
+        for _ in range(num // val[i]):
+            roman_num += syms[i]
+            num -= val[i]
+        i += 1
+    return roman_num
+
+
 def convertNiceTime(number, format):
     if format == "decimal" or format == "dec":
         return int(number)
@@ -53,46 +90,36 @@ def is_jsonable(x):
 
 
 def force_json(incoming):
-    if incoming is dict:
+    """Recursively convert an object to JSON-serializable form."""
+    if isinstance(incoming, dict):
         outgoing = {}
-        for key, value in incoming:
-            outgoing[key] = force_json(incoming)
+        for key, value in incoming.items():
+            outgoing[key] = force_json(value)
         return outgoing
-    elif incoming is tuple or incoming is list:
+    elif isinstance(incoming, (tuple, list)):
         outgoing = []
         for value in incoming:
-            outgoing.append(force_json(incoming))
+            outgoing.append(force_json(value))
         return outgoing
     else:
         if is_jsonable(incoming):
-            return force_json(incoming)
+            return incoming
         else:
             return str(incoming)
-    raise Exception("Logic failure")
 
 
 def niceTimeDelta(delta_object, format="decimal"):
 
-    if type(delta_object) is int:
-        delta_object = timedelta(seconds=delta_object)
+    if isinstance(delta_object, (int, float)):
+        delta_object = timedelta(seconds=int(delta_object))
 
-    try:
-        years = 0
-        days = delta_object.days
-        hours = delta_object.seconds // 3600
-        minutes = (delta_object.seconds // 60) % 60
-        if days > 365:
-            years = int(days / 365)
-            days = int(days % 365)
-
-    except AnAttributeError:
-        years = int(delta_object / (60 * 60 * 24 * 365))
-        remainder = delta_object % (60 * 60 * 24 * 365)
-        days = int(remainder / (60 * 60 * 24))
-        remainder = delta_object % (60 * 60 * 24)
-        hours = remainder / (60 * 60)
-        remainder = delta_object % (60 * 60)
-        minutes = remainder / 60
+    years = 0
+    days = delta_object.days
+    hours = delta_object.seconds // 3600
+    minutes = (delta_object.seconds // 60) % 60
+    if days > 365:
+        years = int(days / 365)
+        days = int(days % 365)
 
     if int(years) == 1:
         years_message = "1 year, "
