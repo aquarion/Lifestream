@@ -20,9 +20,10 @@ from dateutil import parser as dtparser
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 from lifestream.cache import check_and_set_backoff
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Facebook")
 
@@ -199,7 +200,7 @@ def some_action(post, profile):
         logger.info("... HIDE carries")
         return
 
-    # Lifestream.add_entry(
+    # entry_store.add_entry(
     #     post['type'],
     #     post['id'],
     #     post['message'],
@@ -209,7 +210,7 @@ def some_action(post, profile):
     #     fulldata_json=o_item)
 
     try:
-        Lifestream.add_entry(
+        entry_store.add_entry(
             post["type"],
             post["id"],
             post["message"],

@@ -16,11 +16,12 @@ from mechanize import Browser, RobustFactory
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 logger = logging.getLogger("Oyster")
 args = lifestream.parse_args()
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 if len(sys.argv) < 3:
     print("Usage: %s class oystercard_number" % sys.argv[0])
@@ -111,5 +112,5 @@ for row in dataReader:
 
         # print action, utcdate
         logger.info(action)
-        Lifestream.add_entry("oyster", id.hexdigest(),
+        entry_store.add_entry("oyster", id.hexdigest(),
                              action, "oyster", utcdate)

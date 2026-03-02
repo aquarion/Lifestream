@@ -17,9 +17,10 @@ from pytumblr import TumblrRestClient
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 from lifestream.db import get_connection, get_cursor
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Histumblr")
 args = lifestream.parse_args()

@@ -17,11 +17,12 @@ import requests
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 UTF8Writer = codecs.getwriter("utf8")
 sys.stdout = UTF8Writer(sys.stdout)
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Facebook")
 
@@ -171,7 +172,7 @@ def some_action(post, graph, profile):
     if "message" not in post:
         post["message"] = ""
 
-    # Lifestream.add_entry(
+    # entry_store.add_entry(
     #     post['type'],
     #     post['id'],
     #     post['message'],
@@ -179,7 +180,7 @@ def some_action(post, graph, profile):
     #     post['created_time'],
     #     url=url,
     #     fulldata_json=o_item)
-    # Lifestream.add_entry(
+    # entry_store.add_entry(
     #         post['type'],
     #         post['id'],
     #         post['message'],

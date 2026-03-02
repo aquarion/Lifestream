@@ -16,8 +16,9 @@ import requests
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Moves")
 
@@ -199,7 +200,7 @@ def process_day(day):
                             % (place["location"]["lat"], place["location"]["lon"])
                         )
 
-                Lifestream.add_location(
+                entry_store.add_location(
                     start,
                     "Moves",
                     place["location"]["lat"],

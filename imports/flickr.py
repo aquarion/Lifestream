@@ -9,6 +9,7 @@ import flickrapi
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 from lifestream.db import get_connection, get_cursor
 
 logging.root.handlers.pop(0)  # remove Flickrapi's log handler
@@ -26,7 +27,7 @@ dbcxn = get_connection()
 cursor = get_cursor(dbcxn)
 
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Flickr")
 args = lifestream.parse_args()
@@ -93,7 +94,7 @@ for page in range(1, pages + 1):
 
         logger.info("     %s %s" % (date_taken, title))
 
-        Lifestream.add_entry(
+        entry_store.add_entry(
             type="flickr",
             id=id,
             title=title,

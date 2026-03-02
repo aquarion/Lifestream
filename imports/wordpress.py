@@ -12,6 +12,7 @@ from wordpress_xmlrpc import exceptions as wordpress_exceptions
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 lifestream.arguments.add_argument(
     "site", type=str, help="Site, as defined in config.ini", nargs="*"
@@ -36,7 +37,7 @@ else:
         if section[0:10] == "wordpress:":
             sites.append(section[10:])
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Wordpress")
 
@@ -82,7 +83,7 @@ for site in sites:
             else:
                 thumbnail = ""
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 id=post.guid,
                 title=title,
                 source=source,
