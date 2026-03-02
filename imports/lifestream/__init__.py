@@ -17,7 +17,6 @@ from pprint import pprint
 import oauth2
 import pymysql as MySQLdb
 import pytz
-import redis
 import requests
 import simplejson
 import simplejson as json
@@ -128,19 +127,16 @@ else:
 
 # Import database functionality - for backward compatibility
 from .db import Lifestream, get_connection as getDatabaseConnection, get_cursor as cursor
+from .cache import (
+    get_redis_connection as getRedisConnection,
+    set_backoff as i_said_back_off,
+    should_backoff as i_should_back_off,
+    check_and_set_backoff,
+    file_cache,
+)
 
-
-def getRedisConnection():
-    global RedisCXN
-    if not RedisCXN:
-        RedisCXN = redis.Redis(
-            host=config.get("redis", "host", fallback="localhost"),
-            port=config.get("redis", "port", fallback=6379),
-            username=config.get("redis", "username", fallback=None),
-            password=config.get("redis", "password", fallback=None),
-        )
-
-    return RedisCXN
+# Keep RedisCXN for any code that accesses it directly
+RedisCXN = False
 
 
 def convertNiceTime(number, format):

@@ -1,9 +1,5 @@
 """Database functionality for Lifestream."""
 
-import logging
-import os
-import pickle
-import time
 from datetime import datetime
 
 import pymysql as MySQLdb
@@ -184,52 +180,13 @@ class Lifestream:
         )
 
     def cache_this(self, cache_id, maxage):
-        """
-        A decorator that caches function results to a file.
+        """Deprecated: Use lifestream.cache.file_cache instead."""
+        from .cache import file_cache
 
-        Args:
-            cache_id: Identifier for the cache file
-            maxage: Maximum age of cache in seconds
-        """
-
-        def decorator(fn):
-            def wrapped(*args, **kwargs):
-                cachefile = "/tmp/" + cache_id
-                logger = logging.getLogger("cache_this")
-
-                if os.path.exists(cachefile):
-                    modified = os.path.getmtime(cachefile)
-                    logger.debug(f"Found cache file at '{cachefile}'")
-                    now = time.time()
-                    if now > (modified + maxage):
-                        logger.debug(f"Ignoring old cache file '{cachefile}'")
-                    else:
-                        with open(cachefile, "rb") as cachehandle:
-                            logger.info(f"using cached result from '{cachefile}'")
-                            return pickle.load(cachehandle)
-
-                res = fn(*args, **kwargs)
-
-                with open(cachefile, "wb") as cachehandle:
-                    logger.info(f"saving result to cache '{cachefile}'")
-                    pickle.dump(res, cachehandle)
-
-                return res
-
-            return wrapped
-
-        return decorator
+        return file_cache(cache_id, maxage)
 
     def warned_recently(self, warning_id, hours=24):
-        """Check if a warning was sent recently, and mark it if not."""
-        # Lazy import to avoid circular dependency
-        from . import getRedisConnection
+        """Deprecated: Use lifestream.cache.check_and_set_backoff instead."""
+        from .cache import check_and_set_backoff
 
-        redisCxn = getRedisConnection()
-        lastSent = redisCxn.get(warning_id)
-
-        if not lastSent:
-            redisCxn.set(warning_id, "1", ex=hours * 3600)
-            return False
-        else:
-            return redisCxn.ttl(warning_id)
+        return check_and_set_backoff(warning_id, hours)
