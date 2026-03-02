@@ -9,7 +9,7 @@ import socket
 import sys
 from datetime import datetime, timedelta
 
-import CodeFetcher9000
+from lifestream import code_fetcher as CodeFetcher9000
 
 # Libraries
 import facebook
