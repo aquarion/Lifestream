@@ -1,0 +1,24 @@
+#Lifestream
+LIFESTREAMDIR=/home/aquarion/code/lifestream
+#45      * * * *         aquarion $LIFESTREAMDIR/bin/mailbox-istic.sh
+#48      * * * *         aquarion $LIFESTREAMDIR/bin/mailbox-aqcom.sh
+#4       4  * * *       aquarion  $LIFESTREAMDIR/bin/oyster_csv.sh
+#*/10    * * * *         aquarion $LIFESTREAMDIR/bin/run_import.sh tweets
+#*/12    * * * *         aquarion $LIFESTREAMDIR/bin/run_import.sh lastfm
+*/15      * * * *       aquarion $LIFESTREAMDIR/bin/run_import.sh historic
+#16      */2 * * *       aquarion $LIFESTREAMDIR/bin/run_import.sh destiny2
+#55      2 * * *         aquarion $LIFESTREAMDIR/bin/run_import.sh planetside
+50      16 * * *         aquarion $LIFESTREAMDIR/bin/ffxiv_update_achievements.sh
+55      */4 * * *         aquarion $LIFESTREAMDIR/bin/run_import.sh ffxiv
+37      */2 * * *       aquarion $LIFESTREAMDIR/bin/run_import.sh tumblr
+25      * * * *       aquarion   $LIFESTREAMDIR/bin/run_import.sh gw2
+##18      */2  * * *    aquarion   $LIFESTREAMDIR/bin/run_import.sh wow
+25      4  * * *        aquarion $LIFESTREAMDIR/bin/run_import.sh foursquare
+34      *  * * *        aquarion $LIFESTREAMDIR/bin/run_import.sh github_commits
+45      */6 * * *       aquarion $LIFESTREAMDIR/bin/run_import.sh steam
+45      1 * * *         aquarion $LIFESTREAMDIR/bin/run_import.sh steambadges
+2      10,18 * * *          aquarion $LIFESTREAMDIR/bin/run_import.sh wordpress
+*/18    * * * *         aquarion $LIFESTREAMDIR/bin/run_import.sh facebook_posts
+*/24    * * * *         aquarion $LIFESTREAMDIR/bin/run_import.sh mastodon_toots
+12,42    * * * *         aquarion $LIFESTREAMDIR/bin/run_import.sh atproto_posts
+42     7 * * *          aquarion find /home/aquarion/code/lifestream/logs -ctime +180 -delete
