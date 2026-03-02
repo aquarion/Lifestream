@@ -7,15 +7,15 @@ import pprint
 from datetime import datetime, timedelta
 
 import fitbit
-import lifestreamutils
 
 # Libraries
 from fitbit.api import FitbitOauthClient
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 OAUTH_SECRETS = lifestream.config.get("fitbit", "secrets_file")
 
@@ -104,10 +104,10 @@ for sleep in fbcxn.sleep()["sleep"]:
     )
 
     logger.info("Sleep: %s" % title)
-    Lifestream.add_entry(
+    entry_store.add_entry(
         type=type, id=id, title=title, source="fitbit", date=date, fulldata_json=sleep
     )
-    lifestreamutils.newstat(
+    entry_store.add_stat(
         sleep["startTime"], "sleep", sleep["minutesAsleep"])
 
 for badge in fbcxn.get_badges()["badges"]:
@@ -118,7 +118,7 @@ for badge in fbcxn.get_badges()["badges"]:
     date = badge["dateTime"]
 
     logger.info("Badge: %s" % badge["image75px"])
-    Lifestream.add_entry(
+    entry_store.add_entry(
         type=type, id=id, title="", source="fitbit", date=date, fulldata_json=badge
     )
 
@@ -134,7 +134,7 @@ for day in range(0, 7):
         # print "Steps for %s : %s" % (steps['dateTime'], steps['value'])
         if int(steps["value"]) > 0:
             logger.info("Steps: %s" % steps["value"])
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 type="steps",
                 id="steps" + steps["dateTime"],
                 title="%s steps" % steps["value"],
@@ -143,7 +143,7 @@ for day in range(0, 7):
                 fulldata_json=steps,
                 update=True,
             )
-            lifestreamutils.newstat(steps["dateTime"], "steps", steps["value"])
+            entry_store.add_stat(steps["dateTime"], "steps", steps["value"])
 
     allscore = fbcxn.time_series(
         "activities/activeScore", period="1d", base_date=this_day_str
@@ -152,7 +152,7 @@ for day in range(0, 7):
         # print "score for %s : %s" % (score['dateTime'], score['value'])
         if int(score["value"]) > 0:
             logger.info("Score: %s" % score["value"])
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 type="activeScore",
                 id="activeScore" + score["dateTime"],
                 title="activeScore of %s" % score["value"],
@@ -161,5 +161,5 @@ for day in range(0, 7):
                 fulldata_json=score,
                 update=True,
             )
-            lifestreamutils.newstat(
+            entry_store.add_stat(
                 score["dateTime"], "activeScore", score["value"])

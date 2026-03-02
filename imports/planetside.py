@@ -13,9 +13,10 @@ import requests
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 from lifestream.cache import check_and_set_backoff
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 logger = logging.getLogger("Planetside2")
 args = lifestream.parse_args()
 
@@ -36,7 +37,7 @@ def run_import():
 
     image_base = url_base
 
-    Lifestream = lifestream.Lifestream()
+    entry_store = EntryStore()
 
 
     for character_name in characters:
@@ -80,7 +81,7 @@ def run_import():
 
         logger.info(text)
 
-        Lifestream.add_entry(
+        entry_store.add_entry(
             "gaming",
             id.hexdigest(),
             text,
@@ -120,7 +121,7 @@ def run_import():
             localtime = localzone.localize(datetime.fromtimestamp(epoch))
             utcdate = localtime.strftime("%Y-%m-%d %H:%M")
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 "gaming",
                 id.hexdigest(),
                 text,

@@ -10,6 +10,7 @@ import feedparser
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 logger = logging.getLogger("Atom")
 
@@ -18,7 +19,7 @@ lifestream.arguments.add_argument("url")
 
 args = lifestream.parse_args()
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger.info("Grabbing %s" % args.url)
 fp = feedparser.parse(args.url)
@@ -30,7 +31,7 @@ for i in range(len(fp["entries"])):
     updated = dt.strftime("%Y-%m-%d %H:%M")
     logger.info("Adding new %s item: %s" % (args.type, o_item["title"]))
 
-    Lifestream.add_entry(
+    entry_store.add_entry(
         type=args.type,
         id=id,
         title=o_item["title"],

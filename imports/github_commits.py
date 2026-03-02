@@ -9,11 +9,12 @@ import simplejson as json
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 # Libraries
 
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 USERNAME = lifestream.config.get("github", "username")
 TOKEN = lifestream.config.get("github", "auth_token")
@@ -72,6 +73,6 @@ for repo in repos:
         logger.info(message)
         # cursor.execute(s_sql, (ls_type, id, message, utcdate, url, ls_source))
         # print s_sql % (ls_type, id, message, utcdate, url, ls_source)
-        Lifestream.add_entry(
+        entry_store.add_entry(
             ls_type, id, message, ls_source, utcdate, url=url, fulldata_json=commit
         )

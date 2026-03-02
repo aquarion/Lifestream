@@ -10,6 +10,7 @@ import pytz
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 # Libraries
 
@@ -27,7 +28,7 @@ if not id:
     logger.error("No Last.fm user found in config file")
     sys.exit(5)
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 url = "https://xiffy.nl/lastfmrss.php?user=%s" % id
 logging.info("Grabbing %s" % url)
@@ -45,7 +46,7 @@ for i in range(1, len(fp["entries"])):
     updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
     del o_item["published_parsed"]
     logger.info(title)
-    Lifestream.add_entry(
+    entry_store.add_entry(
         type,
         id.hexdigest(),
         title,

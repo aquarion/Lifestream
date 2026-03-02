@@ -14,9 +14,10 @@ import twitter
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 from lifestream.oauth_utils import read_token_file
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 
 lifestream.arguments.add_argument(
@@ -76,7 +77,7 @@ def process_tweet(account, status):
     localdate = dateutil.parser.parse(status.created_at)
     utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
-    Lifestream.add_entry(
+    entry_store.add_entry(
         "twitter",
         id,
         message,

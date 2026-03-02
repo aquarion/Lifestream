@@ -8,11 +8,11 @@ import mailbox
 import sys
 import time
 
-import lifestreamutils
-
 # Local
 import lifestream
-from lifestream.db import get_connection, get_cursor
+from lifestream.db import EntryStore
+
+entry_store = EntryStore()
 
 if len(sys.argv) < 2:
     print("Usage: %s statistic filename" % (sys.argv[0]))
@@ -22,9 +22,6 @@ STATISTIC = sys.argv[1]
 FILENAME = sys.argv[2]
 
 DEBUG = False
-
-dbcxn = get_connection()
-cursor = get_cursor(dbcxn)
 
 inbox = mailbox.mbox(FILENAME)
 
@@ -71,6 +68,4 @@ if DEBUG:
     print("Databasing....")
 
 for date in list(dates.keys()):
-    lifestreamutils.newstat(date, STATISTIC, dates[date]["total"])
-
-dbcxn.close()
+    entry_store.add_stat(date, STATISTIC, dates[date]["total"])

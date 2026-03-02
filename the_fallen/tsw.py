@@ -10,10 +10,11 @@ from mechanize import Browser, RobustFactory
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
-CHARACTERS = Lifestream.config.get("thesecretworld", "characters")
+CHARACTERS = entry_store.config.get("thesecretworld", "characters")
 
 br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
@@ -51,7 +52,7 @@ for character in CHARACTERS.split(","):
 
     id = hashlib.md5()
     id.update(text)
-    Lifestream.add_entry(
+    entry_store.add_entry(
         "gaming",
         id.hexdigest(),
         text,

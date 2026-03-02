@@ -18,6 +18,7 @@ from requests_oauthlib import OAuth2Session
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 SCOPE = [
     "wow.profile",
@@ -25,7 +26,7 @@ SCOPE = [
 
 steamtime = pytz.timezone("Europe/Paris")
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 OAUTH_FILENAME = "%s/blizzard_user.oauth" % (
     lifestream.get_secrets_dir()
@@ -299,7 +300,7 @@ def log_achievement(item, timestamp, character):
 
     # print text, image, utcdate, item['accountWide']
 
-    Lifestream.add_entry(
+    entry_store.add_entry(
         "gaming",
         id.hexdigest(),
         text,
