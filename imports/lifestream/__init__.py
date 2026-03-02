@@ -31,6 +31,7 @@ from .oauth_utils import read_token_file, write_token_file
 RedisCXN = False
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+project_root = os.path.normpath(os.path.join(basedir, ".."))
 site.addsitedir(basedir + "/../lib")
 
 warnings.filterwarnings("error", category=MySQLdb.Warning)
@@ -42,6 +43,23 @@ try:
     config.read(basedir + "/../config.ini")
 except IOError:
     config.read(os.getcwd() + "/../config.ini")
+
+
+def resolve_path(path):
+    """Resolve a path relative to the project root directory."""
+    if os.path.isabs(path):
+        return path
+    return os.path.normpath(os.path.join(project_root, path))
+
+
+def get_secrets_dir():
+    """Get the secrets directory path, resolved relative to project root."""
+    return resolve_path(config.get("global", "secrets_dir"))
+
+
+def get_log_dir():
+    """Get the log directory path, resolved relative to project root."""
+    return resolve_path(config.get("global", "log_location"))
 
 arguments = argparse.ArgumentParser()
 arguments.add_argument(
