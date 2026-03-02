@@ -16,7 +16,7 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 import lifestream
 
 logger = logging.getLogger("Steam Badges")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 USERNAME = lifestream.config.get("steam", "username")
 steamtime = pytz.timezone("US/Pacific")

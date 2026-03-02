@@ -28,7 +28,7 @@ logger = logging.getLogger("switchbot")
 #     action='store_true')
 
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 # https://github.com/OpenWonderLabs/SwitchBotAPI
 

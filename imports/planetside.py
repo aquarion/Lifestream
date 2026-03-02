@@ -16,7 +16,7 @@ import lifestream
 
 Lifestream = lifestream.Lifestream()
 logger = logging.getLogger("Planetside2")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 IMG = "http://art.istic.net/iconography/games/planetside2.png"
 

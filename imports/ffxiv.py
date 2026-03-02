@@ -39,7 +39,7 @@ lifestream.arguments.add_argument(
 )
 
 logger = logging.getLogger("FFXIV")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 class Lodestone:

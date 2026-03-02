@@ -32,7 +32,7 @@ lifestream.arguments.add_argument(
 )
 
 logger = logging.getLogger("Twitter")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond

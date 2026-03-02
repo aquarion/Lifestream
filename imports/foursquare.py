@@ -21,7 +21,7 @@ url = "http://foursquare.com/%s" % username
 
 
 logger = logging.getLogger("Foursquare")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 # DB Setup
 

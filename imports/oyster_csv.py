@@ -18,7 +18,7 @@ Lifestream = lifestream.Lifestream()
 
 logger = logging.getLogger("Oyster-CSV")
 lifestream.arguments.add_argument("filename")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 londontime = pytz.timezone("Europe/London")
 

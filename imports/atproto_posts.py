@@ -33,7 +33,7 @@ lifestream.arguments.add_argument(
     required=False,
 )
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 if args.site:
     sites = args.site

@@ -60,7 +60,7 @@ lifestream.arguments.add_argument(
 )
 
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 def fetch_new_code():

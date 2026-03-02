@@ -24,7 +24,7 @@ ls_type = "code"
 ls_source = "github"
 
 logger = logging.getLogger("Github")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 def github_call(path, token, page=1, perpage=100):

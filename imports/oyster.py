@@ -18,7 +18,7 @@ from mechanize import Browser, RobustFactory
 import lifestream
 
 logger = logging.getLogger("Oyster")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 Lifestream = lifestream.Lifestream()
 

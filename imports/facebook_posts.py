@@ -43,7 +43,7 @@ lifestream.arguments.add_argument(
 )
 
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 socket.setdefaulttimeout(60)  # Force a timeout if facebook doesn't respond

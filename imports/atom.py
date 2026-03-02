@@ -16,7 +16,7 @@ logger = logging.getLogger("Atom")
 lifestream.arguments.add_argument("type")
 lifestream.arguments.add_argument("url")
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 Lifestream = lifestream.Lifestream()
 
