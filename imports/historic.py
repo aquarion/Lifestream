@@ -17,9 +17,7 @@ from pytumblr import TumblrRestClient
 
 # Local
 import lifestream
-
-# Libraries
-
+from lifestream.db import get_connection, get_cursor
 
 Lifestream = lifestream.Lifestream()
 
@@ -89,19 +87,10 @@ def tumblrAuth(config, OAUTH_TUMBLR):
     )
 
 
-def cursor(dbcxn):
-    dbc = dbcxn.cursor()
-    dbc.execute("SET NAMES utf8;")
-    dbc.execute("SET CHARACTER SET utf8;")
-    dbc.execute("SET character_set_connection=utf8;")
-
-    return dbc
-
-
 to_blog = "aquarions-of-history"
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = cursor(dbcxn)
+dbcxn = get_connection()
+cursor = get_cursor(dbcxn)
 
 sql = "select title, date_created,url,fulldata_json, systemid, source, type from lifestream where source = 'tumblr' and date_created between %s and %s"
 

@@ -11,8 +11,7 @@ import requests
 
 # Local
 import lifestream
-
-# Libraries
+from lifestream.db import get_connection, get_cursor
 from lifestream.oauth_utils import read_token_file
 
 type = "location"
@@ -25,8 +24,8 @@ args = lifestream.parse_args()
 
 # DB Setup
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+dbcxn = get_connection()
+cursor = get_cursor(dbcxn)
 
 
 # Oauth Setup

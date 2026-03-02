@@ -12,6 +12,7 @@ import oauth2
 
 # Local
 import lifestream
+from lifestream.db import get_connection, get_cursor
 
 # Libraries
 
@@ -19,8 +20,8 @@ import lifestream
 logger = logging.getLogger("Openpaths")
 args = lifestream.parse_args()
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+dbcxn = get_connection()
+cursor = get_cursor(dbcxn)
 
 ACCESS = lifestream.config.get("openpaths", "key")
 SECRET = lifestream.config.get("openpaths", "secret")
