@@ -11,7 +11,7 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
-import CodeFetcher9000
+from lifestream import code_fetcher as CodeFetcher9000
 
 # Libraries
 import facebook

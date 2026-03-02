@@ -9,8 +9,8 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
-import CodeFetcher9000
 import pytz
+from lifestream import code_fetcher as CodeFetcher9000
 import requests
 from oauthlib.oauth2 import BackendApplicationClient
 from requests.auth import HTTPBasicAuth
