@@ -29,13 +29,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
     def __init__(self, req, client_addr, server):
         http.server.BaseHTTPRequestHandler.__init__(self, req, client_addr, server)
 
-    def success(self, params):
+        f = open(os.path.join(project_root, "templates/success.html"), "rb")
 
         f = open(os.path.join(project_root, "templates/success.html"), "rb")
 
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
+        s.send_response(200)
+        s.send_header("Content-type", "text/html")
+        s.end_headers()
         while True:
             file_data = f.read(32768)  # use an appropriate chunk size
             if file_data is None or len(file_data) == 0:
@@ -61,7 +61,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         global code
-        parsed = urllib.parse.urlparse(self.path)
+        parsed = urllib.parse.urlparse(s.path)
         params = urllib.parse.parse_qs(parsed.query)
 
         if key_wanted in params:
@@ -89,24 +89,17 @@ def get_url():
 def are_we_working():
     try:
         certfile = config.get("CodeFetcher9000", "certfile")
-    except configparser.Error:
-        logger.error("Certfile not defined in config")
-        raise WeSayNotToday()
-
-    try:
         f = open(certfile, "rb")
         f.close()
     except IOError:
         logger.error("Could not read certificate file: {}".format(certfile))
         raise WeSayNotToday()
-
-    try:
-        keyfile = config.get("CodeFetcher9000", "keyfile")
     except configparser.Error:
-        logger.error("Keyfile not defined in config")
+        logger.error("Certfile not defined in config")
         raise WeSayNotToday()
 
     try:
+        keyfile = config.get("CodeFetcher9000", "keyfile")
         f = open(keyfile, "rb")
         f.close()
     except IOError:

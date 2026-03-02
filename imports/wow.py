@@ -10,9 +10,8 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
-# Local
-import lifestream
 import pytz
+from lifestream import code_fetcher as CodeFetcher9000
 import requests
 from lifestream import code_fetcher as CodeFetcher9000
 from lifestream.db import EntryStore

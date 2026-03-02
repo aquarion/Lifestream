@@ -8,9 +8,8 @@ import socket
 import sys
 from datetime import datetime, timedelta
 
-# Local
-import lifestream
 import pytz
+from lifestream import code_fetcher as CodeFetcher9000
 
 # Libraries
 import requests

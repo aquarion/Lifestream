@@ -10,9 +10,7 @@ import time
 from datetime import datetime, timedelta
 
 import dateutil.parser
-
-# Local
-import lifestream
+from lifestream import code_fetcher as CodeFetcher9000
 import pytz
 
 # Libraries
