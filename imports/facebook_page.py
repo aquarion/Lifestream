@@ -37,7 +37,7 @@ socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
 OAUTH_FILENAME = "%s/facebook.oauth" % (
-    lifestream.config.get("global", "secrets_dir"))
+    lifestream.get_secrets_dir())
 APP_KEY = lifestream.config.get("facebook", "appid")
 APP_SECRET = lifestream.config.get("facebook", "secret")
 
