@@ -93,8 +93,3 @@ def file_cache(cache_id, maxage):
         return wrapped
 
     return decorator
-
-
-# Aliases for backward compatibility
-i_said_back_off = set_backoff
-i_should_back_off = should_backoff

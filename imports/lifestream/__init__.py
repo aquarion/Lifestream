@@ -125,18 +125,8 @@ else:
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="")
 
 
-# Import database functionality - for backward compatibility
-from .db import Lifestream, get_connection as getDatabaseConnection, get_cursor as cursor
-from .cache import (
-    get_redis_connection as getRedisConnection,
-    set_backoff as i_said_back_off,
-    should_backoff as i_should_back_off,
-    check_and_set_backoff,
-    file_cache,
-)
-
-# Keep RedisCXN for any code that accesses it directly
-RedisCXN = False
+# Import database functionality
+from .db import Lifestream
 
 
 def convertNiceTime(number, format):
@@ -197,21 +187,6 @@ def force_json(incoming):
         else:
             return str(incoming)
     raise Exception("Logic failure")
-
-
-def i_said_back_off(warning_id, hours=24):
-    redisCxn = getRedisConnection()
-    redisCxn.set(warning_id, "1", ex=hours * 3600)
-
-
-def i_should_back_off(warning_id):
-    redisCxn = getRedisConnection()
-    lastSent = redisCxn.get(warning_id)
-
-    if lastSent:
-        return True
-    else:
-        return False
 
 
 class AnAttributeError(Exception):

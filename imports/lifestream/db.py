@@ -178,15 +178,3 @@ class Lifestream:
                 icon,
             ),
         )
-
-    def cache_this(self, cache_id, maxage):
-        """Deprecated: Use lifestream.cache.file_cache instead."""
-        from .cache import file_cache
-
-        return file_cache(cache_id, maxage)
-
-    def warned_recently(self, warning_id, hours=24):
-        """Deprecated: Use lifestream.cache.check_and_set_backoff instead."""
-        from .cache import check_and_set_backoff
-
-        return check_and_set_backoff(warning_id, hours)

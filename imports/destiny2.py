@@ -18,6 +18,7 @@ import requests
 # Local
 import lifestream
 from lifestream import destiny_exceptions
+from lifestream.cache import set_backoff, should_backoff, check_and_set_backoff
 
 Lifestream = lifestream.Lifestream()
 
@@ -164,9 +165,9 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
     if "error" in oauth_token:
 
         if oauth_token["error"] == "DestinyThrottledByGameServer":
-            lifestream.i_said_back_off("destiny2:api_error:throttled")
+            set_backoff("destiny2:api_error:throttled")
 
-        ttl = Lifestream.warned_recently(
+        ttl = check_and_set_backoff(
             "destiny2:api_error:%".format(oauth_token["error"])
         )
         message = "Error refreshing token: {}".format(oauth_token["error"])
@@ -304,7 +305,7 @@ def dt_parse(t):
 
 ### MAIN LOOP ###
 
-if lifestream.i_should_back_off("destiny2:api_error:throttled"):
+if should_backoff("destiny2:api_error:throttled"):
     logger.warning("Throttled, exiting")
     sys.exit(1)
 

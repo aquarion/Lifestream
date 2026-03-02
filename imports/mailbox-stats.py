@@ -12,6 +12,7 @@ import lifestreamutils
 
 # Local
 import lifestream
+from lifestream.db import get_connection, get_cursor
 
 if len(sys.argv) < 2:
     print("Usage: %s statistic filename" % (sys.argv[0]))
@@ -22,8 +23,8 @@ FILENAME = sys.argv[2]
 
 DEBUG = False
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+dbcxn = get_connection()
+cursor = get_cursor(dbcxn)
 
 inbox = mailbox.mbox(FILENAME)
 

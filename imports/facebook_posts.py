@@ -21,6 +21,7 @@ from dateutil import parser as dtparser
 
 # Local
 import lifestream
+from lifestream.cache import check_and_set_backoff
 
 Lifestream = lifestream.Lifestream()
 
@@ -239,7 +240,7 @@ if datetime.now() > credentials["expire_dt"]:
 if delta.days <= 7:
     logger.warning("Token will expire in {} days!".format(delta.days))
 
-    if Lifestream.warned_recently("facebook:token:warning_sent", 86400):
+    if check_and_set_backoff("facebook:token:warning_sent", 86400):
         logger.info("Warning already sent recently")
     else:
         logger.error("Token will expire in {} days!".format(delta.days))

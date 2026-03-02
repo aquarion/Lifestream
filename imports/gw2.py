@@ -12,6 +12,7 @@ from guildwars2api.v2 import GuildWars2API
 
 # Local
 import lifestream
+from lifestream.cache import file_cache, check_and_set_backoff
 
 Lifestream = lifestream.Lifestream()
 
@@ -24,7 +25,7 @@ api = GuildWars2API(
     user_agent="Lifestream <nicholas@istic.net>", api_key=APIKEY)
 
 
-@Lifestream.cache_this("gw2.categories", 86400)
+@file_cache("gw2.categories", 86400)
 def get_categories():
     category_list = requests.get(
         "https://api.guildwars2.com/v2/achievements/categories/"
@@ -94,7 +95,7 @@ def run_import():
     try:
         achievements_library = get_all_my_achievements(api)
     except GuildWars2APIError as e:
-        ttl = Lifestream.warned_recently("gw2:api_error:warning_sent")
+        ttl = check_and_set_backoff("gw2:api_error:warning_sent")
         if ttl:
             logger.warning("Error fetching achievements: {}".format(e))
             logger.info(

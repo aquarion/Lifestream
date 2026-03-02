@@ -13,6 +13,7 @@ import requests
 
 # Local
 import lifestream
+from lifestream.cache import check_and_set_backoff
 
 Lifestream = lifestream.Lifestream()
 logger = logging.getLogger("Planetside2")
@@ -134,7 +135,7 @@ def main():
     try:
         run_import()
     except Exception as e:
-        ttl = Lifestream.warned_recently("planetside:exception:warning_sent")
+        ttl = check_and_set_backoff("planetside:exception:warning_sent")
         if ttl:
             logger.warning("Error fetching achievements: {}".format(e))
             logger.info(
