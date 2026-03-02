@@ -316,17 +316,23 @@ class Lifestream:
     dbcxn = False
     cursor = False
     config = False
+    no_db = False
 
     def __init__(self, *args, **kwargs):
         self.config = config
+        self.no_db = _parsed_args.no_db if _parsed_args else False
 
     def init_db(self):
+        if self.no_db:
+            return
         if self.dbcxn:
             return
         self.dbcxn = getDatabaseConnection()
         self.cursor = cursor(self.dbcxn)
         
     def get_by_id(self, type, entry_id):
+        if self.no_db:
+            return None
         self.init_db()
         cursor = self.dbcxn.cursor(MySQLdb.cursors.DictCursor)
         sql = "select * from lifestream where type = %s and systemid = %s"
@@ -334,6 +340,8 @@ class Lifestream:
         return cursor.fetchone()
     
     def get_by_title(self, type, title):
+        if self.no_db:
+            return None
         self.init_db()
         cursor = self.dbcxn.cursor(MySQLdb.cursors.DictCursor)
         sql = "select * from lifestream where type = %s and title = %s"
@@ -341,6 +349,9 @@ class Lifestream:
         return cursor.fetchone()
     
     def delete_entry(self, type, entry_id):
+        if self.no_db:
+            print(f"[NO-DB] DELETE: type={type}, systemid={entry_id}")
+            return
         self.init_db()
         sql = "delete from lifestream where type = %s and systemid = %s"
         self.cursor.execute(sql, (type, entry_id))
@@ -361,10 +372,14 @@ class Lifestream:
         debug=False,
     ):
 
-        self.init_db()
-
         if fulldata_json:
             fulldata_json = simplejson.dumps(fulldata_json)
+
+        if self.no_db:
+            print(f"[NO-DB] INSERT: type={type}, systemid={id}, title={title}, source={source}, date={date}, url={url}, image={image}")
+            return
+
+        self.init_db()
 
         sql = "select date_created from lifestream where type = %s and systemid = %s order by date_created desc limit 1 "
 
@@ -395,6 +410,9 @@ class Lifestream:
     def add_location(
         self, timestamp, source, lat, lon, title, icon=False, fulldata=False
     ):
+        if self.no_db:
+            print(f"[NO-DB] LOCATION: source={source}, lat={lat}, lon={lon}, timestamp={timestamp}, title={title}")
+            return
         self.init_db()
         l_sql = 'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s, "");'
         time_start = datetime(1970, 1, 1, 0, 0, 0, 0, pytz.UTC)
