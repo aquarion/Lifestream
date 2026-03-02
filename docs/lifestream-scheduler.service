@@ -1,0 +1,46 @@
+# Lifestream Scheduler systemd service
+#
+# Installation:
+#   1. Copy this file to /etc/systemd/system/lifestream-scheduler.service
+#   2. Edit the paths and user as needed
+#   3. Run: sudo systemctl daemon-reload
+#   4. Run: sudo systemctl enable lifestream-scheduler
+#   5. Run: sudo systemctl start lifestream-scheduler
+#
+# Management:
+#   sudo systemctl status lifestream-scheduler  # Check status
+#   sudo systemctl restart lifestream-scheduler # Restart
+#   journalctl -u lifestream-scheduler -f       # View logs
+
+[Unit]
+Description=Lifestream Import Scheduler
+After=network.target redis.service mysql.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=aquarion
+Group=aquarion
+WorkingDirectory=/home/aquarion/code/lifestream
+
+# Use poetry to run in the virtual environment
+ExecStart=/usr/bin/poetry run python scheduler.py
+
+Restart=on-failure
+RestartSec=30
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lifestream-scheduler
+
+# Security hardening (optional but recommended)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/aquarion/code/lifestream/logs
+ReadWritePaths=/home/aquarion/code/lifestream/keys
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

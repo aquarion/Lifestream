@@ -1,3 +1,24 @@
+# DEPRECATED: This crontab approach has been replaced by scheduler.py
+#
+# The new scheduler uses APScheduler with Redis persistence, which:
+# - Catches up missed runs when the server was offline
+# - Coalesces multiple missed runs into one execution
+# - Provides better logging and job management
+#
+# To use the new scheduler:
+#   1. Configure jobs in config.ini [schedules] section
+#   2. Install the systemd service: docs/lifestream-scheduler.service
+#   3. Or run directly: python scheduler.py
+#
+# Commands:
+#   python scheduler.py --list    # List configured jobs
+#   python scheduler.py --status  # Show next run times
+#   python scheduler.py --run JOB # Run a job immediately
+#
+# ============================================================================
+# Legacy crontab entries (for reference):
+# ============================================================================
+
 #Lifestream
 LIFESTREAMDIR=/home/aquarion/code/lifestream
 #45      * * * *         aquarion $LIFESTREAMDIR/bin/mailbox-istic.sh
