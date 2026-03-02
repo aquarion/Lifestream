@@ -4,11 +4,11 @@
 import logging
 from datetime import datetime
 
-import lifestreamutils
 import requests
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 logger = logging.getLogger("switchbot")
 
@@ -29,6 +29,8 @@ logger = logging.getLogger("switchbot")
 
 
 args = lifestream.parse_args()
+
+entry_store = EntryStore()
 
 # https://github.com/OpenWonderLabs/SwitchBotAPI
 
@@ -75,11 +77,11 @@ for device in r["body"]["deviceList"]:
         logging.info("{}-temp is {}".format(name, data["temperature"]))
         logging.info("{}-humid is {}".format(name, data["humidity"]))
 
-        lifestreamutils.newstat(
+        entry_store.add_stat(
             datetime.now(), "{}-temp".format(name), data["temperature"]
         )
-        lifestreamutils.newstat(
+        entry_store.add_stat(
             datetime.now(), "{}-humid".format(name), data["humidity"]
         )
 #
-#    lifestreamutils.newstat(date, STATISTIC, dates[date]['total'])
+#    entry_store.add_stat(date, STATISTIC, dates[date]['total'])

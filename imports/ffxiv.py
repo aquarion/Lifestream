@@ -14,12 +14,13 @@ import simplejson
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
-APIKEY = Lifestream.config.get("xivapi", "apikey")
-CHARACTERS = Lifestream.config.get("xivapi", "characters")
-ICON_BASE = Lifestream.config.get("xivapi", "icon_base")
+APIKEY = entry_store.config.get("xivapi", "apikey")
+CHARACTERS = entry_store.config.get("xivapi", "characters")
+ICON_BASE = entry_store.config.get("xivapi", "icon_base")
 
 
 lifestream.arguments.add_argument(
@@ -53,7 +54,7 @@ class Lodestone:
     def __init__(self, apikey) -> None:
         self.api_key = apikey
         self.achievement_db = sqlite3.connect(
-            Lifestream.config.get("xivapi", "achievement_db")
+            entry_store.config.get("xivapi", "achievement_db")
         )
         pass
 
@@ -193,7 +194,7 @@ def update_achievements(char_id):
             char_id, achievement["ID"]
         )
 
-        Lifestream.add_entry(
+        entry_store.add_entry(
             type="achievement",
             id="ffxiv-{}-{}".format(char_id, achievement["ID"]),
             title=message,

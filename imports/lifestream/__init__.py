@@ -126,7 +126,7 @@ else:
 
 
 # Import database functionality
-from .db import Lifestream
+from .db import EntryStore
 
 
 def convertNiceTime(number, format):

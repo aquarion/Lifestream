@@ -14,13 +14,14 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 logger = logging.getLogger("Steam Badges")
 args = lifestream.parse_args()
 
 USERNAME = lifestream.config.get("steam", "username")
 steamtime = pytz.timezone("US/Pacific")
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 options = FirefoxOptions()
 options.add_argument("-headless")
@@ -63,7 +64,7 @@ for badge in badges:
 
     logger.info(text)
 
-    Lifestream.add_entry(
+    entry_store.add_entry(
         "badge", id.hexdigest(), text, "steam", utcdate, url=URL, image=image
     )
 

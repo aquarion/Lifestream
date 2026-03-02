@@ -13,6 +13,7 @@ from pytumblr import TumblrRestClient
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 logger = logging.getLogger("Tumblr")
 lifestream.arguments.add_argument(
@@ -25,7 +26,7 @@ lifestream.arguments.add_argument(
 
 args = lifestream.parse_args()
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 OAUTH_TUMBLR = lifestream.config.get("tumblr", "secrets_file")
 
@@ -157,7 +158,7 @@ for blog in blogs:
             if type == "photo":
                 image = post["photos"][0]["original_size"]["url"]
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 type,
                 id,
                 title,

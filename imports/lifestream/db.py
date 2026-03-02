@@ -35,7 +35,7 @@ def get_cursor(dbcxn):
     return dbc
 
 
-class Lifestream:
+class EntryStore:
     """Main database interface for lifestream entries."""
 
     def __init__(self):
@@ -178,3 +178,14 @@ class Lifestream:
                 icon,
             ),
         )
+
+    def add_stat(self, date, stat, number):
+        """Add or update a statistic entry."""
+        if self.no_db:
+            print(f"[NO-DB] STAT: date={date}, stat={stat}, number={number}")
+            return True
+
+        s_sql = "replace into lifestream_stats (`date`, `statistic`, `number`) values (%s, %s, %s);"
+        self.cursor.execute(s_sql, (date, stat, number))
+        self.dbcxn.commit()
+        return True

@@ -17,10 +17,11 @@ import requests
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 from lifestream import destiny_exceptions
 from lifestream.cache import set_backoff, should_backoff, check_and_set_backoff
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Destiny2")
 
@@ -409,7 +410,7 @@ for member_data in memberships["destinyMemberships"]:
 
             # print text, image, utcdate, item['accountWide']
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 "gaming",
                 id.hexdigest(),
                 text,

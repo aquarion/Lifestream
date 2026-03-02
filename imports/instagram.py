@@ -12,8 +12,9 @@ from InstagramAPI import InstagramAPI
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Instagram")
 
@@ -63,7 +64,7 @@ if api.login():
             logger.info("{}: {}".format(
                 timestamp, caption.encode("ascii", "ignore")))
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 "photo",
                 item["id"],
                 caption,

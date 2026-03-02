@@ -9,6 +9,7 @@ import requests
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 from lifestream.steam_api import SteamAPI
 
 
@@ -26,7 +27,7 @@ lifestream.arguments.add_argument(
 
 args = lifestream.parse_args()
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 STEAMTIME = pytz.timezone("US/Pacific")
 
@@ -91,17 +92,17 @@ if __name__ == "__main__":
           id = hashlib.md5()
           id.update(f"{appid}-{ach_id}".encode("utf-8"))
           
-          entry = Lifestream.get_by_title("achievement", message)
+          entry = entry_store.get_by_title("achievement", message)
           if entry and not entry['systemid'] == id.hexdigest():
               logger.info("           + Achievement already in Lifestream, deleting.")
               logger.info(f"             + Entry ID: {entry['title']}")
-              Lifestream.delete_entry(entry['type'], entry['systemid'])
+              entry_store.delete_entry(entry['type'], entry['systemid'])
           else:
-              logger.info("           + Adding Achievement to Lifestream.")
+              logger.info("           + Adding Achievement to entry_store.")
                     
           statsPage = f"https://steamcommunity.com/id/%s/stats/%s/?tab=achievements" % (USER, appid)
           
-          Lifestream.add_entry(
+          entry_store.add_entry(
               "achievement",
               id.hexdigest(),
               message,

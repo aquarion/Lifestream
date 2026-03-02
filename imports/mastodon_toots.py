@@ -9,6 +9,7 @@ import mastodon as mastodonpy
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False
@@ -41,7 +42,7 @@ else:
         if section[0:9] == "mastodon:":
             sites.append(section[9:])
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Mastodon")
 
@@ -101,7 +102,7 @@ for site in sites:
             else:
                 thumbnail = ""
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 id=toot["id"],
                 title=title,
                 source=source,

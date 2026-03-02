@@ -9,11 +9,12 @@ import pytz
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 # Libraries
 
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 
 logger = logging.getLogger("Oyster-CSV")
@@ -59,7 +60,7 @@ for row in dataReader:
 
         logger.info("%s: %s" % (action, utcdate))
         # add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False)
-        Lifestream.add_entry(
+        entry_store.add_entry(
             "oyster", id.hexdigest(), action, "oyster", utcdate, False, False, row
         )
 

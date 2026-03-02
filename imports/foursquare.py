@@ -11,6 +11,7 @@ import requests
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 from lifestream.db import get_connection, get_cursor
 from lifestream.oauth_utils import read_token_file
 
@@ -44,7 +45,7 @@ oauth_token, oauth_token_secret = read_token_file(OAUTH_FILENAME)
 
 # Loop setup
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 URL_BASE = "https://api.foursquare.com/v2/%s"
 # Get the data
@@ -92,7 +93,7 @@ if "checkins" in list(data["response"].keys()):
         url = "http://www.foursquare.com/%s/checkin/%s" % (username, id)
 
         # cursor.execute(s_sql, (type, id, message, utcdate, url, source, image))
-        Lifestream.add_entry(
+        entry_store.add_entry(
             type,
             id,
             message,
@@ -107,7 +108,7 @@ if "checkins" in list(data["response"].keys()):
 
         logger.info("Checkin %s@%s" % (utcdate, location["venue"]["name"]))
 
-        Lifestream.add_location(
+        entry_store.add_location(
             utctime,
             "foursquare",
             coordinates["lat"],

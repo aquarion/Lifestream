@@ -11,6 +11,7 @@ from atproto import Client as atClient
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False
@@ -44,7 +45,7 @@ else:
         if subsection[0] == "atproto":
             sites.append(subsection[1])
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("AtProto")
 
@@ -120,7 +121,7 @@ for site in sites:
             else:
                 thumbnail = ""
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 id=item.post.uri,
                 title=title,
                 source=source,

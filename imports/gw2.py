@@ -12,11 +12,12 @@ from guildwars2api.v2 import GuildWars2API
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
 from lifestream.cache import file_cache, check_and_set_backoff
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
-APIKEY = Lifestream.config.get("guildwars2", "apikey")
+APIKEY = entry_store.config.get("guildwars2", "apikey")
 
 logger = logging.getLogger("GW2")
 args = lifestream.parse_args()
@@ -135,7 +136,7 @@ def run_import():
 
         #     id = hashlib.md5()
         # id.update(text)
-        Lifestream.add_entry(
+        entry_store.add_entry(
             "achievement", ident, text, "Guild Wars 2", datetime.now(), image=icon
         )
 
