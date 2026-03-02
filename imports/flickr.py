@@ -9,6 +9,7 @@ import flickrapi
 
 # Local
 import lifestream
+from lifestream.db import get_connection, get_cursor
 
 logging.root.handlers.pop(0)  # remove Flickrapi's log handler
 
@@ -21,8 +22,8 @@ FLICKRID = lifestream.config.get("flickr", "account")
 FLICKRNAME = lifestream.config.get("flickr", "account_name")
 
 DEBUG = False
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+dbcxn = get_connection()
+cursor = get_cursor(dbcxn)
 
 
 Lifestream = lifestream.Lifestream()

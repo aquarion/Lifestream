@@ -4,11 +4,12 @@
 
 # Local
 import lifestream
+from lifestream.db import get_connection, get_cursor
 
 
 def newstat(date, stat, number):
-    dbcxn = lifestream.getDatabaseConnection()
-    cursor = lifestream.cursor(dbcxn)
+    dbcxn = get_connection()
+    cursor = get_cursor(dbcxn)
 
     s_sql = "replace into lifestream_stats (`date`, `statistic`, `number`) values (%s, %s, %s);"
     cursor.execute(s_sql, (date, stat, number))
