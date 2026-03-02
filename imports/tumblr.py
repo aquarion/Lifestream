@@ -23,7 +23,7 @@ lifestream.arguments.add_argument(
     action="store_true",
 )
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 Lifestream = lifestream.Lifestream()
 

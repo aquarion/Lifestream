@@ -26,7 +26,7 @@ lifestream.arguments.add_argument(
     default=1,
     required=False,
 )
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 if args.site:
     sites = args.site

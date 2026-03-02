@@ -28,7 +28,7 @@ cursor = lifestream.cursor(dbcxn)
 Lifestream = lifestream.Lifestream()
 
 logger = logging.getLogger("Flickr")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 # Only search from the most recent result
 sql = 'select date_created from lifestream where type = "flickr" order by date_created desc limit 1 '

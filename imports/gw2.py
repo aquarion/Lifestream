@@ -18,7 +18,7 @@ Lifestream = lifestream.Lifestream()
 APIKEY = Lifestream.config.get("guildwars2", "apikey")
 
 logger = logging.getLogger("GW2")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 api = GuildWars2API(
     user_agent="Lifestream <nicholas@istic.net>", api_key=APIKEY)

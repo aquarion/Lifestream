@@ -22,7 +22,7 @@ lifestream.arguments.add_argument(
     "--all", required=False, help="Get all items", default=False, action="store_true"
 )
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 api = InstagramAPI(
     lifestream.config.get("instagram", "username"),

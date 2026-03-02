@@ -17,7 +17,7 @@ import lifestream
 
 
 logger = logging.getLogger("Openpaths")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 dbcxn = lifestream.getDatabaseConnection()
 cursor = lifestream.cursor(dbcxn)

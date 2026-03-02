@@ -54,8 +54,30 @@ arguments.add_argument(
     default=False,
     action="store_true",
 )
+arguments.add_argument(
+    "--no-db",
+    required=False,
+    help="Print database operations instead of executing them",
+    default=False,
+    action="store_true",
+)
 
-LOG_DIR = config.get("global", "log_location")
+_parsed_args = None
+
+
+def parse_args():
+    """Parse command line arguments and store the result."""
+    global _parsed_args
+    _parsed_args = arguments.parse_args()
+    return _parsed_args
+
+
+def get_parsed_args():
+    """Get the parsed arguments, or None if not yet parsed."""
+    return _parsed_args
+
+
+LOG_DIR = get_log_dir()
 
 LOG_FORMAT = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
 

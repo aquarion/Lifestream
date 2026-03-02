@@ -24,7 +24,7 @@ import lifestream
 Lifestream = lifestream.Lifestream()
 
 logger = logging.getLogger("Histumblr")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 OAUTH_TUMBLR = lifestream.config.get("tumblr", "secrets_file")
 

@@ -15,7 +15,7 @@ import lifestream
 
 
 logger = logging.getLogger("Last.FM")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 try:

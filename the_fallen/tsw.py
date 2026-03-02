@@ -21,7 +21,7 @@ br.set_handle_robots(False)
 # Login
 
 logger = logging.getLogger("TSW")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 for character in CHARACTERS.split(","):
 

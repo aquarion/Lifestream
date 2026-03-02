@@ -21,7 +21,7 @@ OAUTH_SECRETS = lifestream.config.get("fitbit", "secrets_file")
 
 
 logger = logging.getLogger("Fitbit Day")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 def fitbitAuth(config, OAUTH_SECRETS):
