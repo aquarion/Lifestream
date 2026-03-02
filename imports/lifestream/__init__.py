@@ -43,8 +43,7 @@ try:
     config.read(basedir + "/../config.ini")
 except IOError:
     config.read(os.getcwd() + "/../config.ini")
-
-
+    
 def resolve_path(path):
     """Resolve a path relative to the project root directory."""
     if os.path.isabs(path):
@@ -126,21 +125,9 @@ else:
     consoleLogger.setLevel(logging.ERROR)
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="")
 
-def getDatabaseConnection():
 
-    db = {}
-    for item in config.items("database"):
-        db[item[0]] = item[1]
-
-    dbcxn = MySQLdb.connect(
-        user=db["username"],
-        passwd=db["password"],
-        db=db["database"],
-        host=db["hostname"],
-        charset="utf8mb4",
-    )
-    # dbcxn.set_character_set('utf8')
-    return dbcxn
+# Import database functionality - for backward compatibility
+from .db import Lifestream, get_connection as getDatabaseConnection, get_cursor as cursor
 
 
 def getRedisConnection():
@@ -154,15 +141,6 @@ def getRedisConnection():
         )
 
     return RedisCXN
-
-
-def cursor(dbcxn):
-    dbc = dbcxn.cursor()
-    dbc.execute("SET NAMES utf8mb4;")
-    dbc.execute("SET CHARACTER SET utf8mb4;")
-    dbc.execute("SET character_set_connection=utf8mb4;")
-
-    return dbc
 
 
 def convertNiceTime(number, format):
@@ -309,179 +287,6 @@ def niceTimeDelta(delta_object, format="decimal"):
         return "seconds"
     else:
         return string
-
-
-class Lifestream:
-
-    dbcxn = False
-    cursor = False
-    config = False
-    no_db = False
-
-    def __init__(self, *args, **kwargs):
-        self.config = config
-        self.no_db = _parsed_args.no_db if _parsed_args else False
-
-    def init_db(self):
-        if self.no_db:
-            return
-        if self.dbcxn:
-            return
-        self.dbcxn = getDatabaseConnection()
-        self.cursor = cursor(self.dbcxn)
-        
-    def get_by_id(self, type, entry_id):
-        if self.no_db:
-            return None
-        self.init_db()
-        cursor = self.dbcxn.cursor(MySQLdb.cursors.DictCursor)
-        sql = "select * from lifestream where type = %s and systemid = %s"
-        cursor.execute(sql, (type, entry_id))
-        return cursor.fetchone()
-    
-    def get_by_title(self, type, title):
-        if self.no_db:
-            return None
-        self.init_db()
-        cursor = self.dbcxn.cursor(MySQLdb.cursors.DictCursor)
-        sql = "select * from lifestream where type = %s and title = %s"
-        cursor.execute(sql, (type, title))
-        return cursor.fetchone()
-    
-    def delete_entry(self, type, entry_id):
-        if self.no_db:
-            print(f"[NO-DB] DELETE: type={type}, systemid={entry_id}")
-            return
-        self.init_db()
-        sql = "delete from lifestream where type = %s and systemid = %s"
-        self.cursor.execute(sql, (type, entry_id))
-        self.dbcxn.commit()
-
-    # Lifestream.add_entry(type, id, title, source, date, url='', image='', fulldata_json=False)
-    def add_entry(
-        self,
-        type,
-        id,
-        title,
-        source,
-        date,
-        url="",
-        image="",
-        fulldata_json=False,
-        update=False,
-        debug=False,
-    ):
-
-        if fulldata_json:
-            fulldata_json = simplejson.dumps(fulldata_json)
-
-        if self.no_db:
-            print(f"[NO-DB] INSERT: type={type}, systemid={id}, title={title}, source={source}, date={date}, url={url}, image={image}")
-            return
-
-        self.init_db()
-
-        sql = "select date_created from lifestream where type = %s and systemid = %s order by date_created desc limit 1 "
-
-        self.cursor.execute(sql, (type, str(id)))
-        if self.cursor.fetchone():
-            if not update:
-                # print "Ignore - %s" % title
-                return False
-            else:
-                # print "Update - %s" % title
-                s_sql = "UPDATE lifestream set `title`=%s, `url`=%s, `date_created`=%s, `source`=%s, `image`=%s, `fulldata_json`=%s where `systemid`=%s and `type`=%s"
-                self.cursor.execute(
-                    s_sql, (title, url, date, source,
-                            image, fulldata_json, id, type)
-                )
-                if debug:
-                    print(self.cursor._executed)
-        else:
-            # print "Insert - %s" % title
-            s_sql = "INSERT INTO lifestream (`type`, `systemid`, `title`, `url`, `date_created`, `source`, `image`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-            self.cursor.execute(
-                s_sql, (type, id, title, url, date,
-                        source, image, fulldata_json)
-            )
-            if debug:
-                print(self.cursor._executed)
-
-    def add_location(
-        self, timestamp, source, lat, lon, title, icon=False, fulldata=False
-    ):
-        if self.no_db:
-            print(f"[NO-DB] LOCATION: source={source}, lat={lat}, lon={lon}, timestamp={timestamp}, title={title}")
-            return
-        self.init_db()
-        l_sql = 'replace into lifestream_locations (`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`, `fulldata_json`) values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s, "");'
-        time_start = datetime(1970, 1, 1, 0, 0, 0, 0, pytz.UTC)
-        epoch = (timestamp - time_start).total_seconds()
-        self.cursor.execute(
-            l_sql,
-            (
-                epoch,  # `id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, `timestamp`, `accuracy`, `title`, `icon`,
-                source,
-                lat,
-                lon,
-                round(lat, 2),
-                round(lon, 2),
-                timestamp,
-                title,
-                icon,
-            ),
-        )
-
-    def cache_this(self, cache_id, maxage):
-        """
-        A function that creates a decorator which will use "cachefile" for caching the results of the decorated function "fn".
-        """
-
-        def decorator(fn):  # define a decorator for a function "fn"
-            # define a wrapper that will finally call "fn" with all arguments
-            def wrapped(*args, **kwargs):
-                cachefile = "/tmp/" + cache_id
-                logger = logging.getLogger("cache_this")
-                # if cache exists -> load it and return its content
-                if os.path.exists(cachefile):
-                    modified = os.path.getmtime(cachefile)
-                    logger.debug("Found cache file at '{}'".format(cachefile))
-                    now = time.time()
-                    if now > (modified + maxage):
-                        logger.debug(
-                            "Ignoring old cache file {}'".format(cachefile))
-                    else:
-                        with open(cachefile, "rb") as cachehandle:
-                            logger.info(
-                                "using cached result from '{}'".format(
-                                    cachefile)
-                            )
-                            return pickle.load(cachehandle)
-
-                # execute the function with all arguments passed
-                res = fn(*args, **kwargs)
-
-                # write to cache file
-                with open(cachefile, "wb") as cachehandle:
-                    logger.info(
-                        "saving result to cache '{}'".format(cachefile))
-                    pickle.dump(res, cachehandle)
-
-                return res
-
-            return wrapped
-
-        return decorator  # return this "customized" decorator that uses "cachefile"
-
-    def warned_recently(self, warning_id, hours=24):
-        redisCxn = getRedisConnection()
-        lastSent = redisCxn.get(warning_id)
-
-        if not lastSent:
-            redisCxn.set(warning_id, "1", ex=hours * 3600)
-            return False
-        else:
-            return redisCxn.ttl(warning_id)
 
 
 class FoursquareAPI:
