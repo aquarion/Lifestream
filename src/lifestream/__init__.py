@@ -25,9 +25,6 @@ from lifestream.core.utils import (
     convertNiceTime,
     AnAttributeError,
 )
-from lifestream.core.oauth_utils import read_token_file, write_token_file
-from lifestream.core.notifications import send_failure_notifications
-
 __all__ = [
     # Config
     "config",
