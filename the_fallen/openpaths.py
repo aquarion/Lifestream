@@ -8,19 +8,19 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 
-import oauth2
-
 # Local
 import lifestream
+import oauth2
+from lifestream.db import get_connection, get_cursor
 
 # Libraries
 
 
 logger = logging.getLogger("Openpaths")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+dbcxn = get_connection()
+cursor = get_cursor(dbcxn)
 
 ACCESS = lifestream.config.get("openpaths", "key")
 SECRET = lifestream.config.get("openpaths", "secret")
@@ -93,8 +93,7 @@ for datum in data:
     ):
 
         accuracy = 100
-        logger.info("Found %s %s/%s" %
-                    (timestamp, latitude_best, longitude_best))
+        logger.info("Found %s %s/%s" % (timestamp, latitude_best, longitude_best))
         #                                (`id`,                 `lat`,             `long`,            `lat_vague`,   `long_vague`, `timestamp`, `accuracy`)
         cursor.execute(
             s_sql,
