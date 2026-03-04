@@ -58,13 +58,17 @@ def send_failure_email(job_name: str, error: Exception | str, duration: float) -
         return
 
     subject = f"[Lifestream] Job failed: {job_name}"
+
+    # Only include traceback if error is an Exception and we have an active exception context
+    traceback_info = ""
+    if isinstance(error, Exception):
+        tb = traceback.format_exception(type(error), error, error.__traceback__)
+        traceback_info = f"\nTraceback:\n{''.join(tb)}"
+
     body = f"""Lifestream job '{job_name}' failed after {duration:.1f}s.
 
 Error: {error}
-
-Traceback:
-{traceback.format_exc()}
-
+{traceback_info}
 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
 

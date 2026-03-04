@@ -21,15 +21,19 @@ from .oauth_utils import read_token_file, write_token_file  # noqa: F401
 # Suppress MySQL warnings as errors
 warnings.filterwarnings("error", category=MySQLdb.Warning)
 
-# Path resolution
+# Path resolution - use __file__ to get reliable paths independent of how the script is run
+# This module is in imports/lifestream/, so project root is two directories up
+_module_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.normpath(os.path.join(_module_dir, "..", ".."))
+
+# Keep basedir for backward compatibility (some scripts may reference it)
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
-project_root = os.path.normpath(os.path.join(basedir, ".."))
 
 # Configuration - loaded once at import
 config = configparser.ConfigParser()
 _config_paths = [
-    os.path.join(basedir, "..", "config.ini"),
-    os.path.join(os.getcwd(), "..", "config.ini"),
+    os.path.join(project_root, "config.ini"),
+    os.path.join(os.getcwd(), "config.ini"),
 ]
 for config_path in _config_paths:
     if os.path.exists(config_path):

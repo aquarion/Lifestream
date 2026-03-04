@@ -56,7 +56,7 @@ class FoursquareAPI:
                 data = res.decode("utf-8") if isinstance(res, bytes) else str(res)
                 return json.loads(data)
 
-        r = requests.get(self.url_base % "users/self/checkins", params=self.payload)
+        r = requests.get(url, params=params)
         if self.redis_client:
             # Cache for 1 hour
             self.redis_client.set(key, json.dumps(r.json()), ex=3600)
