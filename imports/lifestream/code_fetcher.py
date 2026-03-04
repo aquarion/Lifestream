@@ -92,7 +92,7 @@ def are_we_working():
     except configparser.Error:
         logger.error("Certfile not defined in config")
         raise WeSayNotToday()
-    
+
     try:
         f = open(certfile, "rb")
         f.close()
@@ -105,7 +105,7 @@ def are_we_working():
     except configparser.Error:
         logger.error("Keyfile not defined in config")
         raise WeSayNotToday()
-    
+
     try:
         f = open(keyfile, "rb")
         f.close()

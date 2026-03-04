@@ -9,7 +9,6 @@ import sys
 import time
 
 # Local
-import lifestream
 from lifestream.db import EntryStore
 
 entry_store = EntryStore()
@@ -43,14 +42,14 @@ for key in inbox.keys():
 
     try:
         subject = msg["Subject"][0:64]
-    except:
+    except Exception:  # TODO: narrow down to TypeError, KeyError
         subject = "No Subject"
 
     try:
         dte = datetime.datetime.fromtimestamp(
             time.mktime(email.utils.parsedate(msg["Date"]))
         )
-    except:
+    except Exception:  # TODO: narrow down to TypeError, ValueError
         continue
 
     iso = dte.strftime("%Y-%m-%d")

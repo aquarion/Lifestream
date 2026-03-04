@@ -8,12 +8,12 @@ from datetime import datetime
 
 import bs4
 
+# Local
+import lifestream
+
 # Libraries
 import requests
 import simplejson
-
-# Local
-import lifestream
 from lifestream.db import EntryStore
 
 entry_store = EntryStore()
@@ -131,10 +131,9 @@ class Lodestone:
         if row:
             icon_id = int(row[0])
         else:
-            logger.warning(
-                "Achivement DB Icon not found for {}".format(achievement_id))
+            logger.warning("Achivement DB Icon not found for {}".format(achievement_id))
             return False
-        
+
         if icon_id == 0:
             logger.warning("Achivement Icon ID is 0 for {}".format(achievement_id))
 
@@ -159,8 +158,7 @@ class Lodestone:
         achievements = []
         for entry in entries:
             achievement = {}
-            achievement["Name"] = self.pull_value(
-                map["ENTRY"]["NAME"], entry)[1]
+            achievement["Name"] = self.pull_value(map["ENTRY"]["NAME"], entry)[1]
             achievement["ID"] = self.pull_value(map["ENTRY"]["ID"], entry)
             achievement["Icon"] = self.icon_path(
                 self.pull_value(map["ENTRY"]["ID"], entry)
@@ -187,8 +185,7 @@ def update_achievements(char_id):
             )
         )
 
-        message = "FFXIV: {} &ndash; {}".format(
-            character_name, achievement["Name"])
+        message = "FFXIV: {} &ndash; {}".format(character_name, achievement["Name"])
 
         url = "https://eu.finalfantasyxiv.com/lodestone/character/{}/achievement/detail/{}/".format(
             char_id, achievement["ID"]

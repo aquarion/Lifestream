@@ -8,10 +8,9 @@ import sys
 from datetime import datetime
 from pprint import pprint
 
-from InstagramAPI import InstagramAPI
-
 # Local
 import lifestream
+from InstagramAPI import InstagramAPI
 from lifestream.db import EntryStore
 
 entry_store = EntryStore()
@@ -29,7 +28,7 @@ api = InstagramAPI(
     lifestream.config.get("instagram", "username"),
     lifestream.config.get("instagram", "password"),
 )
-if api.login():
+if api.login():  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
     if args.all:
         feed = api.getTotalSelfUserFeed()  # get self user feed
     else:
@@ -39,7 +38,7 @@ if api.login():
         logger.error("Failed to get feed")
         sys.exit(5)
 
-    if feed == True:
+    if feed is True:
         feed = api.LastJson["items"]
 
     for item in feed:
@@ -61,8 +60,7 @@ if api.login():
             else:
                 raise Exception("No image thumbnail found")
 
-            logger.info("{}: {}".format(
-                timestamp, caption.encode("ascii", "ignore")))
+            logger.info("{}: {}".format(timestamp, caption.encode("ascii", "ignore")))
 
             entry_store.add_entry(
                 "photo",

@@ -5,15 +5,15 @@ import pickle as pickle
 import urllib.parse
 
 import dateutil.parser
-import oauth2 as oauth
-import pytz
-
-# Libraries
-from pytumblr import TumblrRestClient
 
 # Local
 import lifestream
+import oauth2 as oauth
+import pytz
 from lifestream.db import EntryStore
+
+# Libraries
+from pytumblr import TumblrRestClient
 
 logger = logging.getLogger("Tumblr")
 lifestream.arguments.add_argument(
@@ -51,7 +51,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         f = open(OAUTH_TUMBLR, "rb")
         oauth_token = pickle.load(f)
         f.close()
-    except:
+    except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
         print("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 
@@ -64,8 +64,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         request_token = dict(urllib.parse.parse_qsl(content))
         print("Go to the following link in your browser:")
-        print("%s?oauth_token=%s" %
-              (authorize_url, request_token["oauth_token"]))
+        print("%s?oauth_token=%s" % (authorize_url, request_token["oauth_token"]))
         print()
 
         accepted = "n"
@@ -104,15 +103,14 @@ tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 blogs = lifestream.config.get("tumblr", "blogs").split(",")
 
 
-for blog in blogs:
+for blog in blogs:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
     logger.info(blog)
     logger.info("----")
     details = tumblr.posts(blog)
     startat = 0.0
 
     if "errors" in details:
-        logger.error("Error in tumbling {}:  {} ".format(
-            blog, details["meta"]["msg"]))
+        logger.error("Error in tumbling {}:  {} ".format(blog, details["meta"]["msg"]))
         continue
 
     if FULL_IMPORT:

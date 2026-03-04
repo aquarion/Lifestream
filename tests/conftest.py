@@ -3,7 +3,7 @@
 import configparser
 import os
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -22,34 +22,36 @@ os.chdir(imports_dir)
 def mock_config():
     """Create a mock config object with common test values."""
     config = configparser.ConfigParser()
-    config.read_dict({
-        "database": {
-            "hostname": "localhost",
-            "database": "test_db",
-            "username": "test_user",
-            "password": "test_pass",
-        },
-        "redis": {
-            "host": "localhost",
-            "port": "6379",
-        },
-        "notifications": {
-            "enabled": "true",
-            "smtp_host": "smtp.test.com",
-            "smtp_port": "587",
-            "from_address": "test@test.com",
-            "to_address": "user@test.com",
-            "slack_channel": "test-channel",
-        },
-        "slack": {
-            "token": "test-token",
-            "slack_botname": "TestBot",
-        },
-        "global": {
-            "secrets_dir": "keys/",
-            "log_location": "/tmp/",
-        },
-    })
+    config.read_dict(
+        {
+            "database": {
+                "hostname": "localhost",
+                "database": "test_db",
+                "username": "test_user",
+                "password": "test_pass",
+            },
+            "redis": {
+                "host": "localhost",
+                "port": "6379",
+            },
+            "notifications": {
+                "enabled": "true",
+                "smtp_host": "smtp.test.com",
+                "smtp_port": "587",
+                "from_address": "test@test.com",
+                "to_address": "user@test.com",
+                "slack_channel": "test-channel",
+            },
+            "slack": {
+                "token": "test-token",
+                "slack_botname": "TestBot",
+            },
+            "global": {
+                "secrets_dir": "keys/",
+                "log_location": "/tmp/",
+            },
+        }
+    )
     return config
 
 
