@@ -89,6 +89,11 @@ def get_url():
 def are_we_working():
     try:
         certfile = config.get("CodeFetcher9000", "certfile")
+    except configparser.Error:
+        logger.error("Certfile not defined in config")
+        raise WeSayNotToday()
+
+    try:
         f = open(certfile, "rb")
         f.close()
     except IOError:
@@ -100,6 +105,11 @@ def are_we_working():
 
     try:
         keyfile = config.get("CodeFetcher9000", "keyfile")
+    except configparser.Error:
+        logger.error("Keyfile not defined in config")
+        raise WeSayNotToday()
+
+    try:
         f = open(keyfile, "rb")
         f.close()
     except IOError:

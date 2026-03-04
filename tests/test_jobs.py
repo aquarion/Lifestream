@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from lifestream.core import jobs
+from lifestream import jobs
 
 
 class TestRunImport:
