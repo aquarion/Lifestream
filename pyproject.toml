@@ -65,7 +65,6 @@ pysocks = "^1.7.1"
 python-dateutil = "^2.9.0.post0"
 python-gflags = "^3.1.2"
 python-magic = "^0.4.27"
-python-memcached = "^1.62"
 python-twitter = "^3.5"
 #python-wordpress-xmlrpc @ https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip
 # python-wordpress-xmlrpc = {url = "https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip"}

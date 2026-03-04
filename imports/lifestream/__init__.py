@@ -20,7 +20,6 @@ import pytz
 import requests
 import simplejson
 import simplejson as json
-from memcache import SERVER_MAX_KEY_LENGTH, SERVER_MAX_VALUE_LENGTH, Client
 
 # Libraries
 from .oauth_utils import read_token_file, write_token_file
