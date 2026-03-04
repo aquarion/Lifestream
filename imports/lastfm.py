@@ -1,4 +1,6 @@
 #!/usr/bin/python
+"""Last.fm scrobble importer for Lifestream."""
+
 # Python
 import hashlib
 import logging
@@ -12,46 +14,50 @@ import pytz
 import lifestream
 from lifestream.db import EntryStore
 
-# Libraries
-
-
 logger = logging.getLogger("Last.FM")
-args = lifestream.parse_args()
 
 
-try:
-    id = lifestream.config.get("lastfm", "username")
-except:
-    id = False
+def main():
+    """Import recent Last.fm scrobbles."""
+    args = lifestream.parse_args()
 
-if not id:
-    logger.error("No Last.fm user found in config file")
-    sys.exit(5)
+    try:
+        username = lifestream.config.get("lastfm", "username")
+    except Exception:
+        username = None
 
-entry_store = EntryStore()
+    if not username:
+        logger.error("No Last.fm user found in config file")
+        sys.exit(5)
 
-url = "https://xiffy.nl/lastfmrss.php?user=%s" % id
-logging.info("Grabbing %s" % url)
-fp = feedparser.parse(url)
-type = "lastfm"
+    entry_store = EntryStore()
 
-for i in range(1, len(fp["entries"])):
-    o_item = fp["entries"][i]
+    url = f"https://xiffy.nl/lastfmrss.php?user={username}"
+    logger.info("Grabbing %s", url)
+    fp = feedparser.parse(url)
+    item_type = "lastfm"
 
-    id = hashlib.md5()
-    id.update(o_item["guid"].encode("utf-8"))
+    for i in range(1, len(fp["entries"])):
+        o_item = fp["entries"][i]
 
-    title = o_item.title  # .encode("utf_8")
-    localdate = dateutil.parser.parse(o_item.updated)
-    updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-    del o_item["published_parsed"]
-    logger.info(title)
-    entry_store.add_entry(
-        type,
-        id.hexdigest(),
-        title,
-        "lastfm",
-        updated,
-        url=o_item["link"],
-        fulldata_json=o_item,
-    )
+        item_id = hashlib.md5()
+        item_id.update(o_item["guid"].encode("utf-8"))
+
+        title = o_item.title
+        localdate = dateutil.parser.parse(o_item.updated)
+        updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
+        del o_item["published_parsed"]
+        logger.info(title)
+        entry_store.add_entry(
+            item_type,
+            item_id.hexdigest(),
+            title,
+            "lastfm",
+            updated,
+            url=o_item["link"],
+            fulldata_json=o_item,
+        )
+
+
+if __name__ == "__main__":
+    main()

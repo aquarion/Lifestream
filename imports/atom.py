@@ -1,4 +1,5 @@
 #!/usr/bin/python
+"""Generic Atom/RSS feed importer for Lifestream."""
 
 # Python
 import logging
@@ -14,28 +15,36 @@ from lifestream.db import EntryStore
 
 logger = logging.getLogger("Atom")
 
+# Add custom arguments before calling parse_args
 lifestream.arguments.add_argument("type")
 lifestream.arguments.add_argument("url")
 
-args = lifestream.parse_args()
 
-entry_store = EntryStore()
+def main():
+    """Import entries from an Atom/RSS feed."""
+    args = lifestream.parse_args()
 
-logger.info("Grabbing %s" % args.url)
-fp = feedparser.parse(args.url)
+    entry_store = EntryStore()
 
-for i in range(len(fp["entries"])):
-    o_item = fp["entries"][i]
-    id = o_item["guid"]
-    dt = datetime.fromtimestamp(mktime(o_item["updated_parsed"]))
-    updated = dt.strftime("%Y-%m-%d %H:%M")
-    logger.info("Adding new %s item: %s" % (args.type, o_item["title"]))
+    logger.info("Grabbing %s", args.url)
+    fp = feedparser.parse(args.url)
 
-    entry_store.add_entry(
-        type=args.type,
-        id=id,
-        title=o_item["title"],
-        source=args.type,
-        date=updated,
-        url=o_item["links"][0]["href"],
-    )
+    for i in range(len(fp["entries"])):
+        o_item = fp["entries"][i]
+        item_id = o_item["guid"]
+        dt = datetime.fromtimestamp(mktime(o_item["updated_parsed"]))
+        updated = dt.strftime("%Y-%m-%d %H:%M")
+        logger.info("Adding new %s item: %s", args.type, o_item["title"])
+
+        entry_store.add_entry(
+            type=args.type,
+            id=item_id,
+            title=o_item["title"],
+            source=args.type,
+            date=updated,
+            url=o_item["links"][0]["href"],
+        )
+
+
+if __name__ == "__main__":
+    main()
