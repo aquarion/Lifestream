@@ -16,8 +16,6 @@ Usage:
 """
 
 import argparse
-import configparser
-import importlib
 import logging
 import os
 import signal
@@ -51,7 +49,7 @@ os.chdir(imports_dir)  # Change to imports/ so lifestream finds config correctly
 sys.path.insert(0, imports_dir)
 
 import lifestream
-from lifestream.cache import get_redis_connection
+from lifestream.jobs import run_import, run_shell_command
 
 logger = logging.getLogger("Scheduler")
 
@@ -97,65 +95,6 @@ def get_schedules():
         schedules[job_name] = {"cron": cron, **options}
     
     return schedules
-
-
-def run_import(job_name):
-    """
-    Run an import job by importing and executing its main() function.
-    
-    This mimics what run_import.sh does but in-process.
-    """
-    logger.info(f"Starting job: {job_name}")
-    start_time = datetime.now()
-    
-    try:
-        # Import the module
-        module = importlib.import_module(job_name)
-        
-        # Reload to ensure fresh state
-        importlib.reload(module)
-        
-        # Most import scripts have a main() function, some run at import time
-        if hasattr(module, "main"):
-            module.main()
-        
-        duration = (datetime.now() - start_time).total_seconds()
-        logger.info(f"Completed job: {job_name} in {duration:.1f}s")
-        
-    except Exception as e:
-        duration = (datetime.now() - start_time).total_seconds()
-        logger.error(f"Job {job_name} failed after {duration:.1f}s: {e}")
-        raise
-
-
-def run_shell_command(job_name, command):
-    """Run a shell command (for special jobs like ffxiv_update_achievements)."""
-    import subprocess
-    
-    logger.info(f"Starting shell job: {job_name}")
-    start_time = datetime.now()
-    
-    try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            cwd=basedir,
-            capture_output=True,
-            text=True,
-        )
-        
-        duration = (datetime.now() - start_time).total_seconds()
-        
-        if result.returncode != 0:
-            logger.error(f"Shell job {job_name} failed: {result.stderr}")
-            raise RuntimeError(f"Command failed with exit code {result.returncode}")
-        
-        logger.info(f"Completed shell job: {job_name} in {duration:.1f}s")
-        
-    except Exception as e:
-        duration = (datetime.now() - start_time).total_seconds()
-        logger.error(f"Shell job {job_name} failed after {duration:.1f}s: {e}")
-        raise
 
 
 def create_scheduler():
