@@ -17,7 +17,6 @@ Usage:
 
 import argparse
 import logging
-import os
 import signal
 import sys
 from datetime import datetime
@@ -42,14 +41,9 @@ from apscheduler.jobstores.redis import RedisJobStore  # noqa: E402
 from apscheduler.schedulers.blocking import BlockingScheduler  # noqa: E402
 from apscheduler.triggers.cron import CronTrigger  # noqa: E402
 
-# Set up path for imports - lifestream expects to run from imports/ directory
-basedir = os.path.dirname(os.path.abspath(__file__))
-imports_dir = os.path.join(basedir, "imports")
-os.chdir(imports_dir)  # Change to imports/ so lifestream finds config correctly
-sys.path.insert(0, imports_dir)
-
-import lifestream  # noqa: E402
-from lifestream.jobs import run_import, run_shell_command  # noqa: E402
+# Import from the new package structure
+from lifestream.core import config  # noqa: E402
+from lifestream.core.jobs import run_import, run_shell_command  # noqa: E402
 
 logger = logging.getLogger("Scheduler")
 
@@ -64,11 +58,11 @@ def get_schedules():
     """Read schedules from config.ini [schedules] section."""
     schedules = {}
 
-    if not lifestream.config.has_section("schedules"):
+    if not config.has_section("schedules"):
         logger.warning("No [schedules] section found in config.ini")
         return schedules
 
-    for job_name, cron_expr in lifestream.config.items("schedules"):
+    for job_name, cron_expr in config.items("schedules"):
         # Skip disabled jobs (commented with ; or #, or empty value)
         if not cron_expr or cron_expr.startswith(";") or cron_expr.startswith("#"):
             continue
@@ -100,10 +94,10 @@ def get_schedules():
 def create_scheduler():
     """Create and configure the APScheduler instance."""
     # Get Redis connection settings from config
-    redis_host = lifestream.config.get("redis", "host", fallback="localhost")
-    redis_port = int(lifestream.config.get("redis", "port", fallback=6379))
-    redis_username = lifestream.config.get("redis", "username", fallback=None)
-    redis_password = lifestream.config.get("redis", "password", fallback=None)
+    redis_host = config.get("redis", "host", fallback="localhost")
+    redis_port = int(config.get("redis", "port", fallback=6379))
+    redis_username = config.get("redis", "username", fallback=None)
+    redis_password = config.get("redis", "password", fallback=None)
 
     jobstores = {
         "default": RedisJobStore(
@@ -140,8 +134,8 @@ def add_jobs(scheduler):
     """Add all configured jobs to the scheduler."""
     schedules = get_schedules()
 
-    for job_name, config in schedules.items():
-        cron = config["cron"]
+    for job_name, job_config in schedules.items():
+        cron = job_config["cron"]
 
         try:
             trigger = CronTrigger.from_crontab(cron)
@@ -159,8 +153,8 @@ def add_jobs(scheduler):
                 args=[actual_name, command],
                 id=actual_name,
                 name=actual_name,
-                misfire_grace_time=config["misfire_grace_time"],
-                coalesce=config["coalesce"],
+                misfire_grace_time=job_config["misfire_grace_time"],
+                coalesce=job_config["coalesce"],
                 replace_existing=True,
             )
         else:
@@ -170,8 +164,8 @@ def add_jobs(scheduler):
                 args=[job_name],
                 id=job_name,
                 name=job_name,
-                misfire_grace_time=config["misfire_grace_time"],
-                coalesce=config["coalesce"],
+                misfire_grace_time=job_config["misfire_grace_time"],
+                coalesce=job_config["coalesce"],
                 replace_existing=True,
             )
 
@@ -191,9 +185,9 @@ def list_jobs():
     print(f"{'Job Name':<25} {'Schedule':<20} {'Grace(s)':<10} {'Coalesce'}")
     print("-" * 70)
 
-    for job_name, config in sorted(schedules.items()):
+    for job_name, job_config in sorted(schedules.items()):
         print(
-            f"{job_name:<25} {config['cron']:<20} {config['misfire_grace_time']:<10} {config['coalesce']}"
+            f"{job_name:<25} {job_config['cron']:<20} {job_config['misfire_grace_time']:<10} {job_config['coalesce']}"
         )
 
 
