@@ -1,9 +1,9 @@
 """Database functionality for Lifestream."""
 
+import sys
 from datetime import datetime
 
 import pymysql as MySQLdb
-import pymysql.cursors
 import pytz
 import simplejson
 
@@ -41,8 +41,17 @@ class EntryStore:
     def __init__(self):
         self._dbcxn = None
         self._cursor = None
+        # Check for --no-db from parsed args, or fallback to checking sys.argv
+        # This handles cases where EntryStore is instantiated before parse_args()
         parsed_args = get_parsed_args()
-        self.no_db = parsed_args.no_db if parsed_args else False
+        self.no_db = (
+            parsed_args.no_db if parsed_args else ("--no-db" in sys.argv)
+        )
+
+    @property
+    def config(self):
+        """Provide access to the shared lifestream config."""
+        return config
 
     @property
     def dbcxn(self):
@@ -66,7 +75,7 @@ class EntryStore:
         """Get an entry by type and system ID."""
         if self.no_db:
             return None
-        cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
+        cursor = self.dbcxn.cursor(MySQLdb.cursors.DictCursor)
         sql = "select * from lifestream where type = %s and systemid = %s"
         cursor.execute(sql, (type, entry_id))
         return cursor.fetchone()
@@ -75,7 +84,7 @@ class EntryStore:
         """Get an entry by type and title."""
         if self.no_db:
             return None
-        cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
+        cursor = self.dbcxn.cursor(MySQLdb.cursors.DictCursor)
         sql = "select * from lifestream where type = %s and title = %s"
         cursor.execute(sql, (type, title))
         return cursor.fetchone()
