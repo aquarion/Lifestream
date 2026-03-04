@@ -11,8 +11,6 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
-from lifestream import code_fetcher as CodeFetcher9000
-
 # Libraries
 import pymysql
 import requests
@@ -20,9 +18,6 @@ from dateutil import parser as dtparser
 
 # Local
 import lifestream
-import pymysql
-import requests
-from dateutil import parser as dtparser
 from lifestream import code_fetcher as CodeFetcher9000
 from lifestream.cache import check_and_set_backoff
 from lifestream.db import EntryStore
@@ -281,8 +276,7 @@ while True:
         pprint(posts)
         raise Exception("Err...")
 
-    [some_action(post=post, profile=profile)
-     for post in posts["data"]]
+    [some_action(post=post, profile=profile) for post in posts["data"]]
 
     logger.info("Page %d of %d" % (page, args.pages))
     if not INFINITE and page >= args.pages:

@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, call, patch
 
-from lifestream.core import db
+from lifestream import db
 
 
 class TestGetConnection:
@@ -50,8 +50,10 @@ class TestEntryStore:
 
     def test_no_db_mode_prints_instead_of_writing(self, capsys):
         """Test that --no-db mode prints instead of database operations."""
-        db.set_no_db_mode(True)
-        try:
+        mock_args = MagicMock()
+        mock_args.no_db = True
+
+        with patch.object(db, "get_parsed_args", return_value=mock_args):
             store = db.EntryStore()
             store.add_entry(
                 type="test",
@@ -69,7 +71,8 @@ class TestEntryStore:
 
     def test_get_by_id_returns_entry(self):
         """Test get_by_id returns an entry when found."""
-        db.set_no_db_mode(False)
+        mock_args = MagicMock()
+        mock_args.no_db = False
 
         mock_cursor = MagicMock()
         mock_cursor.fetchone.return_value = {"id": 1, "type": "test", "systemid": "123"}
@@ -77,15 +80,17 @@ class TestEntryStore:
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
 
-        with patch.object(db, "get_connection", return_value=mock_conn):
-            store = db.EntryStore()
-            result = store.get_by_id("test", "123")
+        with patch.object(db, "get_parsed_args", return_value=mock_args):
+            with patch.object(db, "get_connection", return_value=mock_conn):
+                store = db.EntryStore()
+                result = store.get_by_id("test", "123")
 
-            assert result == {"id": 1, "type": "test", "systemid": "123"}
+                assert result == {"id": 1, "type": "test", "systemid": "123"}
 
     def test_get_by_id_returns_none_when_not_found(self):
         """Test get_by_id returns None when entry not found."""
-        db.set_no_db_mode(False)
+        mock_args = MagicMock()
+        mock_args.no_db = False
 
         mock_cursor = MagicMock()
         mock_cursor.fetchone.return_value = None
@@ -93,48 +98,55 @@ class TestEntryStore:
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
 
-        with patch.object(db, "get_connection", return_value=mock_conn):
-            store = db.EntryStore()
-            result = store.get_by_id("test", "nonexistent")
+        with patch.object(db, "get_parsed_args", return_value=mock_args):
+            with patch.object(db, "get_connection", return_value=mock_conn):
+                store = db.EntryStore()
+                result = store.get_by_id("test", "nonexistent")
 
-            assert result is None
+                assert result is None
 
     def test_delete_entry_removes_entry(self):
         """Test delete_entry executes DELETE query."""
-        db.set_no_db_mode(False)
+        mock_args = MagicMock()
+        mock_args.no_db = False
 
         mock_cursor = MagicMock()
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
 
-        with patch.object(db, "get_connection", return_value=mock_conn):
-            with patch.object(db, "get_cursor", return_value=mock_cursor):
-                store = db.EntryStore()
-                store.delete_entry("test", "123")
+        with patch.object(db, "get_parsed_args", return_value=mock_args):
+            with patch.object(db, "get_connection", return_value=mock_conn):
+                with patch.object(db, "get_cursor", return_value=mock_cursor):
+                    store = db.EntryStore()
+                    store.delete_entry("test", "123")
 
-                mock_cursor.execute.assert_called()
-                mock_conn.commit.assert_called()
+                    mock_cursor.execute.assert_called()
+                    mock_conn.commit.assert_called()
 
     def test_add_stat_replaces_stat(self):
         """Test add_stat uses REPLACE INTO."""
-        db.set_no_db_mode(False)
+        mock_args = MagicMock()
+        mock_args.no_db = False
 
         mock_cursor = MagicMock()
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
 
-        with patch.object(db, "get_connection", return_value=mock_conn):
-            with patch.object(db, "get_cursor", return_value=mock_cursor):
-                store = db.EntryStore()
-                result = store.add_stat("2024-01-01", "test_stat", 42)
+        with patch.object(db, "get_parsed_args", return_value=mock_args):
+            with patch.object(db, "get_connection", return_value=mock_conn):
+                with patch.object(db, "get_cursor", return_value=mock_cursor):
+                    store = db.EntryStore()
+                    result = store.add_stat("2024-01-01", "test_stat", 42)
 
-                assert result is True
-                mock_conn.commit.assert_called()
+                    assert result is True
+                    mock_conn.commit.assert_called()
 
     def test_no_db_add_stat_prints(self, capsys):
         """Test add_stat in no-db mode prints instead of writing."""
-        db.set_no_db_mode(True)
-        try:
+        mock_args = MagicMock()
+        mock_args.no_db = True
+
+        with patch.object(db, "get_parsed_args", return_value=mock_args):
             store = db.EntryStore()
             result = store.add_stat("2024-01-01", "test_stat", 42)
 

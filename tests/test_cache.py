@@ -5,7 +5,7 @@ import pickle
 import time
 from unittest.mock import MagicMock, patch
 
-from lifestream.core import cache
+from lifestream import cache
 
 
 class TestRedisConnection:
