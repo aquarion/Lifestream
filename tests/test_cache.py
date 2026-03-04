@@ -1,11 +1,11 @@
-"""Tests for lifestream.cache module."""
+"""Tests for lifestream.core.cache module."""
 
 import os
 import pickle
 import time
 from unittest.mock import MagicMock, patch
 
-from lifestream import cache
+from lifestream.core import cache
 
 
 class TestRedisConnection:

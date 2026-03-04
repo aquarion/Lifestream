@@ -1,8 +1,8 @@
-"""Tests for lifestream.notifications module."""
+"""Tests for lifestream.core.notifications module."""
 
 from unittest.mock import MagicMock, patch
 
-from lifestream import notifications
+from lifestream.core import notifications
 
 
 class TestNotificationsEnabled:
@@ -13,7 +13,7 @@ class TestNotificationsEnabled:
         mock_config = MagicMock()
         mock_config.has_section.return_value = False
 
-        with patch.object(notifications, "_get_config", return_value=mock_config):
+        with patch.object(notifications, "config", mock_config):
             assert notifications._is_notifications_enabled() is False
 
     def test_notifications_disabled_when_enabled_false(self):
@@ -22,7 +22,7 @@ class TestNotificationsEnabled:
         mock_config.has_section.return_value = True
         mock_config.getboolean.return_value = False
 
-        with patch.object(notifications, "_get_config", return_value=mock_config):
+        with patch.object(notifications, "config", mock_config):
             assert notifications._is_notifications_enabled() is False
 
     def test_notifications_enabled_when_configured(self):
@@ -31,7 +31,7 @@ class TestNotificationsEnabled:
         mock_config.has_section.return_value = True
         mock_config.getboolean.return_value = True
 
-        with patch.object(notifications, "_get_config", return_value=mock_config):
+        with patch.object(notifications, "config", mock_config):
             assert notifications._is_notifications_enabled() is True
 
 
@@ -54,8 +54,8 @@ class TestSendFailureEmail:
             ("notifications", "smtp_host"): "smtp.test.com",
             ("notifications", "from_address"): "from@test.com",
             ("notifications", "to_address"): "to@test.com",
-            ("notifications", "smtp_user"): None,
-            ("notifications", "smtp_password"): None,
+            ("notifications", "smtp_user"): kw.get("fallback"),
+            ("notifications", "smtp_password"): kw.get("fallback"),
         }.get((s, k), kw.get("fallback"))
         mock_config.getint.return_value = 587
         mock_config.getboolean.return_value = True
@@ -65,7 +65,7 @@ class TestSendFailureEmail:
         with patch.object(
             notifications, "_is_notifications_enabled", return_value=True
         ):
-            with patch.object(notifications, "_get_config", return_value=mock_config):
+            with patch.object(notifications, "config", mock_config):
                 with patch.object(
                     notifications.smtplib, "SMTP", return_value=mock_smtp_instance
                 ):
@@ -105,7 +105,7 @@ class TestSendFailureSlack:
         with patch.object(
             notifications, "_is_notifications_enabled", return_value=True
         ):
-            with patch.object(notifications, "_get_config", return_value=mock_config):
+            with patch.object(notifications, "config", mock_config):
                 with patch.object(
                     notifications.requests, "post", return_value=mock_response
                 ) as mock_post:

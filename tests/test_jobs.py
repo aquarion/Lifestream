@@ -1,9 +1,9 @@
-"""Tests for lifestream.jobs module."""
+"""Tests for lifestream.core.jobs module."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
-from lifestream import jobs
+from lifestream.core import jobs
 
 
 class TestRunImport:
