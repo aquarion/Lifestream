@@ -4,11 +4,12 @@ import hashlib
 import logging
 import os
 
+import redis
 import requests
 import simplejson as json
-from memcache import Client
 
 from . import config
+from .cache import get_redis_connection
 from .oauth_utils import read_token_file
 
 logger = logging.getLogger(__name__)
@@ -20,20 +21,16 @@ class FoursquareAPI:
 
     payload: dict[str, str] = {}
 
-    mc: Client | None = None
-    mcprefix: str | None = None
+    redis_client: redis.Redis | None = None
+    cache_prefix: str = "lifestream:foursquare:"
 
     def __init__(self, lifestream=None):
         OAUTH_FILENAME = config.get("foursquare", "secrets_file")
         CONSUMER_KEY = config.get("foursquare", "client_id")
         CONSUMER_SECRET = config.get("foursquare", "secret")
 
-        MEMCACHE_HOST = config.get("memcache", "host")
-        MEMCACHE_PORT = config.get("memcache", "port")
-        self.mcprefix = config.get("memcache", "prefix")
-
-        servers = ["%s:%s" % (MEMCACHE_HOST, MEMCACHE_PORT)]
-        self.mc = Client(servers, debug=1)
+        self.redis_client = get_redis_connection()
+        self.cache_prefix = config.get("redis", "prefix", fallback="lifestream:") + "foursquare:"
 
         if not os.path.exists(OAUTH_FILENAME):
             logger.error("No OAUTH found at %s" % OAUTH_FILENAME)
@@ -49,16 +46,19 @@ class FoursquareAPI:
         m = hashlib.sha224()
         m.update(url.encode("utf-8"))
         m.update(str(params).encode("utf-8"))
-        key = m.hexdigest()
+        key = self.cache_prefix + m.hexdigest()
 
-        if self.mc:
-            res = self.mc.get(key)
-            if res and isinstance(res, (str, bytes)):
-                return json.loads(res)
+        if self.redis_client:
+            res = self.redis_client.get(key)
+            if res:
+                # Redis returns bytes, decode to string for json.loads
+                data = res.decode("utf-8") if isinstance(res, bytes) else str(res)
+                return json.loads(data)
 
         r = requests.get(self.url_base % "users/self/checkins", params=self.payload)
-        if self.mc:
-            self.mc.set(key, json.dumps(r.json()))
+        if self.redis_client:
+            # Cache for 1 hour
+            self.redis_client.set(key, json.dumps(r.json()), ex=3600)
         return r.json()
 
     def my_checkins(self):
