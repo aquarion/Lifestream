@@ -1,18 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Python
-import configparser 
+import configparser
 import logging
-import sys
-
-# Libraries
-from wordpress_xmlrpc import Client
-from wordpress_xmlrpc.methods.posts import GetPosts
-from wordpress_xmlrpc import exceptions as wordpress_exceptions
 
 # Local
 import lifestream
 from lifestream.db import EntryStore
+
+# Libraries
+from wordpress_xmlrpc import Client
+from wordpress_xmlrpc import exceptions as wordpress_exceptions
+from wordpress_xmlrpc.methods.posts import GetPosts
 
 lifestream.arguments.add_argument(
     "site", type=str, help="Site, as defined in config.ini", nargs="*"
@@ -42,7 +41,7 @@ entry_store = EntryStore()
 logger = logging.getLogger("Wordpress")
 
 
-for site in sites:
+for site in sites:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
     source = site
     type = "wordpress"
     logger.info(site)

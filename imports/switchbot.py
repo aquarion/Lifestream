@@ -4,10 +4,9 @@
 import logging
 from datetime import datetime
 
-import requests
-
 # Local
 import lifestream
+import requests
 from lifestream.db import EntryStore
 
 logger = logging.getLogger("switchbot")
@@ -84,8 +83,6 @@ for device in r["body"]["deviceList"]:
         entry_store.add_stat(
             datetime.now(), "{}-temp".format(name), data["temperature"]
         )
-        entry_store.add_stat(
-            datetime.now(), "{}-humid".format(name), data["humidity"]
-        )
+        entry_store.add_stat(datetime.now(), "{}-humid".format(name), data["humidity"])
 #
 #    entry_store.add_stat(date, STATISTIC, dates[date]['total'])

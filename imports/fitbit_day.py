@@ -8,11 +8,11 @@ from datetime import datetime, timedelta
 
 import fitbit
 
-# Libraries
-from fitbit.api import FitbitOauthClient
-
 # Local
 import lifestream
+
+# Libraries
+from fitbit.api import FitbitOauthClient
 from lifestream.db import EntryStore
 
 entry_store = EntryStore()
@@ -28,15 +28,14 @@ def fitbitAuth(config, OAUTH_SECRETS):
     CLIENT_KEY = config.get("fitbit", "consumer_key")
     CLIENT_SECRET = config.get("fitbit", "secret_key")
 
-    request_token_url = "https://api.fitbit.com/oauth/request_token"
-    access_token_url = "https://api.fitbit.com/oauth/access_token"
-    authorize_url = "https://www.fitbit.com/oauth/authorize"
+    # OAuth URLs for Fitbit API v1
+    # access_token_url = "https://api.fitbit.com/oauth/access_token"
 
     try:
         f = open(OAUTH_SECRETS, "rb")
         token = pickle.load(f)
         f.close()
-    except:
+    except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
         logger.error("Couldn't open %s, reloading..." % OAUTH_SECRETS)
         token = False
 
@@ -107,8 +106,7 @@ for sleep in fbcxn.sleep()["sleep"]:
     entry_store.add_entry(
         type=type, id=id, title=title, source="fitbit", date=date, fulldata_json=sleep
     )
-    entry_store.add_stat(
-        sleep["startTime"], "sleep", sleep["minutesAsleep"])
+    entry_store.add_stat(sleep["startTime"], "sleep", sleep["minutesAsleep"])
 
 for badge in fbcxn.get_badges()["badges"]:
     type = "badge"
@@ -161,5 +159,4 @@ for day in range(0, 7):
                 fulldata_json=score,
                 update=True,
             )
-            entry_store.add_stat(
-                score["dateTime"], "activeScore", score["value"])
+            entry_store.add_stat(score["dateTime"], "activeScore", score["value"])

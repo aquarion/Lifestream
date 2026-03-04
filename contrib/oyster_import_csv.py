@@ -6,7 +6,6 @@ import csv
 import hashlib
 from datetime import datetime
 
-import lifestream
 import pytz
 from lifestream.db import get_connection, get_cursor
 

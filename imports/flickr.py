@@ -10,8 +10,7 @@ import flickrapi
 
 # Local
 import lifestream
-from lifestream.db import EntryStore
-from lifestream.db import get_connection, get_cursor
+from lifestream.db import EntryStore, get_connection, get_cursor
 
 # Remove Flickrapi's log handler
 logging.root.handlers.pop(0)
@@ -27,7 +26,7 @@ SIZE_CODE = "z"
 
 def main():
     """Import photos from Flickr."""
-    args = lifestream.parse_args()
+    lifestream.parse_args()
 
     api_key = lifestream.config.get("flickr", "api_key")
     flickr_id = lifestream.config.get("flickr", "account")

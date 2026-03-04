@@ -16,7 +16,7 @@ Lifestream is a collection of Python scripts that aggregate personal data from v
 git clone https://github.com/aquarion/Lifestream.git
 cd Lifestream
 
-# Install dependencies  
+# Install dependencies
 poetry install
 
 # Configure the application
@@ -93,7 +93,7 @@ imports/              # Import scripts for each service
     db.py             # Database connection and EntryStore
     jobs.py           # Job execution functions
     notifications.py  # Email/Slack notification sending
-    
+
 tests/                # Test suite
 docs/                 # Systemd service, crontab examples
 bin/                  # Shell helper scripts

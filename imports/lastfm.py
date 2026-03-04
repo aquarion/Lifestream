@@ -8,10 +8,10 @@ import sys
 
 import dateutil.parser
 import feedparser
-import pytz
 
 # Local
 import lifestream
+import pytz
 from lifestream.db import EntryStore
 
 logger = logging.getLogger("Last.FM")
@@ -19,7 +19,7 @@ logger = logging.getLogger("Last.FM")
 
 def main():
     """Import recent Last.fm scrobbles."""
-    args = lifestream.parse_args()
+    lifestream.parse_args()
 
     try:
         username = lifestream.config.get("lastfm", "username")

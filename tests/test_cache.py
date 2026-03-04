@@ -5,8 +5,6 @@ import pickle
 import time
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from lifestream import cache
 
 
@@ -17,16 +15,16 @@ class TestRedisConnection:
         """Test that get_redis_connection creates a Redis client."""
         # Reset module state
         cache._redis_connection = None
-        
+
         with patch.object(cache, "redis") as mock_redis_module:
             mock_conn = MagicMock()
             mock_redis_module.Redis.return_value = mock_conn
-            
+
             result = cache.get_redis_connection()
-            
+
             assert result is mock_conn
             mock_redis_module.Redis.assert_called_once()
-        
+
         # Clean up
         cache._redis_connection = None
 
@@ -35,7 +33,7 @@ class TestRedisConnection:
         mock_conn = MagicMock()
         original = cache._redis_connection
         cache._redis_connection = mock_conn
-        
+
         try:
             result = cache.get_redis_connection()
             assert result is mock_conn
@@ -57,7 +55,7 @@ class TestBackoff:
         """Test should_backoff returns True when backoff key exists."""
         mock_redis = MagicMock()
         mock_redis.get.return_value = b"1"
-        
+
         with patch.object(cache, "get_redis_connection", return_value=mock_redis):
             result = cache.should_backoff("test_warning")
             assert result is True
@@ -66,7 +64,7 @@ class TestBackoff:
         """Test should_backoff returns False when no backoff key."""
         mock_redis = MagicMock()
         mock_redis.get.return_value = None
-        
+
         with patch.object(cache, "get_redis_connection", return_value=mock_redis):
             result = cache.should_backoff("test_warning")
             assert result is False
@@ -75,7 +73,7 @@ class TestBackoff:
         """Test check_and_set_backoff sets key if not already set."""
         mock_redis = MagicMock()
         mock_redis.get.return_value = None
-        
+
         with patch.object(cache, "get_redis_connection", return_value=mock_redis):
             result = cache.check_and_set_backoff("test_warning", hours=6)
             assert result is False
@@ -86,7 +84,7 @@ class TestBackoff:
         mock_redis = MagicMock()
         mock_redis.get.return_value = b"1"
         mock_redis.ttl.return_value = 7200
-        
+
         with patch.object(cache, "get_redis_connection", return_value=mock_redis):
             result = cache.check_and_set_backoff("test_warning")
             assert result == 7200
@@ -99,15 +97,16 @@ class TestFileCache:
         """Test that file_cache returns cached data when fresh."""
         cache_id = f"test_cache_{time.time()}"
         cache_path = f"/tmp/{cache_id}"
-        
+
         with open(cache_path, "wb") as f:
             pickle.dump({"cached": True}, f)
-        
+
         try:
+
             @cache.file_cache(cache_id, maxage=3600)
             def expensive_function():
                 return {"computed": True}
-            
+
             result = expensive_function()
             assert result == {"cached": True}
         finally:
@@ -118,18 +117,19 @@ class TestFileCache:
         """Test that file_cache recomputes when cache is expired."""
         cache_id = f"test_expired_{time.time()}"
         cache_path = f"/tmp/{cache_id}"
-        
+
         with open(cache_path, "wb") as f:
             pickle.dump({"cached": True}, f)
-        
+
         old_time = time.time() - 7200
         os.utime(cache_path, (old_time, old_time))
-        
+
         try:
+
             @cache.file_cache(cache_id, maxage=3600)
             def expensive_function():
                 return {"computed": True}
-            
+
             result = expensive_function()
             assert result == {"computed": True}
         finally:
@@ -140,17 +140,18 @@ class TestFileCache:
         """Test that file_cache creates cache file when none exists."""
         cache_id = f"test_new_{time.time()}"
         cache_path = f"/tmp/{cache_id}"
-        
+
         if os.path.exists(cache_path):
             os.unlink(cache_path)
-        
+
         try:
+
             @cache.file_cache(cache_id, maxage=3600)
             def expensive_function():
                 return {"computed": True}
-            
+
             result = expensive_function()
-            
+
             assert result == {"computed": True}
             assert os.path.exists(cache_path)
         finally:

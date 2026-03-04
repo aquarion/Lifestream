@@ -7,13 +7,11 @@ import re
 import sys
 from datetime import datetime, timezone
 
-import requests
-from httplib2 import Http
-
 # Local
 import lifestream
-from lifestream.db import EntryStore
-from lifestream.db import get_connection, get_cursor
+import requests
+from httplib2 import Http
+from lifestream.db import EntryStore, get_connection, get_cursor
 from lifestream.oauth_utils import read_token_file, write_token_file
 
 type = "location"
@@ -50,13 +48,13 @@ CALLBACK_URL = "www.github.com/aquarion/lifestream"
 
 def authenticate(force_reauth=False, auth_code=None):
     """Handle Foursquare OAuth2 authentication."""
-    
+
     # If we have a valid token file and not forcing reauth, use it
     if not force_reauth and os.path.exists(OAUTH_FILENAME):
         oauth_token, _ = read_token_file(OAUTH_FILENAME)
         if oauth_token:
             return oauth_token
-    
+
     # OAuth2 flow
     if not auth_code:
         # Step 1: Direct user to authorize
@@ -69,35 +67,36 @@ def authenticate(force_reauth=False, auth_code=None):
         print()
         print(f"Then run: {sys.argv[0]} --auth-code [CODE_FROM_URL]")
         sys.exit(0)
-    
+
     # Step 2: Exchange code for access token
     token_url = (
         f"https://foursquare.com/oauth2/access_token?"
         f"client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}"
         f"&grant_type=authorization_code&redirect_uri={CALLBACK_URL}&code={auth_code}"
     )
-    
+
     web = Http()
     resp, content = web.request(token_url)
-    
+
     if resp.status != 200:
         print(f"Error getting access token: {resp.status}")
         print(content)
         sys.exit(5)
-    
+
     import json
+
     token_data = json.loads(content)
     access_token = token_data.get("access_token")
-    
+
     if not access_token:
         print("No access_token in response:")
         print(token_data)
         sys.exit(5)
-    
+
     # Save token
     write_token_file(OAUTH_FILENAME, access_token, "")
     print(f"Token saved to {OAUTH_FILENAME}")
-    
+
     return access_token
 
 

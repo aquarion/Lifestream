@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 # Python
 import codecs
 import configparser  # For the exceptions
@@ -9,14 +9,13 @@ import socket
 import sys
 from datetime import datetime, timedelta
 
-from lifestream import code_fetcher as CodeFetcher9000
-
 # Libraries
 import facebook
-import requests
 
 # Local
 import lifestream
+import requests
+from lifestream import code_fetcher as CodeFetcher9000
 from lifestream.db import EntryStore
 
 UTF8Writer = codecs.getwriter("utf8")
@@ -37,8 +36,7 @@ args = lifestream.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/facebook.oauth" % (
-    lifestream.get_secrets_dir())
+OAUTH_FILENAME = "%s/facebook.oauth" % (lifestream.get_secrets_dir())
 APP_KEY = lifestream.config.get("facebook", "appid")
 APP_SECRET = lifestream.config.get("facebook", "secret")
 
@@ -52,8 +50,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     except CodeFetcher9000.WeSayNotToday:
         try:
             redirect_uri = (
-                "{}/facebook/catch.php".format(
-                    lifestream.config.get("dayze", "base")),
+                "{}/facebook/catch.php".format(lifestream.config.get("dayze", "base")),
             )
             UseCodeFetcher = False
         except configparser.Error:
@@ -73,7 +70,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             f = open(OAUTH_FILENAME, "rb")
             oauth_token = pickle.load(f)
             f.close()
-        except:
+        except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
             logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
             oauth_token = False
     else:
@@ -143,8 +140,7 @@ def some_action(post, graph, profile):
 
     if post["privacy"]["value"] == "CUSTOM":
         if not post["privacy"]["allow"]:
-            logger.info(
-                "Ignoring post %s due to an ad-hoc privacy filter" % url)
+            logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
         elif post["privacy"]["allow"] in filters:
             filter_name = filters[post["privacy"]["allow"]]
             # print "... That's the %s filter" % filter_name
@@ -156,8 +152,7 @@ def some_action(post, graph, profile):
                 show = False
         else:
             logger.error(
-                "[ERROR] on %s - List ID %s not known" % (
-                    url, post["privacy"]["allow"])
+                "[ERROR] on %s - List ID %s not known" % (url, post["privacy"]["allow"])
             )
             show = False
 
@@ -199,12 +194,11 @@ def some_action(post, graph, profile):
 
 credentials = authenticate(OAUTH_FILENAME, APP_KEY, APP_SECRET, args.reauth)
 
+delta = credentials["expire_dt"] - datetime.now()
 
 if datetime.now() > credentials["expire_dt"]:
     logger.error("Token has expired! {} days!".format(delta.days))
     print("Token has expired!")
-
-delta = credentials["expire_dt"] - datetime.now()
 
 if delta.days <= 7:
     logger.warning("Token will expire in {} days!".format(delta.days))
@@ -225,8 +219,7 @@ page = 0
 while True:
     page += 1
     sys.stderr.write("Page %s \n" % page)
-    [some_action(post=post, graph=graph, profile=profile)
-     for post in posts["data"]]
+    [some_action(post=post, graph=graph, profile=profile) for post in posts["data"]]
     # if page >= 5:
     # break
     #     pass

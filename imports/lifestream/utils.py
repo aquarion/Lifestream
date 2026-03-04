@@ -24,18 +24,8 @@ def Denary2Binary(n):
 
 def int_to_roman(num):
     """Convert an integer to a Roman numeral."""
-    val = [
-        1000, 900, 500, 400,
-        100, 90, 50, 40,
-        10, 9, 5, 4,
-        1
-    ]
-    syms = [
-        "M", "CM", "D", "CD",
-        "C", "XC", "L", "XL",
-        "X", "IX", "V", "IV",
-        "I"
-    ]
+    val = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+    syms = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
     roman_num = ""
     i = 0
     while num > 0:
@@ -85,7 +75,7 @@ def is_jsonable(x):
     try:
         json.dumps(x)
         return True
-    except:
+    except Exception:  # TODO: narrow down to TypeError, ValueError
         return False
 
 
@@ -108,7 +98,7 @@ def force_json(incoming):
             return str(incoming)
 
 
-def niceTimeDelta(delta_object, format="decimal"):
+def niceTimeDelta(delta_object, format="decimal"):  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
 
     if isinstance(delta_object, (int, float)):
         delta_object = timedelta(seconds=int(delta_object))
