@@ -16,7 +16,7 @@ from logging.handlers import TimedRotatingFileHandler
 import pymysql as MySQLdb
 
 # Libraries - re-exported for backward compatibility
-from .oauth_utils import read_token_file, write_token_file
+from .oauth_utils import read_token_file, write_token_file  # noqa: F401
 
 # Suppress MySQL warnings as errors
 warnings.filterwarnings("error", category=MySQLdb.Warning)
@@ -93,22 +93,22 @@ def get_parsed_args():
 def setup_logging():
     """
     Configure logging for lifestream.
-    
+
     Sets up file and console handlers. Call this once at startup.
     Safe to call multiple times (only configures once).
     """
     global _logging_configured
     if _logging_configured:
         return
-    
+
     LOG_FORMAT = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
     LOG_DIR = get_log_dir()
-    
+
     logging.getLogger("").setLevel(logging.WARNING)
     logging.captureWarnings(True)
-    
+
     formatter = logging.Formatter(LOG_FORMAT)
-    
+
     # File handler - weekly rotation
     filename = os.path.join(LOG_DIR, "lifestream.log")
     logfile = TimedRotatingFileHandler(filename, when="W0", interval=1, utc=True)
@@ -116,12 +116,12 @@ def setup_logging():
     logfile.setLevel(logging.DEBUG)
     logfile.setFormatter(formatter)
     logging.getLogger("").addHandler(logfile)
-    
+
     # Console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     logging.getLogger("").addHandler(console_handler)
-    
+
     # Set levels based on command line args
     if "--debug" in sys.argv:
         console_handler.setLevel(logging.DEBUG)
@@ -132,7 +132,7 @@ def setup_logging():
     else:
         console_handler.setLevel(logging.ERROR)
         warnings.filterwarnings("ignore", category=DeprecationWarning, module="")
-    
+
     _logging_configured = True
 
 
@@ -141,11 +141,11 @@ if not os.environ.get("LIFESTREAM_TESTING"):
     setup_logging()
 
 
-# Import database functionality
-from .db import EntryStore
-
-# Import utility functions for backward compatibility
-from .utils import (
+# Re-exports for backward compatibility
+# TODO: Refactor to avoid late imports - see GitHub issue
+from .db import EntryStore  # noqa: F401, E402
+from .foursquare_api import FoursquareAPI  # noqa: F401, E402
+from .utils import (  # noqa: F401, E402
     AnAttributeError,
     convertNiceTime,
     force_json,
@@ -153,6 +153,3 @@ from .utils import (
     niceTimeDelta,
     yearsago,
 )
-
-# Import API clients for backward compatibility
-from .foursquare_api import FoursquareAPI

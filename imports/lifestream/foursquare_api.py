@@ -26,11 +26,12 @@ class FoursquareAPI:
 
     def __init__(self, lifestream=None):
         OAUTH_FILENAME = config.get("foursquare", "secrets_file")
-        CONSUMER_KEY = config.get("foursquare", "client_id")
-        CONSUMER_SECRET = config.get("foursquare", "secret")
+        # CONSUMER_KEY and CONSUMER_SECRET stored in config but auth uses tokens
 
         self.redis_client = get_redis_connection()
-        self.cache_prefix = config.get("redis", "prefix", fallback="lifestream:") + "foursquare:"
+        self.cache_prefix = (
+            config.get("redis", "prefix", fallback="lifestream:") + "foursquare:"
+        )
 
         if not os.path.exists(OAUTH_FILENAME):
             logger.error("No OAUTH found at %s" % OAUTH_FILENAME)
