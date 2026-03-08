@@ -106,9 +106,18 @@ flake8 = "^7.3.0"
 
 
 [tool.poetry]
+packages = [{ include = "lifestream", from = "src" }]
 
-package-mode = false
-
+[tool.poetry.scripts]
+lifestream-import = "lifestream.cli:main"
+lifestream-lastfm = "lifestream.importers.lastfm:main"
+lifestream-atom = "lifestream.importers.atom:main"
+lifestream-github = "lifestream.importers.github_commits:main"
+lifestream-flickr = "lifestream.importers.flickr:main"
+lifestream-mastodon = "lifestream.importers.mastodon_toots:main"
+lifestream-steam = "lifestream.importers.steam:main"
+lifestream-switchbot = "lifestream.importers.switchbot:main"
+lifestream-wordpress = "lifestream.importers.wordpress:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

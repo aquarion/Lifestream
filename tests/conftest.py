@@ -2,7 +2,6 @@
 
 import configparser
 import os
-import sys
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,12 +9,9 @@ import pytest
 # Set testing mode BEFORE any lifestream imports to skip auto-logging setup
 os.environ["LIFESTREAM_TESTING"] = "1"
 
-# Set up imports directory in path BEFORE any lifestream imports
-imports_dir = os.path.join(os.path.dirname(__file__), "..", "imports")
-sys.path.insert(0, imports_dir)
-
-# Change to imports directory so lifestream can find config
-os.chdir(imports_dir)
+# NOTE: The new lifestream package should be installed via poetry
+# Tests import from lifestream.core which is in src/lifestream/core/
+# DO NOT add imports/ to sys.path as it conflicts with the new package
 
 
 @pytest.fixture
