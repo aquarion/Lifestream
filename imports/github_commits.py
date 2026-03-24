@@ -55,7 +55,7 @@ for repo in repos:
         if commit["author"] is None:
             author = repo["owner"]["login"]
         else:
-            author = commit["author"]["login"]
+            author = commit["committer"]["login"]
 
         if not USERNAME.lower() == author.lower():
             logger.debug("%s - Skipped" % commit["commit"]["message"])
