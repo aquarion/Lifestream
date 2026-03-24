@@ -5,10 +5,10 @@ import configparser
 import logging
 import sys
 
-import mastodon as mastodonpy
-
 # Local
 import lifestream
+import mastodon as mastodonpy
+from lifestream.db import EntryStore
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False
@@ -31,7 +31,7 @@ lifestream.arguments.add_argument(
     required=False,
 )
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 if args.site:
     sites = args.site
@@ -41,21 +41,18 @@ else:
         if section[0:9] == "mastodon:":
             sites.append(section[9:])
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Mastodon")
 
-for site in sites:
+for site in sites:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
     source = site
     type = "mastodon"
     try:
         base_url = lifestream.config.get("mastodon:%s" % source, "base_url")
-        client_key = lifestream.config.get(
-            "mastodon:%s" % source, "client_key")
-        client_secret = lifestream.config.get(
-            "mastodon:%s" % source, "client_secret")
-        access_token = lifestream.config.get(
-            "mastodon:%s" % source, "access_token")
+        client_key = lifestream.config.get("mastodon:%s" % source, "client_key")
+        client_secret = lifestream.config.get("mastodon:%s" % source, "client_secret")
+        access_token = lifestream.config.get("mastodon:%s" % source, "access_token")
     except configparser.NoSectionError:
         logger.error("No [mastodon:%s] section found in config" % source)
         sys.exit(5)
@@ -101,7 +98,7 @@ for site in sites:
             else:
                 thumbnail = ""
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 id=toot["id"],
                 title=title,
                 source=source,

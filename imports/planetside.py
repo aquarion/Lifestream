@@ -3,22 +3,23 @@
 import configparser
 import hashlib
 import logging
-from datetime import datetime
-
-import pytz
 import sys
-
-# Libraries
-import requests
+from datetime import datetime
 
 # Local
 import lifestream
 
-Lifestream = lifestream.Lifestream()
+# Libraries
+import requests
+from lifestream.cache import check_and_set_backoff
+from lifestream.db import EntryStore
+
+entry_store = EntryStore()
 logger = logging.getLogger("Planetside2")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 IMG = "http://art.istic.net/iconography/games/planetside2.png"
+
 
 def run_import():
     characters = lifestream.config.get("planetside", "characters")
@@ -35,8 +36,7 @@ def run_import():
 
     image_base = url_base
 
-    Lifestream = lifestream.Lifestream()
-
+    entry_store = EntryStore()
 
     for character_name in characters:
         logger.info("Data for {}".format(character_name))
@@ -59,13 +59,11 @@ def run_import():
         profile = character["character_list"][0]
 
         br = profile["battle_rank"]
-        faction_id = profile["faction_id"]
         faction = profile["faction"]["code_tag"].lower()
         character_name = name = profile["name"]["first"]
 
         ##
-        ranki = requests.get(
-            "{}/experience_rank?rank={}".format(api_base, br["value"]))
+        ranki = requests.get("{}/experience_rank?rank={}".format(api_base, br["value"]))
 
         rank = ranki.json()["experience_rank_list"][0][faction]["title"]["en"]
         text = "In Planetside 2, {} achieved the rank {}".format(name, rank)
@@ -79,7 +77,7 @@ def run_import():
 
         logger.info(text)
 
-        Lifestream.add_entry(
+        entry_store.add_entry(
             "gaming",
             id.hexdigest(),
             text,
@@ -105,8 +103,8 @@ def run_import():
             name = achievement["achievement_id_join_achievement"]["name"]["en"]
             text = "{} earnt {}".format(character_name, name)
             image = (
-                image_base +
-                achievement["achievement_id_join_achievement"]["image_path"]
+                image_base
+                + achievement["achievement_id_join_achievement"]["image_path"]
             )
             date = achievement["finish_date"]
             id = hashlib.md5()
@@ -114,12 +112,7 @@ def run_import():
 
             logger.info(text)
 
-            epoch = float(achievement["finish"])
-            localzone = pytz.timezone("Europe/London")
-            localtime = localzone.localize(datetime.fromtimestamp(epoch))
-            utcdate = localtime.strftime("%Y-%m-%d %H:%M")
-
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 "gaming",
                 id.hexdigest(),
                 text,
@@ -130,16 +123,16 @@ def run_import():
                 fulldata_json=achievement,
             )
 
+
 def main():
     try:
         run_import()
     except Exception as e:
-        ttl = Lifestream.warned_recently("planetside:exception:warning_sent")
+        ttl = check_and_set_backoff("planetside:exception:warning_sent")
         if ttl:
             logger.warning("Error fetching achievements: {}".format(e))
             logger.info(
-                "Error already sent {} ago".format(
-                    lifestream.niceTimeDelta(ttl))
+                "Error already sent {} ago".format(lifestream.niceTimeDelta(ttl))
             )
         else:
             logger.error("Error fetching achievements: {}".format(e))

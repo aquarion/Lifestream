@@ -8,18 +8,19 @@ from datetime import datetime
 
 import bs4
 
-# Libraries
-import requests
-import simplejson
-
 # Local
 import lifestream
 
-Lifestream = lifestream.Lifestream()
+# Libraries
+import requests
+import simplejson
+from lifestream.db import EntryStore
 
-APIKEY = Lifestream.config.get("xivapi", "apikey")
-CHARACTERS = Lifestream.config.get("xivapi", "characters")
-ICON_BASE = Lifestream.config.get("xivapi", "icon_base")
+entry_store = EntryStore()
+
+APIKEY = entry_store.config.get("xivapi", "apikey")
+CHARACTERS = entry_store.config.get("xivapi", "characters")
+ICON_BASE = entry_store.config.get("xivapi", "icon_base")
 
 
 lifestream.arguments.add_argument(
@@ -39,7 +40,7 @@ lifestream.arguments.add_argument(
 )
 
 logger = logging.getLogger("FFXIV")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 class Lodestone:
@@ -53,7 +54,7 @@ class Lodestone:
     def __init__(self, apikey) -> None:
         self.api_key = apikey
         self.achievement_db = sqlite3.connect(
-            Lifestream.config.get("xivapi", "achievement_db")
+            entry_store.config.get("xivapi", "achievement_db")
         )
         pass
 
@@ -130,10 +131,9 @@ class Lodestone:
         if row:
             icon_id = int(row[0])
         else:
-            logger.warning(
-                "Achivement DB Icon not found for {}".format(achievement_id))
+            logger.warning("Achivement DB Icon not found for {}".format(achievement_id))
             return False
-        
+
         if icon_id == 0:
             logger.warning("Achivement Icon ID is 0 for {}".format(achievement_id))
 
@@ -158,8 +158,7 @@ class Lodestone:
         achievements = []
         for entry in entries:
             achievement = {}
-            achievement["Name"] = self.pull_value(
-                map["ENTRY"]["NAME"], entry)[1]
+            achievement["Name"] = self.pull_value(map["ENTRY"]["NAME"], entry)[1]
             achievement["ID"] = self.pull_value(map["ENTRY"]["ID"], entry)
             achievement["Icon"] = self.icon_path(
                 self.pull_value(map["ENTRY"]["ID"], entry)
@@ -186,14 +185,13 @@ def update_achievements(char_id):
             )
         )
 
-        message = "FFXIV: {} &ndash; {}".format(
-            character_name, achievement["Name"])
+        message = "FFXIV: {} &ndash; {}".format(character_name, achievement["Name"])
 
         url = "https://eu.finalfantasyxiv.com/lodestone/character/{}/achievement/detail/{}/".format(
             char_id, achievement["ID"]
         )
 
-        Lifestream.add_entry(
+        entry_store.add_entry(
             type="achievement",
             id="ffxiv-{}-{}".format(char_id, achievement["ID"]),
             title=message,

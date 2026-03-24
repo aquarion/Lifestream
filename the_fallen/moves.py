@@ -8,16 +8,16 @@ import socket
 import sys
 from datetime import datetime, timedelta
 
-import CodeFetcher9000
+# Local
+import lifestream
 import pytz
 
 # Libraries
 import requests
+from lifestream import code_fetcher as CodeFetcher9000
+from lifestream.db import EntryStore
 
-# Local
-import lifestream
-
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Moves")
 
@@ -34,14 +34,13 @@ lifestream.arguments.add_argument(
 )
 
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/moves.oauth" % (
-    lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/moves.oauth" % (lifestream.get_secrets_dir())
 APP_KEY = lifestream.config.get("moves", "key")
 APP_SECRET = lifestream.config.get("moves", "secret")
 
@@ -199,7 +198,7 @@ def process_day(day):
                             % (place["location"]["lat"], place["location"]["lon"])
                         )
 
-                Lifestream.add_location(
+                entry_store.add_location(
                     start,
                     "Moves",
                     place["location"]["lat"],
@@ -209,8 +208,7 @@ def process_day(day):
     if day["summary"]:
         for activity in day["summary"]:
             logger.info(
-                "Activity: %sm %s" % (
-                    activity["distance"], activity["activity"])
+                "Activity: %sm %s" % (activity["distance"], activity["activity"])
             )
     return events_count
 
