@@ -3,17 +3,18 @@
 import logging
 
 import dateutil.parser
-import pytz
-import requests
-import simplejson as json
 
 # Local
 import lifestream
+import pytz
+import requests
+import simplejson as json
+from lifestream.db import EntryStore
 
 # Libraries
 
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 USERNAME = lifestream.config.get("github", "username")
 TOKEN = lifestream.config.get("github", "auth_token")
@@ -24,13 +25,12 @@ ls_type = "code"
 ls_source = "github"
 
 logger = logging.getLogger("Github")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 def github_call(path, token, page=1, perpage=100):
     logger.debug("Calling %s" % path)
-    gh_url = "https://api.github.com/%s?page=%d&perpage=%d" % (
-        path, page, perpage)
+    gh_url = "https://api.github.com/%s?page=%d&perpage=%d" % (path, page, perpage)
     headers = {"Authorization": "token %s" % token}
     r = requests.get(gh_url, headers=headers)
     if not r.status_code == 200:
@@ -72,6 +72,6 @@ for repo in repos:
         logger.info(message)
         # cursor.execute(s_sql, (ls_type, id, message, utcdate, url, ls_source))
         # print s_sql % (ls_type, id, message, utcdate, url, ls_source)
-        Lifestream.add_entry(
+        entry_store.add_entry(
             ls_type, id, message, ls_source, utcdate, url=url, fulldata_json=commit
         )

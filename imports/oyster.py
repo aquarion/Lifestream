@@ -9,18 +9,18 @@ import sys
 from datetime import datetime
 from time import sleep
 
+# Local
+import lifestream
 import pytz
+from lifestream.db import EntryStore
 
 # Libraries
 from mechanize import Browser, RobustFactory
 
-# Local
-import lifestream
-
 logger = logging.getLogger("Oyster")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 if len(sys.argv) < 3:
     print("Usage: %s class oystercard_number" % sys.argv[0])
@@ -65,7 +65,7 @@ sleep(10)
 
 html = br.response().read()
 
-codes = re.findall('/oyster\/journeyDetailsPrint\.do\?_qv=(.*?)"', html)
+codes = re.findall(r'/oyster/journeyDetailsPrint\.do\?_qv=(.*?)"', html)
 
 br.open("/oyster/journeyDetailsPrint.do?_qv=%s" % codes[1])
 
@@ -100,8 +100,7 @@ for row in dataReader:
         elif not time_from:
             time_from = "00:00"
 
-        timestamp = datetime.strptime(
-            "%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
+        timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
         loc_date = londontime.localize(timestamp)
         utcdate = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
@@ -111,5 +110,4 @@ for row in dataReader:
 
         # print action, utcdate
         logger.info(action)
-        Lifestream.add_entry("oyster", id.hexdigest(),
-                             action, "oyster", utcdate)
+        entry_store.add_entry("oyster", id.hexdigest(), action, "oyster", utcdate)

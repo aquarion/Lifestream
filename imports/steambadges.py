@@ -5,22 +5,22 @@ import logging
 import sys
 from datetime import datetime
 
+# Local
+import lifestream
 import pytz
+from lifestream.db import EntryStore
 
 # Libraries
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
-# Local
-import lifestream
-
 logger = logging.getLogger("Steam Badges")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 USERNAME = lifestream.config.get("steam", "username")
 steamtime = pytz.timezone("US/Pacific")
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 options = FirefoxOptions()
 options.add_argument("-headless")
@@ -38,12 +38,14 @@ s_sql = "INSERT IGNORE INTO lifestream (`type`, `systemid`, `title`, `date_creat
 badges = browser.find_elements(By.CSS_SELECTOR, "div.badge_row_inner")
 
 for badge in badges:
-    image = badge.find_element(By.CSS_SELECTOR, ".badge_info_image img").get_attribute(
-        "src"
+    image = (
+        badge.find_element(By.CSS_SELECTOR, ".badge_info_image img").get_attribute(
+            "src"
+        )
+        or ""
     )
     text = badge.find_element(By.CLASS_NAME, "badge_info_title").text.strip()
-    date = badge.find_element(
-        By.CLASS_NAME, "badge_info_unlocked").text.strip()[9:]
+    date = badge.find_element(By.CLASS_NAME, "badge_info_unlocked").text.strip()[9:]
 
     try:
         parseddate = datetime.strptime(date, "%b %d, %Y @ %I:%M%p")
@@ -63,7 +65,7 @@ for badge in badges:
 
     logger.info(text)
 
-    Lifestream.add_entry(
+    entry_store.add_entry(
         "badge", id.hexdigest(), text, "steam", utcdate, url=URL, image=image
     )
 

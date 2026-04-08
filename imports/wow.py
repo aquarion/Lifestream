@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import configparser
 import hashlib
 import logging
 import os
@@ -9,15 +10,15 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
-import CodeFetcher9000
+# Local
+import lifestream
 import pytz
 import requests
+from lifestream import code_fetcher as CodeFetcher9000
+from lifestream.db import EntryStore
 from oauthlib.oauth2 import BackendApplicationClient
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
-
-# Local
-import lifestream
 
 SCOPE = [
     "wow.profile",
@@ -25,16 +26,11 @@ SCOPE = [
 
 steamtime = pytz.timezone("Europe/Paris")
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
-OAUTH_FILENAME = "%s/blizzard_user.oauth" % (
-    lifestream.config.get("global", "secrets_dir")
-)
-CLIENT_AUTH_FILENAME = "%s/blizzard_app.oauth" % (
-    lifestream.config.get("global", "secrets_dir")
-)
-CHARACTER_CACHE = "%s/blizzard.cache" % (
-    lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/blizzard_user.oauth" % (lifestream.get_secrets_dir())
+CLIENT_AUTH_FILENAME = "%s/blizzard_app.oauth" % (lifestream.get_secrets_dir())
+CHARACTER_CACHE = "%s/blizzard.cache" % (lifestream.get_secrets_dir())
 
 APP_KEY = lifestream.config.get("blizzard", "key")
 APP_SECRET = lifestream.config.get("blizzard", "secret")
@@ -60,7 +56,7 @@ lifestream.arguments.add_argument(
 )
 
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 def fetch_new_code():
@@ -72,11 +68,10 @@ def fetch_new_code():
     except CodeFetcher9000.WeSayNotToday:
         try:
             redirect_uri = (
-                "{}/keyback/wow.py".format(
-                    lifestream.config.get("dayze", "base")),
+                "{}/keyback/wow.py".format(lifestream.config.get("dayze", "base")),
             )
             UseCodeFetcher = False
-        except ConfigParser.Error:
+        except configparser.Error:
             logger.error("Dayze base not configured")
             print(
                 "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
@@ -110,8 +105,7 @@ def fetch_new_code():
         "code": oauth_verifier,
     }
 
-    r = requests.post("{}/oauth/token".format(BASE_OAUTH_URL),
-                      data=data, auth=auth)
+    r = requests.post("{}/oauth/token".format(BASE_OAUTH_URL), data=data, auth=auth)
 
     token = r.json()
 
@@ -129,7 +123,7 @@ if not args.reauth:
         f = open(OAUTH_FILENAME, "rb")
         oauth_token = pickle.load(f)
         f.close()
-    except:
+    except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
         logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
         oauth_token = False
 else:
@@ -147,7 +141,7 @@ try:
     f = open(CLIENT_AUTH_FILENAME, "rb")
     client_token = pickle.load(f)
     f.close()
-except:
+except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
     logger.error("Couldn't open %s, reloading..." % CLIENT_AUTH_FILENAME)
     client_token = False
 
@@ -228,8 +222,7 @@ class BlizzardAPI:
 
             if not r.ok:
                 logger.error(
-                    "Error {} getting characters: {}".format(
-                        r.status_code, r.text)
+                    "Error {} getting characters: {}".format(r.status_code, r.text)
                 )
                 sys.exit(5)
 
@@ -294,12 +287,11 @@ def log_achievement(item, timestamp, character):
     id = hashlib.md5()
     id.update("%d-wow" % item["id"])
 
-    logger.info("{}, {}, {}".format(
-        character["realm"], character["name"], text))
+    logger.info("{}, {}, {}".format(character["realm"], character["name"], text))
 
     # print text, image, utcdate, item['accountWide']
 
-    Lifestream.add_entry(
+    entry_store.add_entry(
         "gaming",
         id.hexdigest(),
         text,
@@ -347,7 +339,7 @@ profile = api.get_profile()
 # Check age of app
 
 ##########
-for character in profile["characters"]:
+for character in profile["characters"]:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
     logger.info(
         "%s!%s L%d %s"
         % (
@@ -388,8 +380,7 @@ for character in profile["characters"]:
     else:
 
         if since_login > 7:
-            logger.debug(
-                "{} is > 7 days since login, skipping".format(since_login))
+            logger.debug("{} is > 7 days since login, skipping".format(since_login))
             continue
 
         character_data = api.get_character(
@@ -399,8 +390,7 @@ for character in profile["characters"]:
         for item in character_data["feed"]:
             if item["type"] in ("ACHIEVEMENT"):
                 # pprint(item)
-                log_achievement(item["achievement"],
-                                item["timestamp"], character)
+                log_achievement(item["achievement"], item["timestamp"], character)
 
             elif item["type"] in ("LOOT", "BOSSKILL", "CRITERIA"):
                 pass

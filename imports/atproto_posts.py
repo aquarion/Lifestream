@@ -7,10 +7,11 @@ import sys
 from urllib.parse import urlparse
 
 import dateutil.parser
-from atproto import Client as atClient
 
 # Local
 import lifestream
+from atproto import Client as atClient
+from lifestream.db import EntryStore
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False
@@ -33,7 +34,7 @@ lifestream.arguments.add_argument(
     required=False,
 )
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 if args.site:
     sites = args.site
@@ -44,11 +45,11 @@ else:
         if subsection[0] == "atproto":
             sites.append(subsection[1])
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("AtProto")
 
-for site in sites:
+for site in sites:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
     source = site
     type = "atproto"
     try:
@@ -91,13 +92,11 @@ for site in sites:
 
         for item in atResponse.feed:
             if item.post.author.handle != handle:
-                logger.debug("Skipping retweet from %s" %
-                             item.post.author.handle)
+                logger.debug("Skipping retweet from %s" % item.post.author.handle)
                 continue
 
             if item.post.record.reply:
-                logger.debug("Skipping reply to %s" %
-                             item.post.record.reply.parent.uri)
+                logger.debug("Skipping reply to %s" % item.post.record.reply.parent.uri)
                 continue
 
             post = item.post.record
@@ -120,7 +119,7 @@ for site in sites:
             else:
                 thumbnail = ""
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 id=item.post.uri,
                 title=title,
                 source=source,

@@ -7,16 +7,17 @@ import sys
 from urllib.error import URLError
 
 import dateutil.parser
+
+# Local
+import lifestream
 import pytz
 
 # Libraries
 import twitter
-
-# Local
-import lifestream
+from lifestream.db import EntryStore
 from lifestream.oauth_utils import read_token_file
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 
 lifestream.arguments.add_argument(
@@ -32,14 +33,13 @@ lifestream.arguments.add_argument(
 )
 
 logger = logging.getLogger("Twitter")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/twitter.oauth" % (
-    lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/twitter.oauth" % (lifestream.get_secrets_dir())
 CONSUMER_KEY = lifestream.config.get("twitter", "consumer_key")
 CONSUMER_SECRET = lifestream.config.get("twitter", "consumer_secret")
 
@@ -76,7 +76,7 @@ def process_tweet(account, status):
     localdate = dateutil.parser.parse(status.created_at)
     utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
-    Lifestream.add_entry(
+    entry_store.add_entry(
         "twitter",
         id,
         message,
