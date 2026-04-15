@@ -4,11 +4,10 @@
 import logging
 from datetime import datetime
 
-import lifestreamutils
-import requests
-
 # Local
 import lifestream
+import requests
+from lifestream.db import EntryStore
 
 logger = logging.getLogger("switchbot")
 
@@ -28,7 +27,9 @@ logger = logging.getLogger("switchbot")
 #     action='store_true')
 
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
+
+entry_store = EntryStore()
 
 # https://github.com/OpenWonderLabs/SwitchBotAPI
 
@@ -36,25 +37,29 @@ args = lifestream.arguments.parse_args()
 class SwitchBotAPI:
 
     base_url = "https://api.switch-bot.com"
-    token = False
+    token: str = ""
     version = "v1.0"
 
-    def __init__(self, token=False) -> None:
+    def __init__(self, token: str | None = None) -> None:
         if token:
             self.token = token
         else:
             self.token = lifestream.config.get("switchbot", "token")
 
-    def call(self, method, callname, data={}):
+    def call(self, method, callname, data=None):
+        if data is None:
+            data = {}
         URL = "{}/{}/{}".format(self.base_url, self.version, callname)
 
-        headers = {"authorization": self.token}
+        headers: dict[str, str] = {"authorization": self.token}
 
         if method == "post":
             headers["content-type"] = "application/json; charset=utf8"
             r = requests.post(URL, data=data, headers=headers)
         elif method == "get":
             r = requests.get(URL, params=data, headers=headers)
+        else:
+            raise ValueError(f"Unknown method: {method}")
 
         return r.json()
 
@@ -75,11 +80,9 @@ for device in r["body"]["deviceList"]:
         logging.info("{}-temp is {}".format(name, data["temperature"]))
         logging.info("{}-humid is {}".format(name, data["humidity"]))
 
-        lifestreamutils.newstat(
+        entry_store.add_stat(
             datetime.now(), "{}-temp".format(name), data["temperature"]
         )
-        lifestreamutils.newstat(
-            datetime.now(), "{}-humid".format(name), data["humidity"]
-        )
+        entry_store.add_stat(datetime.now(), "{}-humid".format(name), data["humidity"])
 #
-#    lifestreamutils.newstat(date, STATISTIC, dates[date]['total'])
+#    entry_store.add_stat(date, STATISTIC, dates[date]['total'])

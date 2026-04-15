@@ -6,11 +6,11 @@ import csv
 import hashlib
 from datetime import datetime
 
-import lifestream
 import pytz
+from lifestream.db import get_connection, get_cursor
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
+dbcxn = get_connection()
+cursor = get_cursor(dbcxn)
 
 londontime = pytz.timezone("Europe/London")
 

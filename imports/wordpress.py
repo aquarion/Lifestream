@@ -1,17 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Python
-import configparser 
+import configparser
 import logging
-import sys
-
-# Libraries
-from wordpress_xmlrpc import Client
-from wordpress_xmlrpc.methods.posts import GetPosts
-from wordpress_xmlrpc import exceptions as wordpress_exceptions
 
 # Local
 import lifestream
+from lifestream.db import EntryStore
+
+# Libraries
+from wordpress_xmlrpc import Client
+from wordpress_xmlrpc import exceptions as wordpress_exceptions
+from wordpress_xmlrpc.methods.posts import GetPosts
 
 lifestream.arguments.add_argument(
     "site", type=str, help="Site, as defined in config.ini", nargs="*"
@@ -26,7 +26,7 @@ lifestream.arguments.add_argument(
     default=1,
     required=False,
 )
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 if args.site:
     sites = args.site
@@ -36,12 +36,12 @@ else:
         if section[0:10] == "wordpress:":
             sites.append(section[10:])
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Wordpress")
 
 
-for site in sites:
+for site in sites:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
     source = site
     type = "wordpress"
     logger.info(site)
@@ -82,7 +82,7 @@ for site in sites:
             else:
                 thumbnail = ""
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 id=post.guid,
                 title=title,
                 source=source,

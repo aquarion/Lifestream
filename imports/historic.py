@@ -8,23 +8,20 @@ import pickle as pickle
 # Python
 import urllib.parse
 
+# Local
+import lifestream
 import oauth2 as oauth
 import simplejson
 from dateutil.relativedelta import relativedelta
+from lifestream.db import EntryStore, get_connection, get_cursor
 
 # Libraries
 from pytumblr import TumblrRestClient
 
-# Local
-import lifestream
-
-# Libraries
-
-
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Histumblr")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 OAUTH_TUMBLR = lifestream.config.get("tumblr", "secrets_file")
 
@@ -41,7 +38,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         f = open(OAUTH_TUMBLR, "rb")
         oauth_token = pickle.load(f)
         f.close()
-    except:
+    except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
         logger.error("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 
@@ -54,8 +51,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         request_token = dict(urllib.parse.parse_qsl(content))
         print("Go to the following link in your browser:")
-        print("%s?oauth_token=%s" %
-              (authorize_url, request_token["oauth_token"]))
+        print("%s?oauth_token=%s" % (authorize_url, request_token["oauth_token"]))
         print()
 
         accepted = "n"
@@ -89,19 +85,10 @@ def tumblrAuth(config, OAUTH_TUMBLR):
     )
 
 
-def cursor(dbcxn):
-    dbc = dbcxn.cursor()
-    dbc.execute("SET NAMES utf8;")
-    dbc.execute("SET CHARACTER SET utf8;")
-    dbc.execute("SET character_set_connection=utf8;")
-
-    return dbc
-
-
 to_blog = "aquarions-of-history"
 
-dbcxn = lifestream.getDatabaseConnection()
-cursor = cursor(dbcxn)
+dbcxn = get_connection()
+cursor = get_cursor(dbcxn)
 
 sql = "select title, date_created,url,fulldata_json, systemid, source, type from lifestream where source = 'tumblr' and date_created between %s and %s"
 

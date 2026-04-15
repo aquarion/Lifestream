@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # Python
+import configparser
 import hashlib
 import logging
 import pickle
@@ -8,18 +9,20 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-import CodeFetcher9000
 import dateutil.parser
+
+# Local
+import lifestream
 import pytz
 
 # Libraries
 import requests
-
-# Local
-import lifestream
+from lifestream import code_fetcher as CodeFetcher9000
 from lifestream import destiny_exceptions
+from lifestream.cache import check_and_set_backoff, set_backoff, should_backoff
+from lifestream.db import EntryStore
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Destiny2")
 
@@ -36,13 +39,12 @@ lifestream.arguments.add_argument(
 )
 
 
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/bungie.oauth" % (
-    lifestream.config.get("global", "secrets_dir"))
+OAUTH_FILENAME = "%s/bungie.oauth" % (lifestream.get_secrets_dir())
 APP_KEY = lifestream.config.get("bungie", "key")
 APP_CLIENT_ID = lifestream.config.get("bungie", "client_id")
 APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
@@ -50,7 +52,7 @@ APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
 # authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
 
-def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False):
+def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False):  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
 
     request_token_url = (
         "https://www.bungie.net/en/oauth/authorize?client_id=%s&response_type=code&state=6i0mkLx79Hp91nzWVceHrzHG4"
@@ -62,7 +64,7 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
             f = open(OAUTH_FILENAME, "rb")
             oauth_token = pickle.load(f)
             f.close()
-        except:
+        except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
             logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
             oauth_token = False
     else:
@@ -77,7 +79,7 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
         try:
             "{}/keyback/destiny".format(lifestream.config.get("dayze", "base")),
             UseCodeFetcher = False
-        except ConfigParser.Error:
+        except configparser.Error:
             logger.error("Dayze base not configured")
             print(
                 "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
@@ -164,17 +166,14 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
     if "error" in oauth_token:
 
         if oauth_token["error"] == "DestinyThrottledByGameServer":
-            lifestream.i_said_back_off("destiny2:api_error:throttled")
+            set_backoff("destiny2:api_error:throttled")
 
-        ttl = Lifestream.warned_recently(
-            "destiny2:api_error:%".format(oauth_token["error"])
-        )
+        ttl = check_and_set_backoff("destiny2:api_error:{}".format(oauth_token["error"]))
         message = "Error refreshing token: {}".format(oauth_token["error"])
         if ttl:
             logger.warning(message)
             logger.info(
-                "Error already sent {} ago".format(
-                    lifestream.niceTimeDelta(ttl))
+                "Error already sent {} ago".format(lifestream.niceTimeDelta(ttl))
             )
         else:
             logger.error(message)
@@ -183,8 +182,7 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
 
     delta = timedelta(seconds=int(oauth_token["expires_in"]))
     oauth_token["expire_dt"] = datetime.now() + delta
-    logger.info("New token expires in {}".format(
-        lifestream.niceTimeDelta(delta)))
+    logger.info("New token expires in {}".format(lifestream.niceTimeDelta(delta)))
 
     refresh_delta = timedelta(seconds=int(oauth_token["refresh_expires_in"]))
     oauth_token["refresh_expire_dt"] = datetime.now() + refresh_delta
@@ -212,13 +210,11 @@ logger.info("Token will expire in {}!".format(lifestream.niceTimeDelta(delta)))
 delta = credentials["refresh_expire_dt"] - datetime.now()
 if delta.days <= 7:
     logger.warning(
-        "Refresh Token will expire in {}!".format(
-            lifestream.niceTimeDelta(delta))
+        "Refresh Token will expire in {}!".format(lifestream.niceTimeDelta(delta))
     )
 else:
     logger.info(
-        "Refresh Token will expire in {}!".format(
-            lifestream.niceTimeDelta(delta))
+        "Refresh Token will expire in {}!".format(lifestream.niceTimeDelta(delta))
     )
 
 NEXT_REQUEST = datetime.now()
@@ -254,7 +250,7 @@ def destinyCall(path, payload={}):
         except AttributeError:
             raise destiny_exceptions.DestinyException(result["ErrorStatus"])
 
-    request_delta = timedelta(seconds=result["ThrottleSeconds"])
+    # ThrottleSeconds controls when we can make the next request
     NEXT_REQUEST = datetime.now()
 
     if "Response" not in result:
@@ -302,9 +298,9 @@ def dt_parse(t):
     return ret.replace(tzinfo=pytz.UTC)
 
 
-### MAIN LOOP ###
+# MAIN LOOP
 
-if lifestream.i_should_back_off("destiny2:api_error:throttled"):
+if should_backoff("destiny2:api_error:throttled"):
     logger.warning("Throttled, exiting")
     sys.exit(1)
 
@@ -321,8 +317,7 @@ for member_data in memberships["destinyMemberships"]:
             )
         )
         membership = destinyCall(
-            "Destiny2/{membershipType}/Profile/{membershipId}/".format(
-                **member_data),
+            "Destiny2/{membershipType}/Profile/{membershipId}/".format(**member_data),
             {"components": "Characters"},
         )
     except destiny_exceptions.DestinyAccountNotFound:
@@ -378,8 +373,7 @@ for member_data in memberships["destinyMemberships"]:
             id.update("destiny2".encode("utf-8"))
             id.update(character_id.encode("utf-8"))
             id.update(
-                str(instance["activityDetails"]
-                    ["directorActivityHash"]).encode("utf-8")
+                str(instance["activityDetails"]["directorActivityHash"]).encode("utf-8")
             )
 
             display = activity["displayProperties"]
@@ -408,7 +402,7 @@ for member_data in memberships["destinyMemberships"]:
 
             # print text, image, utcdate, item['accountWide']
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 "gaming",
                 id.hexdigest(),
                 text,

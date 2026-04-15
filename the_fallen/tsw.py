@@ -4,16 +4,17 @@ import hashlib
 import logging
 from datetime import datetime
 
-# Libraries
-from BeautifulSoup import BeautifulSoup
-from mechanize import Browser, RobustFactory
-
 # Local
 import lifestream
 
-Lifestream = lifestream.Lifestream()
+# Libraries
+from BeautifulSoup import BeautifulSoup
+from lifestream.db import EntryStore
+from mechanize import Browser, RobustFactory
 
-CHARACTERS = Lifestream.config.get("thesecretworld", "characters")
+entry_store = EntryStore()
+
+CHARACTERS = entry_store.config.get("thesecretworld", "characters")
 
 br = br = Browser(factory=RobustFactory())
 br.set_handle_robots(False)
@@ -21,7 +22,7 @@ br.set_handle_robots(False)
 # Login
 
 logger = logging.getLogger("TSW")
-args = lifestream.arguments.parse_args()
+args = lifestream.parse_args()
 
 for character in CHARACTERS.split(","):
 
@@ -44,14 +45,13 @@ for character in CHARACTERS.split(","):
     rank_n = rank.findAll("div", {"class": "rank wf"})[0]
     rank_t = rank.findAll("div", {"class": "title wf"})[0]
 
-    text = "%s achieved %s&ndash;%s" % (
-        character, rank_n.string, rank_t.string)
+    text = "%s achieved %s&ndash;%s" % (character, rank_n.string, rank_t.string)
 
     logger.info(text)
 
     id = hashlib.md5()
     id.update(text)
-    Lifestream.add_entry(
+    entry_store.add_entry(
         "gaming",
         id.hexdigest(),
         text,
