@@ -12,7 +12,9 @@ from datetime import datetime, timedelta
 from pprint import pprint
 
 # Libraries
-import facebook
+import pymysql
+import requests
+from dateutil import parser as dtparser
 
 # Local
 import lifestream
@@ -123,7 +125,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     return oauth_token
 
 
-def some_action(post, graph, profile):  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+def some_action(post, profile):
 
     visible_filters = lifestream.config.get("facebook", "visible_filters")
 
@@ -277,7 +279,8 @@ while True:
         pprint(posts)
         raise Exception("Err...")
 
-    [some_action(post=post, graph=graph, profile=profile) for post in posts["data"]]
+    [some_action(post=post, profile=profile)
+     for post in posts["data"]]
 
     logger.info("Page %d of %d" % (page, args.pages))
     if not INFINITE and page >= args.pages:
