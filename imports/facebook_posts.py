@@ -14,7 +14,6 @@ from pprint import pprint
 import CodeFetcher9000
 
 # Libraries
-import facebook
 import pymysql
 import requests
 from dateutil import parser as dtparser
@@ -124,7 +123,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     return oauth_token
 
 
-def some_action(post, graph, profile):
+def some_action(post, profile):
 
     visible_filters = lifestream.config.get("facebook", "visible_filters")
 
@@ -247,9 +246,20 @@ if delta.days <= 7:
 else:
     logger.info("Token will expire in {} days!".format(delta.days))
 
-graph = facebook.GraphAPI(credentials["access_token"], version="3.1")
-profile = graph.get_object("me")
-posts = graph.get_object(
+GRAPH_API_VERSION = "v21.0"
+GRAPH_API_BASE = "https://graph.facebook.com/%s" % GRAPH_API_VERSION
+access_token = credentials["access_token"]
+
+
+def graph_get(path, **params):
+    params["access_token"] = access_token
+    response = requests.get("%s/%s" % (GRAPH_API_BASE, path), params=params)
+    response.raise_for_status()
+    return response.json()
+
+
+profile = graph_get("me")
+posts = graph_get(
     "me/posts",
     fields="application,message,type,privacy,status_type,source,properties,link,picture,created_time",
 )
@@ -272,7 +282,7 @@ while True:
         pprint(posts)
         raise Exception("Err...")
 
-    [some_action(post=post, graph=graph, profile=profile)
+    [some_action(post=post, profile=profile)
      for post in posts["data"]]
 
     logger.info("Page %d of %d" % (page, args.pages))
