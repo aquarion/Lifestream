@@ -29,13 +29,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
     def __init__(self, req, client_addr, server):
         http.server.BaseHTTPRequestHandler.__init__(self, req, client_addr, server)
 
-        f = open(os.path.join(project_root, "templates/success.html"), "rb")
+    def success(self, params):
 
         f = open(os.path.join(project_root, "templates/success.html"), "rb")
 
-        s.send_response(200)
-        s.send_header("Content-type", "text/html")
-        s.end_headers()
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
         while True:
             file_data = f.read(32768)  # use an appropriate chunk size
             if file_data is None or len(file_data) == 0:
@@ -61,7 +61,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         global code
-        parsed = urllib.parse.urlparse(s.path)
+        parsed = urllib.parse.urlparse(self.path)
         params = urllib.parse.parse_qs(parsed.query)
 
         if key_wanted in params:
