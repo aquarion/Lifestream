@@ -44,7 +44,7 @@ args = lifestream.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/bungie.oauth" % (lifestream.get_secrets_dir())
+OAUTH_FILENAME = "%s/bungie.oauth" % (lifestream.get_credentials_dir())
 APP_KEY = lifestream.config.get("bungie", "key")
 APP_CLIENT_ID = lifestream.config.get("bungie", "client_id")
 APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
