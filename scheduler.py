@@ -240,8 +240,16 @@ def run_job_now(job_name):
     """Run a specific job immediately."""
     schedules = get_schedules()
 
+    if job_name.startswith("!"):
+        actual_name = job_name[1:]
+        job_config = schedules.get(job_name)
+        if not job_config or not job_config.get("command"):
+            logger.error(f"Shell job '{actual_name}' not found in schedules or has no cmd= configured")
+            sys.exit(1)
+        run_shell_command(actual_name, job_config["command"])
+        return
+
     if job_name not in schedules:
-        # Try to run it anyway - maybe it's a valid import
         logger.info(f"Job {job_name} not in schedules, attempting direct run...")
 
     run_import(job_name)

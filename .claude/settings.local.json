@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr *)",
+      "Bash(gh api *)",
+      "Bash(python -m pytest tests/ -x -q)",
+      "Bash(poetry run *)"
+    ]
+  }
+}
