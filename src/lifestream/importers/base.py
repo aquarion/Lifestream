@@ -6,22 +6,22 @@ All importers should inherit from BaseImporter and implement the run() method.
 
 import argparse
 import logging
-import sys
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
 
 from lifestream.core import (
-    config,
     EntryStore,
-    setup_logging,
+    config,
     get_credentials_dir,
     set_no_db_mode,
+    setup_logging,
 )
 
 
 class ConfigurationError(Exception):
     """Raised when required configuration is missing or invalid."""
+
     pass
 
 
@@ -249,7 +249,9 @@ class FeedImporter(BaseImporter):
             return self.feed_url
         url = self.get_config("feed_url")
         if not url:
-            raise ConfigurationError(f"No feed_url configured in [{self.config_section or self.name}]")
+            raise ConfigurationError(
+                f"No feed_url configured in [{self.config_section or self.name}]"
+            )
         return url
 
     def process_entry(self, entry: dict[str, Any]) -> None:

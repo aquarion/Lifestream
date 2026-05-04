@@ -17,6 +17,7 @@ Usage:
 
 import argparse
 import logging
+import os
 import signal
 import sys
 from datetime import datetime
@@ -59,6 +60,34 @@ DEFAULT_MISFIRE_GRACE_TIME = 3600
 DEFAULT_COALESCE = True
 
 
+def _parse_job_options(opts_str, job_name):
+    """Parse key=value options from the pipe-separated part of a cron expression."""
+    options = {
+        "misfire_grace_time": DEFAULT_MISFIRE_GRACE_TIME,
+        "coalesce": DEFAULT_COALESCE,
+    }
+    # cmd= must be last since its value may contain spaces
+    if "cmd=" in opts_str:
+        before_cmd, cmd_value = opts_str.split("cmd=", 1)
+        options["command"] = cmd_value.strip()
+        opts_str = before_cmd
+    for opt in opts_str.split():
+        if "=" not in opt:
+            continue
+        key, value = opt.split("=", 1)
+        if key == "grace":
+            try:
+                options["misfire_grace_time"] = int(value)
+            except ValueError:
+                logger.warning(
+                    f"Invalid grace time '{value}' for job {job_name}, "
+                    f"using default {DEFAULT_MISFIRE_GRACE_TIME}s"
+                )
+        elif key == "coalesce":
+            options["coalesce"] = value.lower() == "true"
+    return options
+
+
 def get_schedules():
     """Read schedules from config.ini [schedules] section."""
     schedules = {}
@@ -68,42 +97,21 @@ def get_schedules():
         return schedules
 
     for job_name, cron_expr in lifestream.config.items("schedules"):
-        # Skip disabled jobs (commented with ; or #, or empty value)
         if not cron_expr or cron_expr.startswith(";") or cron_expr.startswith("#"):
             continue
 
-        # Parse options from cron expression
         # Format: "*/15 * * * *" or "*/15 * * * * | grace=7200 coalesce=false"
         # Shell jobs: "*/15 * * * * | cmd=shell command here"  (cmd= must be last)
         parts = cron_expr.split("|")
         cron = parts[0].strip()
-
-        options = {
-            "misfire_grace_time": DEFAULT_MISFIRE_GRACE_TIME,
-            "coalesce": DEFAULT_COALESCE,
-        }
-
-        if len(parts) > 1:
-            opts_str = parts[1].strip()
-            # cmd= must be last since its value may contain spaces
-            if "cmd=" in opts_str:
-                before_cmd, cmd_value = opts_str.split("cmd=", 1)
-                options["command"] = cmd_value.strip()
-                opts_str = before_cmd
-            for opt in opts_str.split():
-                if "=" in opt:
-                    key, value = opt.split("=", 1)
-                    if key == "grace":
-                        try:
-                            options["misfire_grace_time"] = int(value)
-                        except ValueError:
-                            logger.warning(
-                                f"Invalid grace time '{value}' for job {job_name}, "
-                                f"using default {DEFAULT_MISFIRE_GRACE_TIME}s"
-                            )
-                    elif key == "coalesce":
-                        options["coalesce"] = value.lower() == "true"
-
+        options = (
+            _parse_job_options(parts[1].strip(), job_name)
+            if len(parts) > 1
+            else {
+                "misfire_grace_time": DEFAULT_MISFIRE_GRACE_TIME,
+                "coalesce": DEFAULT_COALESCE,
+            }
+        )
         schedules[job_name] = {"cron": cron, **options}
 
     return schedules
@@ -152,8 +160,8 @@ def add_jobs(scheduler):
     """Add all configured jobs to the scheduler."""
     schedules = get_schedules()
 
-    for job_name, config in schedules.items():
-        cron = config["cron"]
+    for job_name, job_config in schedules.items():
+        cron = job_config["cron"]
 
         try:
             trigger = CronTrigger.from_crontab(cron)
@@ -250,7 +258,9 @@ def run_job_now(job_name):
         actual_name = job_name[1:]
         job_config = schedules.get(job_name)
         if not job_config or not job_config.get("command"):
-            logger.error(f"Shell job '{actual_name}' not found in schedules or has no cmd= configured")
+            logger.error(
+                f"Shell job '{actual_name}' not found in schedules or has no cmd= configured"
+            )
             sys.exit(1)
         run_shell_command(actual_name, job_config["command"])
         return

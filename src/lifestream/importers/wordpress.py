@@ -7,8 +7,8 @@ from wordpress_xmlrpc import Client
 from wordpress_xmlrpc import exceptions as wordpress_exceptions
 from wordpress_xmlrpc.methods.posts import GetPosts
 
-from lifestream.importers.base import BaseImporter, ConfigurationError
 from lifestream.core import config
+from lifestream.importers.base import BaseImporter, ConfigurationError
 
 
 class WordpressImporter(BaseImporter):
@@ -124,7 +124,9 @@ class WordpressImporter(BaseImporter):
         sites = self.get_sites()
 
         if not sites:
-            raise ConfigurationError("No WordPress sites configured — add [wordpress:sitename] sections to config.ini")
+            raise ConfigurationError(
+                "No WordPress sites configured — add [wordpress:sitename] sections to config.ini"
+            )
 
         for site in sites:
             self.process_site(site)

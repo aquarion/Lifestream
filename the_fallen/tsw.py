@@ -4,13 +4,13 @@ import hashlib
 import logging
 from datetime import datetime
 
-# Local
-import lifestream
-
 # Libraries
 from BeautifulSoup import BeautifulSoup
-from lifestream.db import EntryStore
 from mechanize import Browser, RobustFactory
+
+# Local
+import lifestream
+from lifestream.db import EntryStore
 
 entry_store = EntryStore()
 
