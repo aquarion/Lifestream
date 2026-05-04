@@ -48,7 +48,7 @@ def resolve_path(path):
     return os.path.normpath(os.path.join(project_root, path))
 
 
-def get_secrets_dir():
+def get_credentials_dir():
     """Get the secrets directory path, resolved relative to project root."""
     return resolve_path(config.get("global", "secrets_dir"))
 

@@ -49,7 +49,7 @@ args = lifestream.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if facebook doesn't respond
 
 
-OAUTH_FILENAME = "%s/facebook.oauth" % (lifestream.get_secrets_dir())
+OAUTH_FILENAME = "%s/facebook.oauth" % (lifestream.get_credentials_dir())
 APP_KEY = lifestream.config.get("facebook", "appid")
 APP_SECRET = lifestream.config.get("facebook", "secret")
 

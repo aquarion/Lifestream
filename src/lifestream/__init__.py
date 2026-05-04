@@ -10,7 +10,7 @@ __version__ = "2.0.0"
 # Re-export commonly used items for convenience
 from lifestream.core.config import (
     config,
-    get_secrets_dir,
+    get_credentials_dir,
     get_log_dir,
     get_project_root,
 )
@@ -33,7 +33,7 @@ from lifestream.core import cache, db, jobs, notifications
 __all__ = [
     # Config
     "config",
-    "get_secrets_dir",
+    "get_credentials_dir",
     "get_log_dir",
     "get_project_root",
     # Logging

@@ -28,9 +28,9 @@ steamtime = pytz.timezone("Europe/Paris")
 
 entry_store = EntryStore()
 
-OAUTH_FILENAME = "%s/blizzard_user.oauth" % (lifestream.get_secrets_dir())
-CLIENT_AUTH_FILENAME = "%s/blizzard_app.oauth" % (lifestream.get_secrets_dir())
-CHARACTER_CACHE = "%s/blizzard.cache" % (lifestream.get_secrets_dir())
+OAUTH_FILENAME = "%s/blizzard_user.oauth" % (lifestream.get_credentials_dir())
+CLIENT_AUTH_FILENAME = "%s/blizzard_app.oauth" % (lifestream.get_credentials_dir())
+CHARACTER_CACHE = "%s/blizzard.cache" % (lifestream.get_credentials_dir())
 
 APP_KEY = lifestream.config.get("blizzard", "key")
 APP_SECRET = lifestream.config.get("blizzard", "secret")

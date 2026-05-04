@@ -12,7 +12,7 @@ This module provides:
 from .config import (
     config,
     get_project_root,
-    get_secrets_dir,
+    get_credentials_dir,
     get_log_dir,
     resolve_path,
     get_config_value,
@@ -46,7 +46,7 @@ __all__ = [
     # Config
     "config",
     "get_project_root",
-    "get_secrets_dir",
+    "get_credentials_dir",
     "get_log_dir",
     "resolve_path",
     "get_config_value",

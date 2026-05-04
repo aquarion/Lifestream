@@ -15,7 +15,7 @@ from lifestream.core import (
     config,
     EntryStore,
     setup_logging,
-    get_secrets_dir,
+    get_credentials_dir,
     set_no_db_mode,
 )
 
@@ -153,7 +153,7 @@ class BaseImporter(ABC):
 
     def get_secrets_path(self, filename: str) -> str:
         """Get the full path to a secrets file."""
-        return str(get_secrets_dir() / filename)
+        return str(get_credentials_dir() / filename)
 
     @abstractmethod
     def run(self) -> None:

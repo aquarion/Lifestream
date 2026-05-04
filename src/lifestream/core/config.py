@@ -73,7 +73,7 @@ def resolve_path(path: str) -> Path:
     return get_project_root() / p
 
 
-def get_secrets_dir() -> Path:
+def get_credentials_dir() -> Path:
     """Get the secrets directory path, resolved relative to project root."""
     return resolve_path(config.get("global", "secrets_dir", fallback="keys"))
 
