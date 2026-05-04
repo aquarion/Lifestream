@@ -33,19 +33,22 @@ def run_import(job_name: str) -> None:
     start_time = datetime.now()
 
     try:
-        # First, try the new-style importer
+        # Try new-style importer — only catch ImportError from the import itself,
+        # not from inside the importer's run() method
         try:
             from lifestream.importers import IMPORTERS
-
-            if job_name in IMPORTERS:
-                importer_cls = IMPORTERS[job_name]
-                importer = importer_cls()
-                importer.execute()
-                duration = (datetime.now() - start_time).total_seconds()
-                logger.info(f"Completed job: {job_name} in {duration:.1f}s")
-                return
+            importer_cls = IMPORTERS.get(job_name)
         except ImportError:
-            pass  # Fall through to legacy import
+            importer_cls = None  # Package not available, fall through to legacy
+
+        if importer_cls is not None:
+            importer = importer_cls()
+            if not importer.validate_config():
+                raise RuntimeError(f"Config validation failed for {job_name}")
+            importer.run()
+            duration = (datetime.now() - start_time).total_seconds()
+            logger.info(f"Completed job: {job_name} in {duration:.1f}s")
+            return
 
         # Fallback to legacy import style
         module = importlib.import_module(job_name)
