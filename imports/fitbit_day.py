@@ -62,14 +62,6 @@ def fitbitAuth(config, OAUTH_SECRETS):
         # get access token
         print("\n* Obtain an access token ...\n")
         token = client.fetch_access_token(verifier)
-        print("RESPONSE")
-        pp.pprint(token)
-        print("")
-
-        print(token)
-        print("Access key:", token["oauth_token"])
-        print("Access Secret:", token["oauth_token_secret"])
-
         f = open(OAUTH_SECRETS, "w")
         pickle.dump(token, f)
         f.close()

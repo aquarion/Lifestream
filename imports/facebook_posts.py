@@ -110,8 +110,6 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
         oauth_token = extend_token.json()
 
-        print(oauth_token)
-
         delta = timedelta(seconds=int(oauth_token["expires_in"]))
         oauth_token["expire_dt"] = datetime.now() + delta
 

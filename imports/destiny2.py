@@ -133,7 +133,6 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
         "client_secret": client_secret,
     }
     access_token = requests.post(access_token_url, data=payload)
-    print(access_token.text)
     oauth_token = access_token.json()
 
     delta = timedelta(seconds=int(oauth_token["expires_in"]))

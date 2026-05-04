@@ -16,7 +16,7 @@ def write_token_file(
         oauth_token: The OAuth token
         oauth_token_secret: The OAuth token secret
     """
-    with open(filename, "w") as oauth_file:
+    with open(filename, "w") as oauth_file:  # codeql[py/clear-text-storage-sensitive-data] - intentional: token file stores credentials for OAuth persistence
         oauth_file.write(oauth_token + "\n")
         oauth_file.write(oauth_token_secret + "\n")
 

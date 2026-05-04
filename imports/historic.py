@@ -68,11 +68,6 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         resp, content = client.request(access_token_url, "POST")
         oauth_token = dict(urllib.parse.parse_qsl(content))
 
-        logger.debug(resp)
-        logger.debug(oauth_token)
-        print("Access key:", oauth_token["oauth_token"])
-        print("Access Secret:", oauth_token["oauth_token_secret"])
-
         f = open(OAUTH_TUMBLR, "w")
         pickle.dump(oauth_token, f)
         f.close()
