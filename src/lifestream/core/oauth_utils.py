@@ -17,8 +17,8 @@ def write_token_file(
         oauth_token_secret: The OAuth token secret
     """
     with open(filename, "w") as oauth_file:
-        print(oauth_token, file=oauth_file)
-        print(oauth_token_secret, file=oauth_file)
+        oauth_file.write(oauth_token + "\n")
+        oauth_file.write(oauth_token_secret + "\n")
 
 
 def read_token_file(filename: str | Path) -> tuple[str, str]:
