@@ -74,6 +74,7 @@ def get_schedules():
 
         # Parse options from cron expression
         # Format: "*/15 * * * *" or "*/15 * * * * | grace=7200 coalesce=false"
+        # Shell jobs: "*/15 * * * * | cmd=shell command here"  (cmd= must be last)
         parts = cron_expr.split("|")
         cron = parts[0].strip()
 
@@ -83,7 +84,13 @@ def get_schedules():
         }
 
         if len(parts) > 1:
-            for opt in parts[1].split():
+            opts_str = parts[1].strip()
+            # cmd= must be last since its value may contain spaces
+            if "cmd=" in opts_str:
+                before_cmd, cmd_value = opts_str.split("cmd=", 1)
+                options["command"] = cmd_value.strip()
+                opts_str = before_cmd
+            for opt in opts_str.split():
                 if "=" in opt:
                     key, value = opt.split("=", 1)
                     if key == "grace":
@@ -148,10 +155,12 @@ def add_jobs(scheduler):
             logger.error(f"Invalid cron expression for {job_name}: {cron} - {e}")
             continue
 
-        # Check if it's a shell command (starts with !)
         if job_name.startswith("!"):
             actual_name = job_name[1:]
-            command = cron  # For shell commands, cron is actually the command
+            command = job_config.get("command")
+            if not command:
+                logger.error(f"Shell job '{actual_name}' has no cmd= option, skipping")
+                continue
             scheduler.add_job(
                 run_shell_command,
                 trigger=trigger,
