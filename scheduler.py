@@ -94,7 +94,13 @@ def get_schedules():
                 if "=" in opt:
                     key, value = opt.split("=", 1)
                     if key == "grace":
-                        options["misfire_grace_time"] = int(value)
+                        try:
+                            options["misfire_grace_time"] = int(value)
+                        except ValueError:
+                            logger.warning(
+                                f"Invalid grace time '{value}' for job {job_name}, "
+                                f"using default {DEFAULT_MISFIRE_GRACE_TIME}s"
+                            )
                     elif key == "coalesce":
                         options["coalesce"] = value.lower() == "true"
 

@@ -20,6 +20,11 @@ from lifestream.core import (
 )
 
 
+class ConfigurationError(Exception):
+    """Raised when required configuration is missing or invalid."""
+    pass
+
+
 class BaseImporter(ABC):
     """
     Base class for all Lifestream importers.
@@ -131,10 +136,9 @@ class BaseImporter(ABC):
                 missing.append(key)
 
         if missing:
-            self.logger.error(
+            raise ConfigurationError(
                 f"Missing required config keys in [{section}]: {', '.join(missing)}"
             )
-            sys.exit(5)
 
         return values
 
@@ -201,6 +205,9 @@ class BaseImporter(ABC):
 
             return 0
 
+        except ConfigurationError as e:
+            self.logger.error(str(e))
+            return 5
         except KeyboardInterrupt:
             self.logger.warning("Import interrupted by user")
             return 130
@@ -242,8 +249,7 @@ class FeedImporter(BaseImporter):
             return self.feed_url
         url = self.get_config("feed_url")
         if not url:
-            self.logger.error("No feed URL configured")
-            sys.exit(5)
+            raise ConfigurationError(f"No feed_url configured in [{self.config_section or self.name}]")
         return url
 
     def process_entry(self, entry: dict[str, Any]) -> None:

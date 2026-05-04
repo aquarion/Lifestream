@@ -17,6 +17,8 @@ from lifestream.core.config import (
 from lifestream.core.logging import setup_logging, get_logger
 from lifestream.core.db import EntryStore, get_connection, get_cursor
 from lifestream.core.cache import get_redis_connection, file_cache
+from lifestream.core.oauth_utils import read_token_file, write_token_file
+from lifestream.core.notifications import send_failure_notifications
 from lifestream.core.utils import (
     niceTimeDelta,
     yearsago,
@@ -25,6 +27,9 @@ from lifestream.core.utils import (
     convertNiceTime,
     AnAttributeError,
 )
+# Expose core submodules so tests and callers can do `from lifestream import cache`
+from lifestream.core import cache, db, jobs, notifications
+
 __all__ = [
     # Config
     "config",
@@ -53,4 +58,9 @@ __all__ = [
     "write_token_file",
     # Notifications
     "send_failure_notifications",
+    # Core submodules
+    "cache",
+    "db",
+    "jobs",
+    "notifications",
 ]
