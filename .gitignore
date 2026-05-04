@@ -20,3 +20,4 @@ datafiles/ffxiv_achievements.*
 .mypy_cache/
 super-linter-output/
 poetry.lock
+.claude/settings.local.json
