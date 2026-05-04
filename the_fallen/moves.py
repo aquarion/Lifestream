@@ -1,6 +1,4 @@
-##
-
-#!/usr/bin/python
+# archived
 # Python
 import logging
 import pickle
@@ -8,12 +6,13 @@ import socket
 import sys
 from datetime import datetime, timedelta
 
-# Local
-import lifestream
 import pytz
 
 # Libraries
 import requests
+
+# Local
+import lifestream
 from lifestream import code_fetcher as CodeFetcher9000
 from lifestream.db import EntryStore
 
@@ -44,12 +43,14 @@ OAUTH_FILENAME = "%s/moves.oauth" % (lifestream.get_credentials_dir())
 APP_KEY = lifestream.config.get("moves", "key")
 APP_SECRET = lifestream.config.get("moves", "secret")
 
-FoursquareAPI = lifestream.FoursquareAPI(Lifestream)
+FoursquareAPI = lifestream.FoursquareAPI(Lifestream)  # noqa: F821 - archived code
 
 # authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
 
-def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
+def authenticate(  # noqa: C901 - archived code
+    OAUTH_FILENAME, appid, secret, force_reauth=False
+):
 
     scope = "activity+location"
     request_token_url = (
@@ -62,7 +63,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             f = open(OAUTH_FILENAME, "rb")
             oauth_token = pickle.load(f)
             f.close()
-        except:
+        except Exception:
             logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
             oauth_token = False
     else:
@@ -76,7 +77,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
         try:
             "{}/keyback/wow.py".format(lifestream.config.get("dayze", "base")),
             UseCodeFetcher = False
-        except ConfigParser.Error:
+        except ConfigParser.Error:  # noqa: F821 - archived code
             logger.error("Dayze base not configured")
             print(
                 "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
@@ -157,7 +158,7 @@ def dt_parse(t):
     return ret.replace(tzinfo=pytz.UTC)
 
 
-def process_day(day):
+def process_day(day):  # noqa: C901 - archived code
     events_count = 0
     logger.info("----" + day["date"])
     if day["segments"]:
@@ -192,7 +193,7 @@ def process_day(day):
                             name = top_match["name"]
                         else:
                             raise Exception("Not found")
-                    except:
+                    except Exception:
                         logger.info(
                             "Moves: %s %s  (Nope)"
                             % (place["location"]["lat"], place["location"]["lon"])
