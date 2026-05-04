@@ -2,11 +2,10 @@
 
 import argparse
 import configparser
-import sys
 
 import mastodon as mastodonpy
 
-from lifestream.importers.base import BaseImporter
+from lifestream.importers.base import BaseImporter, ConfigurationError
 from lifestream.core import config, force_json
 
 
@@ -63,11 +62,9 @@ class MastodonImporter(BaseImporter):
             client_secret = config.get(section, "client_secret")
             access_token = config.get(section, "access_token")
         except configparser.NoSectionError:
-            self.logger.error(f"No [{section}] section found in config")
-            sys.exit(5)
+            raise ConfigurationError(f"No [{section}] section found in config")
         except configparser.NoOptionError as e:
-            self.logger.error(str(e))
-            sys.exit(5)
+            raise ConfigurationError(str(e))
 
         mastodon = mastodonpy.Mastodon(
             client_id=client_key,
@@ -81,8 +78,7 @@ class MastodonImporter(BaseImporter):
 
         how_are_you = mastodon.instance_health()
         if not how_are_you:
-            self.logger.error(f"{site} is not fine")
-            sys.exit(5)
+            raise ConfigurationError(f"{site} instance health check failed")
 
         me = mastodon.me()
         last_seen = False
@@ -130,8 +126,7 @@ class MastodonImporter(BaseImporter):
         sites = self.get_sites()
 
         if not sites:
-            self.logger.error("No Mastodon sites configured")
-            return
+            raise ConfigurationError("No Mastodon sites configured — add [mastodon:sitename] sections to config.ini")
 
         for site in sites:
             self.logger.info(f"Processing site: {site}")

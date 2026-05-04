@@ -4,7 +4,6 @@ import logging
 
 import flickrapi
 
-from lifestream.core.db import get_connection, get_cursor
 from lifestream.importers.base import BaseImporter
 
 
@@ -48,14 +47,12 @@ class FlickrImporter(BaseImporter):
         api_key = self.get_config("api_key")
         flickr_id = self.get_config("account")
 
-        dbcxn = get_connection()
-        cursor = get_cursor(dbcxn)
-
-        # Only search from the most recent result
-        sql = 'select date_created from lifestream where type = "flickr" order by date_created desc limit 1'
-        cursor.execute(sql)
-        res = cursor.fetchone()
-        since = res[0] if res else 0
+        since = 0
+        if not self.entry_store.no_db:
+            sql = 'select date_created from lifestream where type = "flickr" order by date_created desc limit 1'
+            self.entry_store.cursor.execute(sql)
+            res = self.entry_store.cursor.fetchone()
+            since = res[0] if res else 0
 
         flickr = flickrapi.FlickrAPI(api_key)
         photos_xml = flickr.photos_search(
@@ -67,7 +64,6 @@ class FlickrImporter(BaseImporter):
 
         if pages == 0:
             self.logger.info("Nothing found")
-            dbcxn.close()
             return
 
         if self.MAX_PAGES and pages > self.MAX_PAGES:
@@ -112,8 +108,6 @@ class FlickrImporter(BaseImporter):
                     date=date_taken,
                     image=image,
                 )
-
-        dbcxn.close()
 
 
 def main():
