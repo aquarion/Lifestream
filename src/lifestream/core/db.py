@@ -1,8 +1,8 @@
 """Database functionality for Lifestream."""
 
-from datetime import datetime
 import json
 import warnings
+from datetime import datetime
 
 import pymysql as MySQLdb
 import pymysql.cursors

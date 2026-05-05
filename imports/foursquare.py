@@ -7,10 +7,11 @@ import re
 import sys
 from datetime import datetime, timezone
 
-# Local
-import lifestream
 import requests
 from httplib2 import Http
+
+# Local
+import lifestream
 from lifestream.db import EntryStore, get_connection, get_cursor
 from lifestream.oauth_utils import read_token_file, write_token_file
 

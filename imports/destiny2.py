@@ -10,13 +10,13 @@ import time
 from datetime import datetime, timedelta
 
 import dateutil.parser
-
-# Local
-import lifestream
 import pytz
 
 # Libraries
 import requests
+
+# Local
+import lifestream
 from lifestream import code_fetcher as CodeFetcher9000
 from lifestream import destiny_exceptions
 from lifestream.cache import check_and_set_backoff, set_backoff, should_backoff
@@ -52,7 +52,9 @@ APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
 # authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
 
-def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False):  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+def authenticate(  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+    OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False
+):
 
     request_token_url = (
         "https://www.bungie.net/en/oauth/authorize?client_id=%s&response_type=code&state=6i0mkLx79Hp91nzWVceHrzHG4"
@@ -64,7 +66,9 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
             f = open(OAUTH_FILENAME, "rb")
             oauth_token = pickle.load(f)
             f.close()
-        except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+        except (
+            Exception
+        ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
             logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
             oauth_token = False
     else:
@@ -167,7 +171,9 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
         if oauth_token["error"] == "DestinyThrottledByGameServer":
             set_backoff("destiny2:api_error:throttled")
 
-        ttl = check_and_set_backoff("destiny2:api_error:{}".format(oauth_token["error"]))
+        ttl = check_and_set_backoff(
+            "destiny2:api_error:{}".format(oauth_token["error"])
+        )
         message = "Error refreshing token: {}".format(oauth_token["error"])
         if ttl:
             logger.warning(message)

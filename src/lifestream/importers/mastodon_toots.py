@@ -5,8 +5,8 @@ import configparser
 
 import mastodon as mastodonpy
 
-from lifestream.importers.base import BaseImporter, ConfigurationError
 from lifestream.core import config, force_json
+from lifestream.importers.base import BaseImporter, ConfigurationError
 
 
 class MastodonImporter(BaseImporter):
@@ -126,7 +126,9 @@ class MastodonImporter(BaseImporter):
         sites = self.get_sites()
 
         if not sites:
-            raise ConfigurationError("No Mastodon sites configured — add [mastodon:sitename] sections to config.ini")
+            raise ConfigurationError(
+                "No Mastodon sites configured — add [mastodon:sitename] sections to config.ini"
+            )
 
         for site in sites:
             self.logger.info(f"Processing site: {site}")

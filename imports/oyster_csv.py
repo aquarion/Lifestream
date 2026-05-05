@@ -5,9 +5,10 @@ import hashlib
 import logging
 from datetime import datetime
 
+import pytz
+
 # Local
 import lifestream
-import pytz
 from lifestream.db import EntryStore
 
 # Libraries

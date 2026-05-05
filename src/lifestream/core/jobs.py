@@ -37,6 +37,7 @@ def run_import(job_name: str) -> None:
         # not from inside the importer's run() method
         try:
             from lifestream.importers import IMPORTERS
+
             importer_cls = IMPORTERS.get(job_name)
         except ImportError:
             importer_cls = None  # Package not available, fall through to legacy

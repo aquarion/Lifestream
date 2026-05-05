@@ -7,13 +7,13 @@ import sys
 from urllib.error import URLError
 
 import dateutil.parser
-
-# Local
-import lifestream
 import pytz
 
 # Libraries
 import twitter
+
+# Local
+import lifestream
 from lifestream.db import EntryStore
 from lifestream.oauth_utils import read_token_file
 

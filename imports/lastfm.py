@@ -8,10 +8,10 @@ import sys
 
 import dateutil.parser
 import feedparser
+import pytz
 
 # Local
 import lifestream
-import pytz
 from lifestream.db import EntryStore
 
 logger = logging.getLogger("Last.FM")

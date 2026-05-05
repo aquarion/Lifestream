@@ -6,11 +6,11 @@ import logging
 import sys
 from datetime import datetime
 
-# Local
-import lifestream
-
 # Libraries
 import requests
+
+# Local
+import lifestream
 from lifestream.cache import check_and_set_backoff
 from lifestream.db import EntryStore
 
