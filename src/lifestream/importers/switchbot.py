@@ -32,7 +32,7 @@ class SwitchBotAPI:
 
         if method == "post":
             headers["content-type"] = "application/json; charset=utf8"
-            r = requests.post(url, data=data, headers=headers)
+            r = requests.post(url, json=data, headers=headers)
         elif method == "get":
             r = requests.get(url, params=data, headers=headers)
         else:

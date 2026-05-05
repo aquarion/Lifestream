@@ -63,7 +63,7 @@ def _connect(site):
         logger.error("No [mastodon:%s] section found in config" % site)
         sys.exit(5)
     except configparser.NoOptionError as e:
-        logger.error(e.message)
+        logger.error(str(e))
         sys.exit(5)
     return mastodonpy.Mastodon(
         client_id=client_key,
