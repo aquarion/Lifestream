@@ -52,9 +52,14 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         request_token = dict(urllib.parse.parse_qsl(content))
         print("Go to the following link in your browser:")
+        # intentional: user must visit this URL to complete OAuth flow
         print(
-            "%s?oauth_token=%s" % (authorize_url, request_token["oauth_token"])
-        )  # codeql[py/clear-text-logging-sensitive-data] - intentional: user must visit this URL to complete OAuth flow
+            "%s?oauth_token=%s"
+            % (
+                authorize_url,
+                request_token["oauth_token"],
+            )  # codeql[py/clear-text-logging-sensitive-data]
+        )
         print()
 
         accepted = "n"
