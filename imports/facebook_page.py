@@ -11,10 +11,10 @@ from datetime import datetime, timedelta
 
 # Libraries
 import facebook
+import requests
 
 # Local
 import lifestream
-import requests
 from lifestream import code_fetcher as CodeFetcher9000
 from lifestream.db import EntryStore
 
@@ -70,7 +70,9 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             f = open(OAUTH_FILENAME, "rb")
             oauth_token = pickle.load(f)
             f.close()
-        except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+        except (
+            Exception
+        ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
             logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
             oauth_token = False
     else:

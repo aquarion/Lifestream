@@ -8,12 +8,12 @@ from datetime import datetime
 
 import bs4
 
-# Local
-import lifestream
-
 # Libraries
 import requests
 import simplejson
+
+# Local
+import lifestream
 from lifestream.db import EntryStore
 
 entry_store = EntryStore()

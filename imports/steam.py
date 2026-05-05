@@ -4,10 +4,11 @@ import hashlib
 import logging
 from datetime import datetime
 
-# Local
-import lifestream
 import pytz
 import requests
+
+# Local
+import lifestream
 from lifestream.db import EntryStore
 from lifestream.steam_api import SteamAPI
 
@@ -32,7 +33,7 @@ STEAMTIME = pytz.timezone("US/Pacific")
 USER = lifestream.config.get("steam", "username")
 
 
-if __name__ == "__main__":  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+if __name__ == "__main__":  # noqa: C901
     steam_cxn = SteamAPI()
     if args.catchup:
         logger.info("CATCHUP MODE: Fetching all achievements.")
@@ -115,9 +116,7 @@ if __name__ == "__main__":  # noqa: C901 - complexity tracked in https://github.
                     else:
                         logger.info("           + Adding Achievement to entry_store.")
 
-                    statsPage = (
-                        f"https://steamcommunity.com/id/{USER}/stats/{appid}/?tab=achievements"
-                    )
+                    statsPage = f"https://steamcommunity.com/id/{USER}/stats/{appid}/?tab=achievements"
 
                     entry_store.add_entry(
                         "achievement",

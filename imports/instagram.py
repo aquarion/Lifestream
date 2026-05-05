@@ -8,9 +8,10 @@ import sys
 from datetime import datetime
 from pprint import pprint
 
+from InstagramAPI import InstagramAPI
+
 # Local
 import lifestream
-from InstagramAPI import InstagramAPI
 from lifestream.db import EntryStore
 
 entry_store = EntryStore()
@@ -28,7 +29,7 @@ api = InstagramAPI(
     lifestream.config.get("instagram", "username"),
     lifestream.config.get("instagram", "password"),
 )
-if api.login():  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+if api.login():  # noqa: C901
     if args.all:
         feed = api.getTotalSelfUserFeed()  # get self user feed
     else:

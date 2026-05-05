@@ -83,7 +83,9 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             f = open(OAUTH_FILENAME, "rb")
             oauth_token = pickle.load(f)
             f.close()
-        except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+        except (
+            Exception
+        ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
             logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
             oauth_token = False
     else:
@@ -120,13 +122,40 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     return oauth_token
 
 
-def some_action(post, profile):
-
+def _load_filters():
     visible_filters = lifestream.config.get("facebook", "visible_filters")
+    filters = {k: v for k, v in lifestream.config.items("facebook:filters")}
+    return filters, visible_filters
 
-    filters = {}
-    for key, value in lifestream.config.items("facebook:filters"):
-        filters[key] = value
+
+def _post_is_visible(post, url, filters, visible_filters):
+    privacy = post["privacy"]["value"]
+    if privacy != "CUSTOM":
+        logger.info("... %s privacy post, vote KEEP" % privacy)
+        return True
+    if not post["privacy"]["allow"]:
+        logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
+        return False
+    post_filter_ids = set(post["privacy"]["allow"].split(","))
+    filter_ids = set(filters.keys())
+    if not filter_ids.intersection(post_filter_ids):
+        logger.error(
+            "[ERROR] on %s - List ID %s not known" % (url, post["privacy"]["allow"])
+        )
+        return False
+    for filter_id in list(post_filter_ids):
+        if filter_id not in filters:
+            logger.info("... Filter ID %s unidentified" % filter_id)
+        elif filters[filter_id] in visible_filters:
+            logger.info("... [%s] filter post, vote KEEP" % filters[filter_id])
+        else:
+            logger.info("... [%s] filter post, vote HIDE" % filters[filter_id])
+            return False
+    return True
+
+
+def some_action(post, profile):
+    filters, visible_filters = _load_filters()
 
     if (
         "application" in post
@@ -138,57 +167,22 @@ def some_action(post, profile):
     if post["privacy"]["value"] == "SELF":
         return
 
-    if "picture" in post:
-        image = post["picture"]
-    else:
-        image = False
-
-    if "message" not in post:
-        post["message"] = ""
-
-    show = True
+    image = post.get("picture", False)
+    post.setdefault("message", "")
 
     url = "https://www.facebook.com/%s/posts/%s" % (
         profile["id"],
         post["id"].split("_")[1],
     )
 
-    post_filter_ids = set(post["privacy"]["allow"].split(","))
-    filter_ids = set(filters.keys())
-
-    # '2020-03-17T10:27:08+0000
     dt = dtparser.parse(post["created_time"])
-
     logger.info("New Post: %s " % post["message"][0:60])
 
-    if post["privacy"]["value"] == "CUSTOM":
-        if not post["privacy"]["allow"]:
-            logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
-        elif len(filter_ids.intersection(post_filter_ids)):
-            for filter_id in list(post_filter_ids):
-                if filter_id not in filters:
-                    logger.info("... Filter ID %s unidentified" % filter_id)
-
-                elif filters[filter_id] in visible_filters:
-                    logger.info("... [%s] filter post, vote KEEP" % filters[filter_id])
-                    # show = True
-                    pass
-                else:
-                    logger.info("... [%s] filter post, vote HIDE" % filters[filter_id])
-                    show = False
-        else:
-            logger.error(
-                "[ERROR] on %s - List ID %s not known" % (url, post["privacy"]["allow"])
-            )
-            show = False
-    else:
-        logger.info("... %s privacy post, vote KEEP" % post["privacy"]["value"])
-
-    if show:
-        logger.info("... KEEP carries")
-    else:
+    if not _post_is_visible(post, url, filters, visible_filters):
         logger.info("... HIDE carries")
         return
+
+    logger.info("... KEEP carries")
 
     # entry_store.add_entry(
     #     post['type'],
