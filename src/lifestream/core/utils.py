@@ -97,7 +97,7 @@ def force_json(incoming):
             return str(incoming)
 
 
-def niceTimeDelta(  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+def niceTimeDelta(  # noqa: C901
     delta_object: timedelta | int | float,
     format: str = "decimal",
 ) -> str:
