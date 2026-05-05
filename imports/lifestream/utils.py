@@ -98,8 +98,15 @@ def force_json(incoming):
             return str(incoming)
 
 
-def niceTimeDelta(delta_object, format="decimal"):  # noqa: C901
+def _format_unit(value, singular, plural, trailing=", "):
+    if int(value) == 1:
+        return "1 %s%s" % (singular, trailing)
+    if value > 1:
+        return "%s %s%s" % (value, plural, trailing)
+    return ""
 
+
+def niceTimeDelta(delta_object, format="decimal"):
     if isinstance(delta_object, (int, float)):
         delta_object = timedelta(seconds=int(delta_object))
 
@@ -107,49 +114,22 @@ def niceTimeDelta(delta_object, format="decimal"):  # noqa: C901
     days = delta_object.days
     hours = delta_object.seconds // 3600
     minutes = (delta_object.seconds // 60) % 60
+
     if days > 365:
         years = int(days / 365)
         days = int(days % 365)
 
-    if int(years) == 1:
-        years_message = "1 year, "
-    elif years > 1:
+    years_message = _format_unit(years, "year", "years") if years else ""
+    if years_message and years > 1:
         years_message = "%s years, " % convertNiceTime(years, format)
-    else:
-        years_message = ""
 
     if days < 7 and years == 0:
         hours = hours + (24 * days)
         days = 0
 
-    # if (hours < 48 and years == 0 and days < 3):
-    #   minutes = minutes + (60*hours)
-    #   hours = 0;
-
-    if int(days) == 1:
-        days_message = "1 day, "
-    elif days > 1:
-        days_message = "%s days, " % days
-    else:
-        days_message = ""
-
-    if int(hours) == 1:
-        hours_message = "1 hour, "
-    elif hours > 1:
-        hours_message = "%s hours, " % hours
-    else:
-        hours_message = ""
-
-    if int(minutes) == 1:
-        minutes_message = "1 minute"
-    elif minutes > 1:
-        minutes_message = "%s minutes" % minutes
-    else:
-        minutes_message = ""
+    days_message = _format_unit(days, "day", "days")
+    hours_message = _format_unit(hours, "hour", "hours")
+    minutes_message = _format_unit(minutes, "minute", "minutes", trailing="")
 
     string = years_message + days_message + hours_message + minutes_message
-
-    if string == "":
-        return "seconds"
-    else:
-        return string
+    return string if string else "seconds"

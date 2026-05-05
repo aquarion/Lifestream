@@ -86,8 +86,15 @@ def get_all_my_achievements(api):
     return achievements_library
 
 
-def run_import():  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+def _get_icon(achievement):
+    if "icon" in achievement["info"]:
+        return achievement["info"]["icon"]
+    if "category" in achievement:
+        return achievement["category"]["icon"]
+    return "https://wiki.guildwars2.com/images/d/d9/Retired_Achievements.png"
 
+
+def run_import():
     try:
         achievements_library = get_all_my_achievements(api)
     except GuildWars2APIError as e:
@@ -110,14 +117,7 @@ def run_import():  # noqa: C901 - complexity tracked in https://github.com/aquar
         if "info" not in achievement:
             continue
 
-        icon = False
-        if "icon" in achievement["info"]:
-            icon = achievement["info"]["icon"]
-        elif "category" in achievement:
-            icon = achievement["category"]["icon"]
-        else:
-            icon = "https://wiki.guildwars2.com/images/d/d9/Retired_Achievements.png"
-
+        icon = _get_icon(achievement)
         if not icon:
             logger.warn(achievement["info"]["name"], " - has no icon")
 
@@ -126,11 +126,7 @@ def run_import():  # noqa: C901 - complexity tracked in https://github.com/aquar
             + " &ndash; "
             + achievement["info"]["requirement"]
         )
-
         logger.info(text)
-
-        #     id = hashlib.md5()
-        # id.update(text)
         entry_store.add_entry(
             "achievement", ident, text, "Guild Wars 2", datetime.now(), image=icon
         )

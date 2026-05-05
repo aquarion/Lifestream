@@ -31,7 +31,70 @@ STEAMTIME = pytz.timezone("US/Pacific")
 USER = lifestream.config.get("steam", "username")
 
 
-if __name__ == "__main__":  # noqa: C901
+def process_achievement(appid, name, player_achievement, game_achievements):
+    ach_id = player_achievement["apiname"]
+    game_achievement = game_achievements.get(ach_id, {})
+    ach_name = game_achievement.get("displayName", "Unknown Achievement")
+    message = "%s &ndash; %s" % (name, ach_name)
+    achieved_date = datetime.fromtimestamp(player_achievement["unlocktime"])
+    openImage = game_achievement.get("icon", None)
+
+    logger.info(message)
+
+    id = hashlib.md5()
+    id.update(f"{appid}-{ach_id}".encode("utf-8"))
+
+    entry = entry_store.get_by_title("achievement", message)
+    if entry and not entry["systemid"] == id.hexdigest():
+        logger.info("           + Achievement already in Lifestream, deleting.")
+        logger.info(f"             + Entry ID: {entry['title']}")
+        entry_store.delete_entry(entry["type"], entry["systemid"])
+    else:
+        logger.info("           + Adding Achievement to entry_store.")
+
+    statsPage = f"https://steamcommunity.com/id/{USER}/stats/{appid}/?tab=achievements"
+    entry_store.add_entry(
+        "achievement",
+        id.hexdigest(),
+        message,
+        "steam",
+        achieved_date,
+        url=statsPage,
+        image=openImage,
+    )
+
+
+def process_game(steam_cxn, game):
+    appid = game["appid"]
+    name = game["name"]
+    playtime_2weeks = game.get("playtime_2weeks", 0)
+    playtime_forever = game["playtime_forever"]
+    logger.info(
+        f"Played {name}: {playtime_2weeks} mins in last 2 weeks, {playtime_forever} mins total."
+    )
+
+    try:
+        player_achievements = steam_cxn.get_player_achievements(appid)
+    except requests.HTTPError as e:
+        logger.warning(f"Error fetching achievements for {name} ({appid}): {e}")
+        return
+
+    unsorted = steam_cxn.get_game_achievements(appid)
+    stats = unsorted["game"].get("availableGameStats", {})
+    if "achievements" not in stats:
+        logger.info(f"   + No achievements found for {name} ({appid}).")
+        return
+
+    game_achievements = {a["name"]: a for a in stats["achievements"]}
+
+    for player_achievement in player_achievements.get("playerstats", {}).get(
+        "achievements", []
+    ):
+        if player_achievement["achieved"] == 1:
+            process_achievement(appid, name, player_achievement, game_achievements)
+
+
+def main():
     steam_cxn = SteamAPI()
     if args.catchup:
         logger.info("CATCHUP MODE: Fetching all achievements.")
@@ -45,83 +108,8 @@ if __name__ == "__main__":  # noqa: C901
     )
 
     for game in games["response"]["games"]:
-        appid = game["appid"]
-        name = game["name"]
-        playtime_2weeks = game.get("playtime_2weeks", 0)
-        playtime_forever = game["playtime_forever"]
+        process_game(steam_cxn, game)
 
-        text = f"Played {name}: {playtime_2weeks} mins in last 2 weeks, {playtime_forever} mins total."
-        logger.info(text)
 
-        try:
-            player_achievements = steam_cxn.get_player_achievements(appid)
-        except requests.HTTPError as e:
-            logger.warning(f"Error fetching achievements for {name} ({appid}): {e}")
-            continue
-
-        unsorted_game_achievements = steam_cxn.get_game_achievements(appid)
-
-        game_achievements = {}
-        if (
-            "availableGameStats" not in unsorted_game_achievements["game"]
-            or "achievements"
-            not in unsorted_game_achievements["game"]["availableGameStats"]
-        ):
-            logger.info(f"   + No achievements found for {name} ({appid}).")
-            continue
-
-        for achievement in unsorted_game_achievements["game"]["availableGameStats"][
-            "achievements"
-        ]:
-            game_achievements[achievement["name"]] = achievement
-
-        if (
-            "playerstats" in player_achievements
-            and "achievements" in player_achievements["playerstats"]
-        ):
-            for player_achievement in player_achievements["playerstats"][
-                "achievements"
-            ]:
-                if player_achievement["achieved"] == 1:
-                    ach_id = player_achievement["apiname"]
-                    game_achievement = game_achievements.get(ach_id, {})
-                    ach_name = game_achievement.get(
-                        "displayName", "Unknown Achievement"
-                    )
-                    text_ach = f"Earned achievement in {name}: {ach_id}"
-
-                    message = "%s &ndash; %s" % (name, ach_name)
-
-                    achieved_date = datetime.fromtimestamp(
-                        player_achievement["unlocktime"]
-                    )
-
-                    logger.info(message)
-
-                    closedImage = game_achievement.get("icongray", None)
-                    openImage = game_achievement.get("icon", None)
-
-                    id = hashlib.md5()
-                    id.update(f"{appid}-{ach_id}".encode("utf-8"))
-
-                    entry = entry_store.get_by_title("achievement", message)
-                    if entry and not entry["systemid"] == id.hexdigest():
-                        logger.info(
-                            "           + Achievement already in Lifestream, deleting."
-                        )
-                        logger.info(f"             + Entry ID: {entry['title']}")
-                        entry_store.delete_entry(entry["type"], entry["systemid"])
-                    else:
-                        logger.info("           + Adding Achievement to entry_store.")
-
-                    statsPage = f"https://steamcommunity.com/id/{USER}/stats/{appid}/?tab=achievements"
-
-                    entry_store.add_entry(
-                        "achievement",
-                        id.hexdigest(),
-                        message,
-                        "steam",
-                        achieved_date,
-                        url=statsPage,
-                        image=openImage,
-                    )
+if __name__ == "__main__":
+    main()

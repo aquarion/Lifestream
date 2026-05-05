@@ -40,23 +40,33 @@ entry_store = EntryStore()
 logger = logging.getLogger("Wordpress")
 
 
-for site in sites:  # noqa: C901
-    source = site
-    type = "wordpress"
-    logger.info(site)
+def _post_title(post):
+    if len(post.title):
+        return post.title
+    if post.excerpt:
+        return post.excerpt
+    return "[Untitled Post]"
+
+
+def _connect(site):
     try:
-        url = lifestream.config.get("wordpress:%s" % source, "url")
-        user = lifestream.config.get("wordpress:%s" % source, "username")
-        passwd = lifestream.config.get("wordpress:%s" % source, "password")
+        url = lifestream.config.get("wordpress:%s" % site, "url")
+        user = lifestream.config.get("wordpress:%s" % site, "username")
+        passwd = lifestream.config.get("wordpress:%s" % site, "password")
     except configparser.NoSectionError:
-        logger.error("No [wordpress:%s] section found in config" % source)
-        continue
+        logger.error("No [wordpress:%s] section found in config" % site)
+        return None
     except configparser.NoOptionError as e:
         logger.error(e.message)
-        continue
+        return None
+    return Client(url, user, passwd)
 
-    wp = Client(url, user, passwd)
 
+def process_site(site):
+    logger.info(site)
+    wp = _connect(site)
+    if not wp:
+        return
     this_page = 0
     keep_going = True
 
@@ -65,34 +75,25 @@ for site in sites:  # noqa: C901
         try:
             posts = wp.call(GetPosts(options))
         except wordpress_exceptions.InvalidCredentialsError as e:
-            logger.error("Invalid credentials for %s: %s" % (source, str(e)))
-            keep_going = False
-            continue
+            logger.error("Invalid credentials for %s: %s" % (site, str(e)))
+            break
+
         for post in posts:
-            if len(post.title):
-                title = post.title
-            elif post.excerpt:
-                title = post.excerpt
-            else:
-                title = "[Untitled Post]"
-
-            if post.thumbnail and "link" in post.thumbnail:
-                thumbnail = post.thumbnail["link"]
-            else:
-                thumbnail = ""
-
+            thumbnail = (
+                post.thumbnail["link"]
+                if post.thumbnail and "link" in post.thumbnail
+                else ""
+            )
             entry_store.add_entry(
                 id=post.guid,
-                title=title,
-                source=source,
+                title=_post_title(post),
+                source=site,
                 date=post.date.strftime("%Y-%m-%d %H:%M"),
                 url=post.link,
                 image=thumbnail,
-                # fulldata_json=post.struct,
-                type=type,
+                type="wordpress",
             )
-
-            logger.info("%s: %s" % (post.date.strftime("%Y-%m-%d"), title))
+            logger.info("%s: %s" % (post.date.strftime("%Y-%m-%d"), _post_title(post)))
 
         if not len(posts):
             keep_going = False
@@ -104,3 +105,7 @@ for site in sites:  # noqa: C901
             logger.info("Page %d of max %d" % (this_page, args.max_pages))
         else:
             logger.info("Next Page...")
+
+
+for site in sites:
+    process_site(site)

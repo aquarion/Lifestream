@@ -342,8 +342,46 @@ profile = api.get_profile()
 
 # Check age of app
 
+
+def _catchup_character(character):
+    try:
+        character_data = api.get_character(
+            character["name"], character["realm"], ["achievements", "feed"]
+        )
+    except BlizzardCharacterNotFound:
+        logger.warning(
+            "404 getting %s L%d %s"
+            % (character["name"], character["level"], character["class"])
+        )
+        return
+
+    completed = character_data["achievements"]["achievementsCompleted"]
+    completed_ts = character_data["achievements"]["achievementsCompletedTimestamp"]
+    for index in range(0, len(completed)):
+        try:
+            achievement = api.get_achievement(completed[index])
+            log_achievement(achievement, completed_ts[index], character)
+        except BlizzardAchivementNotFound:
+            logger.warning("Achievement {} not found".format(achievement))
+
+
+def _sync_character(character, since_login):
+    if since_login > 7:
+        logger.debug("{} is > 7 days since login, skipping".format(since_login))
+        return
+
+    character_data = api.get_character(
+        character["name"], character["realm"], ["achievements", "feed"]
+    )
+    for item in character_data["feed"]:
+        if item["type"] == "ACHIEVEMENT":
+            log_achievement(item["achievement"], item["timestamp"], character)
+        elif item["type"] not in ("LOOT", "BOSSKILL", "CRITERIA"):
+            pprint(item)
+
+
 ##########
-for character in profile["characters"]:  # noqa: C901
+def process_character(character):
     logger.info(
         "%s!%s L%d %s"
         % (
@@ -353,50 +391,14 @@ for character in profile["characters"]:  # noqa: C901
             character["class"],
         )
     )
-    # pprint(character)
-    # Achievement( apikey='Your key', region='us',achievement="" )
-
     modified = datetime.fromtimestamp(character["lastModified"] / 1000)
     since_login = (datetime.now() - modified).days
 
     if args.catchup:
-
-        try:
-            character_data = api.get_character(
-                character["name"], character["realm"], ["achievements", "feed"]
-            )
-        except BlizzardCharacterNotFound:
-            logger.warning(
-                "404 getting %s L%d %s"
-                % (character["name"], character["level"], character["class"])
-            )
-            continue
-
-        completed = character_data["achievements"]["achievementsCompleted"]
-        completed_ts = character_data["achievements"]["achievementsCompletedTimestamp"]
-        for index in range(0, len(completed)):
-            # print index, completed[index], completed_ts[index]
-            try:
-                achievement = api.get_achievement(completed[index])
-                log_achievement(achievement, completed_ts[index], character)
-            except BlizzardAchivementNotFound:
-                logger.warning("Achievement {} not found".format(achievement))
+        _catchup_character(character)
     else:
+        _sync_character(character, since_login)
 
-        if since_login > 7:
-            logger.debug("{} is > 7 days since login, skipping".format(since_login))
-            continue
 
-        character_data = api.get_character(
-            character["name"], character["realm"], ["achievements", "feed"]
-        )
-
-        for item in character_data["feed"]:
-            if item["type"] in ("ACHIEVEMENT"):
-                # pprint(item)
-                log_achievement(item["achievement"], item["timestamp"], character)
-
-            elif item["type"] in ("LOOT", "BOSSKILL", "CRITERIA"):
-                pass
-            else:
-                pprint(item)
+for character in profile["characters"]:
+    process_character(character)
