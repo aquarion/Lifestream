@@ -7,13 +7,13 @@ from datetime import datetime
 
 import bs4
 
+# Local
+import lifestream_legacy as lifestream
+
 # Libraries
 import requests
 import simplejson
-
-# Local
-import lifestream
-from lifestream.db import EntryStore
+from lifestream_legacy.db import EntryStore
 
 entry_store = EntryStore()
 

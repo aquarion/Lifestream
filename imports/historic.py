@@ -7,16 +7,15 @@ import pickle as pickle
 # Python
 import urllib.parse
 
+# Local
+import lifestream_legacy as lifestream
 import oauth2 as oauth
 import simplejson
 from dateutil.relativedelta import relativedelta
+from lifestream_legacy.db import EntryStore, get_connection, get_cursor
 
 # Libraries
 from pytumblr import TumblrRestClient
-
-# Local
-import lifestream
-from lifestream.db import EntryStore, get_connection, get_cursor
 
 entry_store = EntryStore()
 

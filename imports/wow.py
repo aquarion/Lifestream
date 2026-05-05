@@ -9,16 +9,15 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
+# Local
+import lifestream_legacy as lifestream
 import pytz
 import requests
+from lifestream_legacy import code_fetcher as CodeFetcher9000
+from lifestream_legacy.db import EntryStore
 from oauthlib.oauth2 import BackendApplicationClient
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
-
-# Local
-import lifestream
-from lifestream import code_fetcher as CodeFetcher9000
-from lifestream.db import EntryStore
 
 SCOPE = [
     "wow.profile",

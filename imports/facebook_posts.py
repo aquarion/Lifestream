@@ -8,16 +8,16 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
+# Local
+import lifestream_legacy as lifestream
+
 # Libraries
 import pymysql
 import requests
 from dateutil import parser as dtparser
-
-# Local
-import lifestream
-from lifestream import code_fetcher as CodeFetcher9000
-from lifestream.cache import check_and_set_backoff
-from lifestream.db import EntryStore
+from lifestream_legacy import code_fetcher as CodeFetcher9000
+from lifestream_legacy.cache import check_and_set_backoff
+from lifestream_legacy.db import EntryStore
 
 entry_store = EntryStore()
 
