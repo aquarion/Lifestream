@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """Flickr photo importer for Lifestream."""
 
 # Python

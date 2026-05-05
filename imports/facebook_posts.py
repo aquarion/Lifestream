@@ -1,6 +1,3 @@
-#!/usr/bin/python
-
-
 import configparser  # For the exceptions
 import logging
 import pickle

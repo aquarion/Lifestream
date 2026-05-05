@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # Python
 import configparser
 import hashlib
