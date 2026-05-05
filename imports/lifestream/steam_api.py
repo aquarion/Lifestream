@@ -8,7 +8,7 @@ from . import config
 class SteamAPI:
     """Client for the Steam Web API."""
 
-    BASE_URL = "http://api.steampowered.com/"
+    BASE_URL = "https://api.steampowered.com/"
 
     def __init__(self):
         self.api_key = config.get("steam", "apikey")
