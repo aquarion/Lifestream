@@ -7,10 +7,10 @@ import sys
 from urllib.parse import urlparse
 
 import dateutil.parser
+from atproto import Client as atClient
 
 # Local
 import lifestream
-from atproto import Client as atClient
 from lifestream.db import EntryStore
 
 lifestream.arguments.add_argument(
@@ -49,7 +49,7 @@ entry_store = EntryStore()
 
 logger = logging.getLogger("AtProto")
 
-for site in sites:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+for site in sites:  # noqa: C901
     source = site
     type = "atproto"
     try:

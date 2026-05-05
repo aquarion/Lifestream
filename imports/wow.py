@@ -10,15 +10,16 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
-# Local
-import lifestream
 import pytz
 import requests
-from lifestream import code_fetcher as CodeFetcher9000
-from lifestream.db import EntryStore
 from oauthlib.oauth2 import BackendApplicationClient
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
+
+# Local
+import lifestream
+from lifestream import code_fetcher as CodeFetcher9000
+from lifestream.db import EntryStore
 
 SCOPE = [
     "wow.profile",
@@ -123,7 +124,9 @@ if not args.reauth:
         f = open(OAUTH_FILENAME, "rb")
         oauth_token = pickle.load(f)
         f.close()
-    except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+    except (
+        Exception
+    ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
         logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
         oauth_token = False
 else:
@@ -141,7 +144,9 @@ try:
     f = open(CLIENT_AUTH_FILENAME, "rb")
     client_token = pickle.load(f)
     f.close()
-except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+except (
+    Exception
+):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
     logger.error("Couldn't open %s, reloading..." % CLIENT_AUTH_FILENAME)
     client_token = False
 
@@ -339,7 +344,7 @@ profile = api.get_profile()
 # Check age of app
 
 ##########
-for character in profile["characters"]:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+for character in profile["characters"]:  # noqa: C901
     logger.info(
         "%s!%s L%d %s"
         % (

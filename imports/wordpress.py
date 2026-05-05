@@ -4,14 +4,14 @@
 import configparser
 import logging
 
-# Local
-import lifestream
-from lifestream.db import EntryStore
-
 # Libraries
 from wordpress_xmlrpc import Client
 from wordpress_xmlrpc import exceptions as wordpress_exceptions
 from wordpress_xmlrpc.methods.posts import GetPosts
+
+# Local
+import lifestream
+from lifestream.db import EntryStore
 
 lifestream.arguments.add_argument(
     "site", type=str, help="Site, as defined in config.ini", nargs="*"
@@ -41,7 +41,7 @@ entry_store = EntryStore()
 logger = logging.getLogger("Wordpress")
 
 
-for site in sites:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+for site in sites:  # noqa: C901
     source = site
     type = "wordpress"
     logger.info(site)

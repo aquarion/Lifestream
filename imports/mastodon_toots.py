@@ -5,9 +5,10 @@ import configparser
 import logging
 import sys
 
+import mastodon as mastodonpy
+
 # Local
 import lifestream
-import mastodon as mastodonpy
 from lifestream.db import EntryStore
 
 lifestream.arguments.add_argument(
@@ -45,7 +46,7 @@ entry_store = EntryStore()
 
 logger = logging.getLogger("Mastodon")
 
-for site in sites:  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
+for site in sites:  # noqa: C901
     source = site
     type = "mastodon"
     try:
