@@ -44,6 +44,8 @@ def run_import(job_name: str) -> None:
 
         if importer_cls is not None:
             importer = importer_cls()
+            # Use _args directly rather than execute() so exceptions propagate
+            # to the scheduler's failure handler instead of being swallowed.
             importer._args = importer.parse_args([])
             if not importer.validate_config():
                 raise RuntimeError(f"Config validation failed for {job_name}")
@@ -96,6 +98,7 @@ def run_shell_command(job_name: str, command: str) -> None:
             cwd=basedir,
             capture_output=True,
             text=True,
+            timeout=3600,
         )
 
         duration = (datetime.now() - start_time).total_seconds()

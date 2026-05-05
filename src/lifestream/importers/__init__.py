@@ -40,8 +40,10 @@ IMPORTERS = {
     "atom": AtomImporter,
     "flickr": FlickrImporter,
     "github": GithubCommitsImporter,
+    "github_commits": GithubCommitsImporter,  # legacy schedule name
     "lastfm": LastfmImporter,
     "mastodon": MastodonImporter,
+    "mastodon_toots": MastodonImporter,  # legacy schedule name
     "steam": SteamImporter,
     "switchbot": SwitchbotImporter,
     "wordpress": WordpressImporter,
