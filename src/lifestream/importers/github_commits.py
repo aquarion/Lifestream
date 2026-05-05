@@ -29,10 +29,10 @@ class GithubCommitsImporter(BaseImporter):
             return False
         return True
 
-    def github_call(self, path: str, page: int = 1, perpage: int = 100) -> dict:
+    def github_call(self, path: str, page: int = 1, per_page: int = 100) -> dict:
         """Make an authenticated GitHub API call."""
         token = self.get_config("auth_token")
-        gh_url = f"https://api.github.com/{path}?page={page}&perpage={perpage}"
+        gh_url = f"https://api.github.com/{path}?page={page}&per_page={per_page}"
         headers = {"Authorization": f"token {token}"}
 
         self.logger.debug("Calling %s", path)
@@ -70,7 +70,7 @@ class GithubCommitsImporter(BaseImporter):
                     continue
 
                 message = f"{repo['name']}: {commit['commit']['message']}"
-                url = commit["url"]
+                url = commit["html_url"]
                 localdate = dateutil.parser.parse(commit["commit"]["author"]["date"])
                 utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
                 commit_id = commit["sha"]

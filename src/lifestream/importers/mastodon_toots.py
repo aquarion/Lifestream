@@ -81,7 +81,7 @@ class MastodonImporter(BaseImporter):
             raise ConfigurationError(f"{site} instance health check failed")
 
         me = mastodon.me()
-        last_seen = False
+        last_seen = None
 
         while keep_going:
             if last_seen:
@@ -90,6 +90,8 @@ class MastodonImporter(BaseImporter):
                 toots = mastodon.account_statuses(me["id"])
 
             for toot in toots:
+                if last_seen is None or toot["id"] > last_seen:
+                    last_seen = toot["id"]
                 title = toot["content"]
 
                 thumbnail = ""
