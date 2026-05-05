@@ -57,7 +57,7 @@ def _connect(site):
         logger.error("No [wordpress:%s] section found in config" % site)
         return None
     except configparser.NoOptionError as e:
-        logger.error(e.message)
+        logger.error(str(e))
         return None
     return Client(url, user, passwd)
 
