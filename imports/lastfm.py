@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """Last.fm scrobble importer for Lifestream."""
 
 # Python

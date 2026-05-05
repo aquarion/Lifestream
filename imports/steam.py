@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import hashlib
 import logging
 from datetime import datetime

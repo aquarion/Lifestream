@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """Generic Atom/RSS feed importer for Lifestream."""
 
 # Python
