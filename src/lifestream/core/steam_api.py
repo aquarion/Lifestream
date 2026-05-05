@@ -8,7 +8,7 @@ from lifestream.core import config
 class SteamAPI:
     """Client for the Steam Web API."""
 
-    BASE_URL = "http://api.steampowered.com/"
+    BASE_URL = "https://api.steampowered.com/"
 
     def __init__(self):
         """Initialize with config credentials."""

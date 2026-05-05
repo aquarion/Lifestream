@@ -123,7 +123,7 @@ class BaseImporter(ABC):
         """
         Require that config keys exist, returning their values.
 
-        Raises SystemExit if any keys are missing.
+        Raises ConfigurationError if any keys are missing.
         """
         section = self.config_section or self.name
         values = {}
