@@ -10,12 +10,12 @@ from datetime import datetime, timedelta
 
 # Libraries
 import facebook
-import requests
 
 # Local
-import lifestream
-from lifestream import code_fetcher as CodeFetcher9000
-from lifestream.db import EntryStore
+import lifestream_legacy as lifestream
+import requests
+from lifestream_legacy import code_fetcher as CodeFetcher9000
+from lifestream_legacy.db import EntryStore
 
 UTF8Writer = codecs.getwriter("utf8")
 sys.stdout = UTF8Writer(sys.stdout)

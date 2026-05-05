@@ -5,13 +5,12 @@ import re
 import sys
 from datetime import datetime, timezone
 
+# Local
+import lifestream_legacy as lifestream
 import requests
 from httplib2 import Http
-
-# Local
-import lifestream
-from lifestream.db import EntryStore, get_connection, get_cursor
-from lifestream.oauth_utils import read_token_file, write_token_file
+from lifestream_legacy.db import EntryStore, get_connection, get_cursor
+from lifestream_legacy.oauth_utils import read_token_file, write_token_file
 
 type = "location"
 username = lifestream.config.get("foursquare", "username")

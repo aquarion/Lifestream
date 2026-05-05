@@ -8,7 +8,7 @@ import sys
 import time
 
 # Local
-from lifestream.db import EntryStore
+from lifestream_legacy.db import EntryStore
 
 entry_store = EntryStore()
 

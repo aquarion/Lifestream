@@ -4,11 +4,10 @@ import hashlib
 import logging
 from datetime import datetime
 
-import pytz
-
 # Local
-import lifestream
-from lifestream.db import EntryStore
+import lifestream_legacy as lifestream
+import pytz
+from lifestream_legacy.db import EntryStore
 
 # Libraries
 

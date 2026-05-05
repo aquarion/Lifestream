@@ -6,11 +6,11 @@ import sys
 from urllib.parse import urlparse
 
 import dateutil.parser
-from atproto import Client as atClient
 
 # Local
-import lifestream
-from lifestream.db import EntryStore
+import lifestream_legacy as lifestream
+from atproto import Client as atClient
+from lifestream_legacy.db import EntryStore
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False

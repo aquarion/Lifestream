@@ -7,11 +7,10 @@ import sys
 from datetime import datetime
 from pprint import pprint
 
-from InstagramAPI import InstagramAPI
-
 # Local
-import lifestream
-from lifestream.db import EntryStore
+import lifestream_legacy as lifestream
+from InstagramAPI import InstagramAPI
+from lifestream_legacy.db import EntryStore
 
 entry_store = EntryStore()
 

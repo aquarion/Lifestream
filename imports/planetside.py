@@ -5,13 +5,13 @@ import logging
 import sys
 from datetime import datetime
 
+# Local
+import lifestream_legacy as lifestream
+
 # Libraries
 import requests
-
-# Local
-import lifestream
-from lifestream.cache import check_and_set_backoff
-from lifestream.db import EntryStore
+from lifestream_legacy.cache import check_and_set_backoff
+from lifestream_legacy.db import EntryStore
 
 entry_store = EntryStore()
 logger = logging.getLogger("Planetside2")
