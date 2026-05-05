@@ -44,6 +44,7 @@ def run_import(job_name: str) -> None:
 
         if importer_cls is not None:
             importer = importer_cls()
+            importer._args = importer.parse_args([])
             if not importer.validate_config():
                 raise RuntimeError(f"Config validation failed for {job_name}")
             importer.run()
