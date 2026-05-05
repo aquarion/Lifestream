@@ -64,7 +64,6 @@ pysocks = "^1.7.1"
 python-dateutil = "^2.9.0.post0"
 python-gflags = "^3.1.2"
 python-magic = "^0.4.27"
-python-memcached = "^1.62"
 python-twitter = "^3.5"
 #python-wordpress-xmlrpc @ https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip
 # python-wordpress-xmlrpc = {url = "https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip"}
@@ -101,12 +100,23 @@ paramiko = "^4.0.0"
 tqdm = "^4.67.1"
 atproto = "^0.0.65"
 pre-commit = "^4.5.1"
+apscheduler = "^3.10.4"
+flake8 = "^7.3.0"
 
 
 [tool.poetry]
+packages = [{ include = "lifestream", from = "src" }]
 
-package-mode = false
-
+[tool.poetry.scripts]
+lifestream-import = "lifestream.cli:main"
+lifestream-lastfm = "lifestream.importers.lastfm:main"
+lifestream-atom = "lifestream.importers.atom:main"
+lifestream-github = "lifestream.importers.github_commits:main"
+lifestream-flickr = "lifestream.importers.flickr:main"
+lifestream-mastodon = "lifestream.importers.mastodon_toots:main"
+lifestream-steam = "lifestream.importers.steam:main"
+lifestream-switchbot = "lifestream.importers.switchbot:main"
+lifestream-wordpress = "lifestream.importers.wordpress:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

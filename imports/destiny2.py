@@ -1,5 +1,5 @@
-#!/usr/bin/python
 # Python
+import configparser
 import hashlib
 import logging
 import pickle
@@ -8,18 +8,20 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-import CodeFetcher9000
 import dateutil.parser
+
+# Local
+import lifestream_legacy as lifestream
 import pytz
 
 # Libraries
 import requests
+from lifestream_legacy import code_fetcher as CodeFetcher9000
+from lifestream_legacy import destiny_exceptions
+from lifestream_legacy.cache import check_and_set_backoff, set_backoff, should_backoff
+from lifestream_legacy.db import EntryStore
 
-# Local
-import lifestream
-from lifestream import destiny_exceptions
-
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Destiny2")
 
@@ -41,8 +43,7 @@ args = lifestream.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if twitter doesn't respond
 
 
-OAUTH_FILENAME = "%s/bungie.oauth" % (
-    lifestream.get_secrets_dir())
+OAUTH_FILENAME = "%s/bungie.oauth" % (lifestream.get_credentials_dir())
 APP_KEY = lifestream.config.get("bungie", "key")
 APP_CLIENT_ID = lifestream.config.get("bungie", "client_id")
 APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
@@ -50,53 +51,62 @@ APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
 # authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
 
-def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False):
-
-    request_token_url = (
-        "https://www.bungie.net/en/oauth/authorize?client_id=%s&response_type=code&state=6i0mkLx79Hp91nzWVceHrzHG4"
-        % (client_id)
-    )
-
-    if not force_reauth:
-        try:
-            f = open(OAUTH_FILENAME, "rb")
-            oauth_token = pickle.load(f)
-            f.close()
-        except:
-            logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
-            oauth_token = False
-    else:
+def _load_cached_token(OAUTH_FILENAME, force_reauth):
+    if force_reauth:
         logger.info("Forcing reauth")
-        oauth_token = False
+        return False
+    try:
+        with open(OAUTH_FILENAME, "rb") as f:
+            return pickle.load(f)  # noqa: S301
+    except (
+        Exception
+    ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+        logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
+        return False
 
+
+def _fetch_access_code(client_id):
     try:
         CodeFetcher9000.are_we_working()
         CodeFetcher9000.get_url()
-        UseCodeFetcher = True
+        use_code_fetcher = True
     except CodeFetcher9000.WeSayNotToday:
         try:
-            "{}/keyback/destiny".format(lifestream.config.get("dayze", "base")),
-            UseCodeFetcher = False
-        except ConfigParser.Error:
+            "{}/keyback/destiny".format(lifestream.config.get("dayze", "base"))
+            use_code_fetcher = False
+        except configparser.Error:
             logger.error("Dayze base not configured")
             print(
                 "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
             )
             sys.exit(32)
 
-    if oauth_token:
+    request_token_url = (
+        "https://www.bungie.net/en/oauth/authorize?client_id=%s&response_type=code&state=6i0mkLx79Hp91nzWVceHrzHG4"
+        % client_id
+    )
+    print("Go to the following link in your browser:")
+    print(request_token_url)
+    print()
 
-        expiration_date = oauth_token["expire_dt"]
-        if datetime.now() > expiration_date:
+    if use_code_fetcher:
+        return CodeFetcher9000.get_code("code")["code"][0]
+    print("If you configure CodeFetcher9000, this is a lot easier.")
+    print(" - ")
+    return input("What is the PIN? ")
+
+
+def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False):
+    oauth_token = _load_cached_token(OAUTH_FILENAME, force_reauth)
+
+    if oauth_token:
+        if datetime.now() > oauth_token["expire_dt"]:
             logger.info("Refreshing access token with refresh token")
             oauth_token = refresh_token(
                 OAUTH_FILENAME, oauth_token, client_id, client_secret
             )
-            expiration_date = oauth_token["expire_dt"]
 
-        refresh_expiration_date = oauth_token["refresh_expire_dt"]
-        delta = refresh_expiration_date - datetime.now()
-
+        delta = oauth_token["refresh_expire_dt"] - datetime.now()
         if delta.days <= 7:
             print(
                 "Refresh token will expire in {}!".format(
@@ -106,23 +116,7 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
 
         return oauth_token
 
-    # Step 2: Redirect to the provider. Since this is a CLI script we do not
-    # redirect. In a web application you would redirect the user to the URL
-    # below.
-
-    print("Go to the following link in your browser:")
-    print(request_token_url)
-    print()
-
-    if UseCodeFetcher:
-        oauth_redirect = CodeFetcher9000.get_code("code")
-        access_key = oauth_redirect["code"][0]
-    else:
-        print("If you configure CodeFetcher9000, this is a lot easier.")
-        print(" - ")
-        access_key = input("What is the PIN? ")
-
-    access_token_url = "https://www.bungie.net/platform/app/oauth/token/"
+    access_key = _fetch_access_code(client_id)
 
     payload = {
         "grant_type": "authorization_code",
@@ -130,19 +124,19 @@ def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth
         "client_id": client_id,
         "client_secret": client_secret,
     }
-    access_token = requests.post(access_token_url, data=payload)
-    print(access_token.text)
-    oauth_token = access_token.json()
+    oauth_token = requests.post(
+        "https://www.bungie.net/platform/app/oauth/token/", data=payload
+    ).json()
 
-    delta = timedelta(seconds=int(oauth_token["expires_in"]))
-    oauth_token["expire_dt"] = datetime.now() + delta
+    oauth_token["expire_dt"] = datetime.now() + timedelta(
+        seconds=int(oauth_token["expires_in"])
+    )
+    oauth_token["refresh_expire_dt"] = datetime.now() + timedelta(
+        seconds=int(oauth_token["refresh_expires_in"])
+    )
 
-    refresh_delta = timedelta(seconds=int(oauth_token["refresh_expires_in"]))
-    oauth_token["refresh_expire_dt"] = datetime.now() + refresh_delta
-
-    f = open(OAUTH_FILENAME, "wb")
-    pickle.dump(oauth_token, f)
-    f.close()
+    with open(OAUTH_FILENAME, "wb") as f:
+        pickle.dump(oauth_token, f)  # noqa: S301
 
     return oauth_token
 
@@ -164,17 +158,16 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
     if "error" in oauth_token:
 
         if oauth_token["error"] == "DestinyThrottledByGameServer":
-            lifestream.i_said_back_off("destiny2:api_error:throttled")
+            set_backoff("destiny2:api_error:throttled")
 
-        ttl = Lifestream.warned_recently(
-            "destiny2:api_error:%".format(oauth_token["error"])
+        ttl = check_and_set_backoff(
+            "destiny2:api_error:{}".format(oauth_token["error"])
         )
         message = "Error refreshing token: {}".format(oauth_token["error"])
         if ttl:
             logger.warning(message)
             logger.info(
-                "Error already sent {} ago".format(
-                    lifestream.niceTimeDelta(ttl))
+                "Error already sent {} ago".format(lifestream.niceTimeDelta(ttl))
             )
         else:
             logger.error(message)
@@ -183,8 +176,7 @@ def refresh_token(OAUTH_FILENAME, oauth_token, client_id, client_secret):
 
     delta = timedelta(seconds=int(oauth_token["expires_in"]))
     oauth_token["expire_dt"] = datetime.now() + delta
-    logger.info("New token expires in {}".format(
-        lifestream.niceTimeDelta(delta)))
+    logger.info("New token expires in {}".format(lifestream.niceTimeDelta(delta)))
 
     refresh_delta = timedelta(seconds=int(oauth_token["refresh_expires_in"]))
     oauth_token["refresh_expire_dt"] = datetime.now() + refresh_delta
@@ -212,13 +204,11 @@ logger.info("Token will expire in {}!".format(lifestream.niceTimeDelta(delta)))
 delta = credentials["refresh_expire_dt"] - datetime.now()
 if delta.days <= 7:
     logger.warning(
-        "Refresh Token will expire in {}!".format(
-            lifestream.niceTimeDelta(delta))
+        "Refresh Token will expire in {}!".format(lifestream.niceTimeDelta(delta))
     )
 else:
     logger.info(
-        "Refresh Token will expire in {}!".format(
-            lifestream.niceTimeDelta(delta))
+        "Refresh Token will expire in {}!".format(lifestream.niceTimeDelta(delta))
     )
 
 NEXT_REQUEST = datetime.now()
@@ -254,7 +244,7 @@ def destinyCall(path, payload={}):
         except AttributeError:
             raise destiny_exceptions.DestinyException(result["ErrorStatus"])
 
-    request_delta = timedelta(seconds=result["ThrottleSeconds"])
+    # ThrottleSeconds controls when we can make the next request
     NEXT_REQUEST = datetime.now()
 
     if "Response" not in result:
@@ -302,9 +292,9 @@ def dt_parse(t):
     return ret.replace(tzinfo=pytz.UTC)
 
 
-### MAIN LOOP ###
+# MAIN LOOP
 
-if lifestream.i_should_back_off("destiny2:api_error:throttled"):
+if should_backoff("destiny2:api_error:throttled"):
     logger.warning("Throttled, exiting")
     sys.exit(1)
 
@@ -321,8 +311,7 @@ for member_data in memberships["destinyMemberships"]:
             )
         )
         membership = destinyCall(
-            "Destiny2/{membershipType}/Profile/{membershipId}/".format(
-                **member_data),
+            "Destiny2/{membershipType}/Profile/{membershipId}/".format(**member_data),
             {"components": "Characters"},
         )
     except destiny_exceptions.DestinyAccountNotFound:
@@ -378,8 +367,7 @@ for member_data in memberships["destinyMemberships"]:
             id.update("destiny2".encode("utf-8"))
             id.update(character_id.encode("utf-8"))
             id.update(
-                str(instance["activityDetails"]
-                    ["directorActivityHash"]).encode("utf-8")
+                str(instance["activityDetails"]["directorActivityHash"]).encode("utf-8")
             )
 
             display = activity["displayProperties"]
@@ -408,7 +396,7 @@ for member_data in memberships["destinyMemberships"]:
 
             # print text, image, utcdate, item['accountWide']
 
-            Lifestream.add_entry(
+            entry_store.add_entry(
                 "gaming",
                 id.hexdigest(),
                 text,

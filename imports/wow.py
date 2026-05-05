@@ -1,6 +1,6 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import configparser
 import hashlib
 import logging
 import os
@@ -9,15 +9,15 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
-import CodeFetcher9000
+# Local
+import lifestream_legacy as lifestream
 import pytz
 import requests
+from lifestream_legacy import code_fetcher as CodeFetcher9000
+from lifestream_legacy.db import EntryStore
 from oauthlib.oauth2 import BackendApplicationClient
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
-
-# Local
-import lifestream
 
 SCOPE = [
     "wow.profile",
@@ -25,16 +25,11 @@ SCOPE = [
 
 steamtime = pytz.timezone("Europe/Paris")
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
-OAUTH_FILENAME = "%s/blizzard_user.oauth" % (
-    lifestream.get_secrets_dir()
-)
-CLIENT_AUTH_FILENAME = "%s/blizzard_app.oauth" % (
-    lifestream.get_secrets_dir()
-)
-CHARACTER_CACHE = "%s/blizzard.cache" % (
-    lifestream.get_secrets_dir())
+OAUTH_FILENAME = "%s/blizzard_user.oauth" % (lifestream.get_credentials_dir())
+CLIENT_AUTH_FILENAME = "%s/blizzard_app.oauth" % (lifestream.get_credentials_dir())
+CHARACTER_CACHE = "%s/blizzard.cache" % (lifestream.get_credentials_dir())
 
 APP_KEY = lifestream.config.get("blizzard", "key")
 APP_SECRET = lifestream.config.get("blizzard", "secret")
@@ -72,11 +67,10 @@ def fetch_new_code():
     except CodeFetcher9000.WeSayNotToday:
         try:
             redirect_uri = (
-                "{}/keyback/wow.py".format(
-                    lifestream.config.get("dayze", "base")),
+                "{}/keyback/wow.py".format(lifestream.config.get("dayze", "base")),
             )
             UseCodeFetcher = False
-        except ConfigParser.Error:
+        except configparser.Error:
             logger.error("Dayze base not configured")
             print(
                 "To catch an OAuth request, you need either CodeFetcher9000 or Dayze configured in config.ini"
@@ -110,8 +104,7 @@ def fetch_new_code():
         "code": oauth_verifier,
     }
 
-    r = requests.post("{}/oauth/token".format(BASE_OAUTH_URL),
-                      data=data, auth=auth)
+    r = requests.post("{}/oauth/token".format(BASE_OAUTH_URL), data=data, auth=auth)
 
     token = r.json()
 
@@ -129,7 +122,9 @@ if not args.reauth:
         f = open(OAUTH_FILENAME, "rb")
         oauth_token = pickle.load(f)
         f.close()
-    except:
+    except (
+        Exception
+    ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
         logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
         oauth_token = False
 else:
@@ -147,7 +142,9 @@ try:
     f = open(CLIENT_AUTH_FILENAME, "rb")
     client_token = pickle.load(f)
     f.close()
-except:
+except (
+    Exception
+):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
     logger.error("Couldn't open %s, reloading..." % CLIENT_AUTH_FILENAME)
     client_token = False
 
@@ -228,8 +225,7 @@ class BlizzardAPI:
 
             if not r.ok:
                 logger.error(
-                    "Error {} getting characters: {}".format(
-                        r.status_code, r.text)
+                    "Error {} getting characters: {}".format(r.status_code, r.text)
                 )
                 sys.exit(5)
 
@@ -294,12 +290,11 @@ def log_achievement(item, timestamp, character):
     id = hashlib.md5()
     id.update("%d-wow" % item["id"])
 
-    logger.info("{}, {}, {}".format(
-        character["realm"], character["name"], text))
+    logger.info("{}, {}, {}".format(character["realm"], character["name"], text))
 
     # print text, image, utcdate, item['accountWide']
 
-    Lifestream.add_entry(
+    entry_store.add_entry(
         "gaming",
         id.hexdigest(),
         text,
@@ -346,8 +341,46 @@ profile = api.get_profile()
 
 # Check age of app
 
+
+def _catchup_character(character):
+    try:
+        character_data = api.get_character(
+            character["name"], character["realm"], ["achievements", "feed"]
+        )
+    except BlizzardCharacterNotFound:
+        logger.warning(
+            "404 getting %s L%d %s"
+            % (character["name"], character["level"], character["class"])
+        )
+        return
+
+    completed = character_data["achievements"]["achievementsCompleted"]
+    completed_ts = character_data["achievements"]["achievementsCompletedTimestamp"]
+    for index in range(0, len(completed)):
+        try:
+            achievement = api.get_achievement(completed[index])
+            log_achievement(achievement, completed_ts[index], character)
+        except BlizzardAchivementNotFound:
+            logger.warning("Achievement {} not found".format(achievement))
+
+
+def _sync_character(character, since_login):
+    if since_login > 7:
+        logger.debug("{} is > 7 days since login, skipping".format(since_login))
+        return
+
+    character_data = api.get_character(
+        character["name"], character["realm"], ["achievements", "feed"]
+    )
+    for item in character_data["feed"]:
+        if item["type"] == "ACHIEVEMENT":
+            log_achievement(item["achievement"], item["timestamp"], character)
+        elif item["type"] not in ("LOOT", "BOSSKILL", "CRITERIA"):
+            pprint(item)
+
+
 ##########
-for character in profile["characters"]:
+def process_character(character):
     logger.info(
         "%s!%s L%d %s"
         % (
@@ -357,52 +390,14 @@ for character in profile["characters"]:
             character["class"],
         )
     )
-    # pprint(character)
-    # Achievement( apikey='Your key', region='us',achievement="" )
-
     modified = datetime.fromtimestamp(character["lastModified"] / 1000)
     since_login = (datetime.now() - modified).days
 
     if args.catchup:
-
-        try:
-            character_data = api.get_character(
-                character["name"], character["realm"], ["achievements", "feed"]
-            )
-        except BlizzardCharacterNotFound:
-            logger.warning(
-                "404 getting %s L%d %s"
-                % (character["name"], character["level"], character["class"])
-            )
-            continue
-
-        completed = character_data["achievements"]["achievementsCompleted"]
-        completed_ts = character_data["achievements"]["achievementsCompletedTimestamp"]
-        for index in range(0, len(completed)):
-            # print index, completed[index], completed_ts[index]
-            try:
-                achievement = api.get_achievement(completed[index])
-                log_achievement(achievement, completed_ts[index], character)
-            except BlizzardAchivementNotFound:
-                logger.warning("Achievement {} not found".format(achievement))
+        _catchup_character(character)
     else:
+        _sync_character(character, since_login)
 
-        if since_login > 7:
-            logger.debug(
-                "{} is > 7 days since login, skipping".format(since_login))
-            continue
 
-        character_data = api.get_character(
-            character["name"], character["realm"], ["achievements", "feed"]
-        )
-
-        for item in character_data["feed"]:
-            if item["type"] in ("ACHIEVEMENT"):
-                # pprint(item)
-                log_achievement(item["achievement"],
-                                item["timestamp"], character)
-
-            elif item["type"] in ("LOOT", "BOSSKILL", "CRITERIA"):
-                pass
-            else:
-                pprint(item)
+for character in profile["characters"]:
+    process_character(character)

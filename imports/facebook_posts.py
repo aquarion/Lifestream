@@ -1,6 +1,3 @@
-#!/usr/bin/python
-
-
 import configparser  # For the exceptions
 import logging
 import pickle
@@ -11,17 +8,18 @@ import sys
 from datetime import datetime, timedelta
 from pprint import pprint
 
-import CodeFetcher9000
+# Local
+import lifestream_legacy as lifestream
 
 # Libraries
 import pymysql
 import requests
 from dateutil import parser as dtparser
+from lifestream_legacy import code_fetcher as CodeFetcher9000
+from lifestream_legacy.cache import check_and_set_backoff
+from lifestream_legacy.db import EntryStore
 
-# Local
-import lifestream
-
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Facebook")
 
@@ -48,8 +46,7 @@ args = lifestream.parse_args()
 socket.setdefaulttimeout(60)  # Force a timeout if facebook doesn't respond
 
 
-OAUTH_FILENAME = "%s/facebook.oauth" % (
-    lifestream.get_secrets_dir())
+OAUTH_FILENAME = "%s/facebook.oauth" % (lifestream.get_credentials_dir())
 APP_KEY = lifestream.config.get("facebook", "appid")
 APP_SECRET = lifestream.config.get("facebook", "secret")
 
@@ -63,8 +60,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     except CodeFetcher9000.WeSayNotToday:
         try:
             redirect_uri = (
-                "{}/facebook/catch.php".format(
-                    lifestream.config.get("dayze", "base")),
+                "{}/facebook/catch.php".format(lifestream.config.get("dayze", "base")),
             )
             UseCodeFetcher = False
         except configparser.Error:
@@ -84,7 +80,9 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             f = open(OAUTH_FILENAME, "rb")
             oauth_token = pickle.load(f)
             f.close()
-        except:
+        except (
+            Exception
+        ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
             logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
             oauth_token = False
     else:
@@ -111,8 +109,6 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
         oauth_token = extend_token.json()
 
-        print(oauth_token)
-
         delta = timedelta(seconds=int(oauth_token["expires_in"]))
         oauth_token["expire_dt"] = datetime.now() + delta
 
@@ -123,13 +119,40 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
     return oauth_token
 
 
-def some_action(post, profile):
-
+def _load_filters():
     visible_filters = lifestream.config.get("facebook", "visible_filters")
+    filters = {k: v for k, v in lifestream.config.items("facebook:filters")}
+    return filters, visible_filters
 
-    filters = {}
-    for key, value in lifestream.config.items("facebook:filters"):
-        filters[key] = value
+
+def _post_is_visible(post, url, filters, visible_filters):
+    privacy = post["privacy"]["value"]
+    if privacy != "CUSTOM":
+        logger.info("... %s privacy post, vote KEEP" % privacy)
+        return True
+    if not post["privacy"]["allow"]:
+        logger.info("Ignoring post %s due to an ad-hoc privacy filter" % url)
+        return False
+    post_filter_ids = set(post["privacy"]["allow"].split(","))
+    filter_ids = set(filters.keys())
+    if not filter_ids.intersection(post_filter_ids):
+        logger.error(
+            "[ERROR] on %s - List ID %s not known" % (url, post["privacy"]["allow"])
+        )
+        return False
+    for filter_id in list(post_filter_ids):
+        if filter_id not in filters:
+            logger.info("... Filter ID %s unidentified" % filter_id)
+        elif filters[filter_id] in visible_filters:
+            logger.info("... [%s] filter post, vote KEEP" % filters[filter_id])
+        else:
+            logger.info("... [%s] filter post, vote HIDE" % filters[filter_id])
+            return False
+    return True
+
+
+def some_action(post, profile):
+    filters, visible_filters = _load_filters()
 
     if (
         "application" in post
@@ -141,64 +164,24 @@ def some_action(post, profile):
     if post["privacy"]["value"] == "SELF":
         return
 
-    if "picture" in post:
-        image = post["picture"]
-    else:
-        image = False
-
-    if "message" not in post:
-        post["message"] = ""
-
-    show = True
+    image = post.get("picture", False)
+    post.setdefault("message", "")
 
     url = "https://www.facebook.com/%s/posts/%s" % (
         profile["id"],
         post["id"].split("_")[1],
     )
 
-    post_filter_ids = set(post["privacy"]["allow"].split(","))
-    filter_ids = set(filters.keys())
-
-    # '2020-03-17T10:27:08+0000
     dt = dtparser.parse(post["created_time"])
-
     logger.info("New Post: %s " % post["message"][0:60])
 
-    if post["privacy"]["value"] == "CUSTOM":
-        if not post["privacy"]["allow"]:
-            logger.info(
-                "Ignoring post %s due to an ad-hoc privacy filter" % url)
-        elif len(filter_ids.intersection(post_filter_ids)):
-            for filter_id in list(post_filter_ids):
-                if filter_id not in filters:
-                    logger.info("... Filter ID %s unidentified" % filter_id)
-
-                elif filters[filter_id] in visible_filters:
-                    logger.info("... [%s] filter post, vote KEEP" %
-                                filters[filter_id])
-                    # show = True
-                    pass
-                else:
-                    logger.info("... [%s] filter post, vote HIDE" %
-                                filters[filter_id])
-                    show = False
-        else:
-            logger.error(
-                "[ERROR] on %s - List ID %s not known" % (
-                    url, post["privacy"]["allow"])
-            )
-            show = False
-    else:
-        logger.info("... %s privacy post, vote KEEP" %
-                    post["privacy"]["value"])
-
-    if show:
-        logger.info("... KEEP carries")
-    else:
+    if not _post_is_visible(post, url, filters, visible_filters):
         logger.info("... HIDE carries")
         return
 
-    # Lifestream.add_entry(
+    logger.info("... KEEP carries")
+
+    # entry_store.add_entry(
     #     post['type'],
     #     post['id'],
     #     post['message'],
@@ -208,7 +191,7 @@ def some_action(post, profile):
     #     fulldata_json=o_item)
 
     try:
-        Lifestream.add_entry(
+        entry_store.add_entry(
             post["type"],
             post["id"],
             post["message"],
@@ -238,7 +221,7 @@ if datetime.now() > credentials["expire_dt"]:
 if delta.days <= 7:
     logger.warning("Token will expire in {} days!".format(delta.days))
 
-    if Lifestream.warned_recently("facebook:token:warning_sent", 86400):
+    if check_and_set_backoff("facebook:token:warning_sent", 86400):
         logger.info("Warning already sent recently")
     else:
         logger.error("Token will expire in {} days!".format(delta.days))
@@ -282,8 +265,7 @@ while True:
         pprint(posts)
         raise Exception("Err...")
 
-    [some_action(post=post, profile=profile)
-     for post in posts["data"]]
+    [some_action(post=post, profile=profile) for post in posts["data"]]
 
     logger.info("Page %d of %d" % (page, args.pages))
     if not INFINITE and page >= args.pages:

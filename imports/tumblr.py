@@ -1,18 +1,18 @@
-#!/usr/bin/python
 # Python
 import logging
 import pickle as pickle
 import urllib.parse
 
 import dateutil.parser
+
+# Local
+import lifestream_legacy as lifestream
 import oauth2 as oauth
 import pytz
+from lifestream_legacy.db import EntryStore
 
 # Libraries
 from pytumblr import TumblrRestClient
-
-# Local
-import lifestream
 
 logger = logging.getLogger("Tumblr")
 lifestream.arguments.add_argument(
@@ -25,7 +25,7 @@ lifestream.arguments.add_argument(
 
 args = lifestream.parse_args()
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 OAUTH_TUMBLR = lifestream.config.get("tumblr", "secrets_file")
 
@@ -50,7 +50,9 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         f = open(OAUTH_TUMBLR, "rb")
         oauth_token = pickle.load(f)
         f.close()
-    except:
+    except (
+        Exception
+    ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
         print("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 
@@ -63,8 +65,9 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         request_token = dict(urllib.parse.parse_qsl(content))
         print("Go to the following link in your browser:")
-        print("%s?oauth_token=%s" %
-              (authorize_url, request_token["oauth_token"]))
+        print(
+            "%s?oauth_token=%s" % (authorize_url, request_token["oauth_token"])
+        )  # codeql[py/clear-text-logging-sensitive-data] - intentional: user must visit this URL to complete OAuth flow
         print()
 
         accepted = "n"
@@ -80,12 +83,6 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         resp, content = client.request(access_token_url, "POST")
         oauth_token = dict(urllib.parse.parse_qsl(content))
-        print(resp)
-
-        print(oauth_token)
-        print("Access key:", oauth_token["oauth_token"])
-        print("Access Secret:", oauth_token["oauth_token_secret"])
-
         f = open(OAUTH_TUMBLR, "w")
         pickle.dump(oauth_token, f)
         f.close()
@@ -103,67 +100,67 @@ tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 blogs = lifestream.config.get("tumblr", "blogs").split(",")
 
 
-for blog in blogs:
+def _post_title(post):
+    post_type = post["type"]
+    if "title" in post and post["title"]:
+        title = post["title"]
+    elif "caption" in post:
+        title = post["caption"]
+    elif "text" in post:
+        title = post["text"]
+    elif "body" in post:
+        title = post["body"]
+    else:
+        logger.info(post)
+        title = "Tumblr %s" % post_type
+    if post_type == "quote":
+        title = post["text"]
+    return title
+
+
+def process_blog(blog):
     logger.info(blog)
     logger.info("----")
     details = tumblr.posts(blog)
-    startat = 0.0
 
     if "errors" in details:
-        logger.error("Error in tumbling {}:  {} ".format(
-            blog, details["meta"]["msg"]))
-        continue
+        logger.error("Error in tumbling {}:  {} ".format(blog, details["meta"]["msg"]))
+        return
 
-    if FULL_IMPORT:
-        max_posts = details["blog"]["posts"]
-    else:
-        max_posts = 20
+    max_posts = details["blog"]["posts"] if FULL_IMPORT else 20
+    startat = 0.0
 
     while startat < max_posts:
         details = tumblr.posts(blog, offset=startat, limit=20)
         startat += 20
 
         posts = details["posts"]
-
         logger.info(
             "%s %d/%d %.2f%%"
             % (blog, startat, max_posts, (startat / max_posts) * 100.0)
         )
 
         for post in posts:
-            id = post["id"]
-            type = post["type"]
-            url = post["post_url"]
-            image = False
-
+            post_type = post["type"]
             localdate = dateutil.parser.parse(post["date"])
             utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
+            image = (
+                post["photos"][0]["original_size"]["url"]
+                if post_type == "photo"
+                else False
+            )
 
-            if "title" in post and post["title"]:
-                title = post["title"]
-            elif "caption" in post:
-                title = post["caption"]
-            elif "text" in post:
-                title = post["text"]
-            elif "body" in post:
-                title = post["body"]
-            else:
-                logger.info(post)
-                title = "Tumblr %s" % type
-
-            if type == "quote":
-                title = post["text"]
-
-            if type == "photo":
-                image = post["photos"][0]["original_size"]["url"]
-
-            Lifestream.add_entry(
-                type,
-                id,
-                title,
+            entry_store.add_entry(
+                post_type,
+                post["id"],
+                _post_title(post),
                 "tumblr",
                 utcdate,
-                url=url,
+                url=post["post_url"],
                 image=image,
                 fulldata_json=post,
             )
+
+
+for blog in blogs:
+    process_blog(blog)
