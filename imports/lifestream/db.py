@@ -44,9 +44,7 @@ class EntryStore:
         # Check for --no-db from parsed args, or fallback to checking sys.argv
         # This handles cases where EntryStore is instantiated before parse_args()
         parsed_args = get_parsed_args()
-        self.no_db = (
-            parsed_args.no_db if parsed_args else ("--no-db" in sys.argv)
-        )
+        self.no_db = parsed_args.no_db if parsed_args else ("--no-db" in sys.argv)
 
     @property
     def config(self):

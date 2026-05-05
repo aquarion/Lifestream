@@ -4,8 +4,8 @@ from datetime import datetime
 
 import requests
 
-from lifestream.importers.base import BaseImporter
 from lifestream.core import config
+from lifestream.importers.base import BaseImporter
 
 
 class SwitchBotAPI:

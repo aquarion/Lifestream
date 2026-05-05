@@ -4,14 +4,13 @@ Lifestream importers package.
 Each importer is a class that inherits from BaseImporter.
 """
 
+# Import all converted importers
+from lifestream.importers.atom import AtomImporter
 from lifestream.importers.base import (
     BaseImporter,
     FeedImporter,
     OAuthImporter,
 )
-
-# Import all converted importers
-from lifestream.importers.atom import AtomImporter
 from lifestream.importers.flickr import FlickrImporter
 from lifestream.importers.github_commits import GithubCommitsImporter
 from lifestream.importers.lastfm import LastfmImporter

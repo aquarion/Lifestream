@@ -7,6 +7,10 @@ online services into a unified database.
 
 __version__ = "2.0.0"
 
+# Expose core submodules so tests and callers can do `from lifestream import cache`
+from lifestream.core import cache, db, jobs, notifications
+from lifestream.core.cache import file_cache, get_redis_connection
+
 # Re-export commonly used items for convenience
 from lifestream.core.config import (
     config,
@@ -14,21 +18,18 @@ from lifestream.core.config import (
     get_log_dir,
     get_project_root,
 )
-from lifestream.core.logging import setup_logging, get_logger
 from lifestream.core.db import EntryStore, get_connection, get_cursor
-from lifestream.core.cache import get_redis_connection, file_cache
-from lifestream.core.oauth_utils import read_token_file, write_token_file
+from lifestream.core.logging import get_logger, setup_logging
 from lifestream.core.notifications import send_failure_notifications
+from lifestream.core.oauth_utils import read_token_file, write_token_file
 from lifestream.core.utils import (
-    niceTimeDelta,
-    yearsago,
+    AnAttributeError,
+    convertNiceTime,
     force_json,
     is_jsonable,
-    convertNiceTime,
-    AnAttributeError,
+    niceTimeDelta,
+    yearsago,
 )
-# Expose core submodules so tests and callers can do `from lifestream import cache`
-from lifestream.core import cache, db, jobs, notifications
 
 __all__ = [
     # Config

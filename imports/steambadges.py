@@ -5,15 +5,16 @@ import logging
 import sys
 from datetime import datetime
 
-# Local
-import lifestream
 import pytz
-from lifestream.db import EntryStore
 
 # Libraries
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+
+# Local
+import lifestream
+from lifestream.db import EntryStore
 
 logger = logging.getLogger("Steam Badges")
 args = lifestream.parse_args()

@@ -9,13 +9,14 @@ import sys
 from datetime import datetime
 from time import sleep
 
-# Local
-import lifestream
 import pytz
-from lifestream.db import EntryStore
 
 # Libraries
 from mechanize import Browser, RobustFactory
+
+# Local
+import lifestream
+from lifestream.db import EntryStore
 
 logger = logging.getLogger("Oyster")
 args = lifestream.parse_args()

@@ -4,9 +4,10 @@
 import logging
 from datetime import datetime
 
+import requests
+
 # Local
 import lifestream
-import requests
 from lifestream.db import EntryStore
 
 logger = logging.getLogger("switchbot")

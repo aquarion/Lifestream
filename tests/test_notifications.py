@@ -113,7 +113,9 @@ class TestSendFailureSlack:
 
                     mock_post.assert_called_once()
                     call_args = mock_post.call_args
-                    assert "hooks.slack.com" in call_args[0][0]  # codeql[py/incomplete-url-substring-sanitization] - test assertion, not URL sanitization
+                    assert (
+                        "hooks.slack.com" in call_args[0][0]
+                    )  # codeql[py/incomplete-url-substring-sanitization] - test assertion, not URL sanitization
 
 
 class TestSendFailureNotifications:

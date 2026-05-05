@@ -8,15 +8,16 @@ import pickle as pickle
 # Python
 import urllib.parse
 
-# Local
-import lifestream
 import oauth2 as oauth
 import simplejson
 from dateutil.relativedelta import relativedelta
-from lifestream.db import EntryStore, get_connection, get_cursor
 
 # Libraries
 from pytumblr import TumblrRestClient
+
+# Local
+import lifestream
+from lifestream.db import EntryStore, get_connection, get_cursor
 
 entry_store = EntryStore()
 
@@ -38,7 +39,9 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         f = open(OAUTH_TUMBLR, "rb")
         oauth_token = pickle.load(f)
         f.close()
-    except Exception:  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+    except (
+        Exception
+    ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
         logger.error("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 
@@ -51,7 +54,9 @@ def tumblrAuth(config, OAUTH_TUMBLR):
 
         request_token = dict(urllib.parse.parse_qsl(content))
         print("Go to the following link in your browser:")
-        print("%s?oauth_token=%s" % (authorize_url, request_token["oauth_token"]))  # codeql[py/clear-text-logging-sensitive-data] - intentional: user must visit this URL to complete OAuth flow
+        print(
+            "%s?oauth_token=%s" % (authorize_url, request_token["oauth_token"])
+        )  # codeql[py/clear-text-logging-sensitive-data] - intentional: user must visit this URL to complete OAuth flow
         print()
 
         accepted = "n"

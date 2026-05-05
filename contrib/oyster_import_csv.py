@@ -7,6 +7,7 @@ import hashlib
 from datetime import datetime
 
 import pytz
+
 from lifestream.db import get_connection, get_cursor
 
 dbcxn = get_connection()

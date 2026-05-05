@@ -4,13 +4,14 @@ import logging
 import sys
 from datetime import datetime
 
-# Local
-import lifestream
 import requests
 from guildwars2api.base import GuildWars2APIError
 
 # Libraries
 from guildwars2api.v2 import GuildWars2API
+
+# Local
+import lifestream
 from lifestream.cache import check_and_set_backoff, file_cache
 from lifestream.db import EntryStore
 
