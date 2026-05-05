@@ -32,12 +32,13 @@ class SwitchBotAPI:
 
         if method == "post":
             headers["content-type"] = "application/json; charset=utf8"
-            r = requests.post(url, json=data, headers=headers)
+            r = requests.post(url, json=data, headers=headers, timeout=30)
         elif method == "get":
-            r = requests.get(url, params=data, headers=headers)
+            r = requests.get(url, params=data, headers=headers, timeout=30)
         else:
             raise ValueError(f"Unknown method: {method}")
 
+        r.raise_for_status()
         return r.json()
 
 

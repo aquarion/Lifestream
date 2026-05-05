@@ -41,7 +41,7 @@ args = lifestream.parse_args()
 OAUTH_FILENAME = lifestream.config.get("foursquare", "secrets_file")
 CLIENT_ID = lifestream.config.get("foursquare", "client_id")
 CLIENT_SECRET = lifestream.config.get("foursquare", "secret")
-CALLBACK_URL = "www.github.com/aquarion/lifestream"
+CALLBACK_URL = "https://github.com/aquarion/lifestream"
 
 
 def authenticate(force_reauth=False, auth_code=None):

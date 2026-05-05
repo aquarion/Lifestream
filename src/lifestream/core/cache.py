@@ -80,7 +80,12 @@ def file_cache(cache_id: str, maxage: int):
                 else:
                     with open(cachefile, "rb") as cachehandle:
                         logger.info(f"Using cached result from '{cachefile}'")
-                        return pickle.load(cachehandle)
+                        try:
+                            return pickle.load(cachehandle)
+                        except (pickle.UnpicklingError, EOFError):
+                            logger.warning(
+                                f"Corrupted cache file '{cachefile}', recomputing"
+                            )
 
             res = fn(*args, **kwargs)
 

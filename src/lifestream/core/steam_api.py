@@ -21,7 +21,7 @@ class SteamAPI:
         """Make a call to the Steam API."""
         url = f"{self.BASE_URL}{interface}/{method}/v{int(version):04d}/"
         params["key"] = self.api_key
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         return response.json()
 

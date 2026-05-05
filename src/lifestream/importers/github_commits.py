@@ -1,7 +1,5 @@
 """GitHub commits importer for Lifestream."""
 
-import json
-
 import dateutil.parser
 import pytz
 import requests
@@ -29,33 +27,43 @@ class GithubCommitsImporter(BaseImporter):
             return False
         return True
 
-    def github_call(self, path: str, page: int = 1, per_page: int = 100) -> dict:
+    def github_call(self, path: str, page: int = 1, per_page: int = 100) -> list | dict:
         """Make an authenticated GitHub API call."""
         token = self.get_config("auth_token")
         gh_url = f"https://api.github.com/{path}?page={page}&per_page={per_page}"
         headers = {"Authorization": f"token {token}"}
 
-        self.logger.debug("Calling %s", path)
-        r = requests.get(gh_url, headers=headers)
+        self.logger.debug("Calling %s page %d", path, page)
+        r = requests.get(gh_url, headers=headers, timeout=30)
+        r.raise_for_status()
+        return r.json()
 
-        if r.status_code != 200:
-            self.logger.error(f"GitHub API error: {r.status_code}")
-            self.logger.error(f"URL: {r.url}")
-            self.logger.error(f"Response: {r.text}")
-            raise Exception(f"GitHub API error: {r.status_code}")
-
-        return json.loads(r.text)
+    def _paginate(self, path: str, max_pages: int | None = None) -> list:
+        """Fetch all pages from a GitHub API endpoint."""
+        results = []
+        page = 1
+        while True:
+            data = self.github_call(path, page=page)
+            if not data:
+                break
+            results.extend(data)
+            if max_pages and page >= max_pages:
+                break
+            page += 1
+        return results
 
     def run(self) -> None:
         """Import commits from all user repositories."""
         username = self.get_config("username")
 
-        repos = self.github_call("user/repos")
+        repos = self._paginate("user/repos")
 
         for repo in repos:
             self.logger.debug("Processing repo: %s", repo["name"])
 
-            commits = self.github_call(f"repos/{repo['full_name']}/commits")
+            commits = self._paginate(
+                f"repos/{repo['full_name']}/commits", max_pages=self.MAX_PAGES
+            )
 
             for commit in commits:
                 # Determine author

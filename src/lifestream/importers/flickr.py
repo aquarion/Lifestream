@@ -15,7 +15,7 @@ class FlickrImporter(BaseImporter):
     config_section = "flickr"
 
     # Static URL template: farm, server, id, secret, size
-    STATIC_URL_TEMPLATE = "http://farm%s.staticflickr.com/%s/%s_%s_%s.jpg"
+    STATIC_URL_TEMPLATE = "https://farm%s.staticflickr.com/%s/%s_%s_%s.jpg"
     MAX_PAGES = False
     PER_PAGE = 100
     SIZE_CODE = "z"
