@@ -81,17 +81,10 @@ class MastodonImporter(BaseImporter):
             raise ConfigurationError(f"{site} instance health check failed")
 
         me = mastodon.me()
-        oldest_id = None
+        toots = mastodon.account_statuses(me["id"])
 
         while keep_going:
-            if oldest_id:
-                toots = mastodon.account_statuses(me["id"], max_id=oldest_id)
-            else:
-                toots = mastodon.account_statuses(me["id"])
-
             for toot in toots:
-                if oldest_id is None or toot["id"] < oldest_id:
-                    oldest_id = toot["id"]
                 title = toot["content"]
 
                 thumbnail = ""
@@ -112,16 +105,21 @@ class MastodonImporter(BaseImporter):
                     type=entry_type,
                 )
 
-            if not len(toots):
-                keep_going = False
-
             this_page += 1
             if this_page >= self.args.max_pages and not self.args.all_pages:
                 keep_going = False
-            elif not self.args.all_pages:
-                self.logger.info(f"Page {this_page} of max {self.args.max_pages}")
             else:
-                self.logger.info("Next Page...")
+                next_page = mastodon.fetch_next(toots)
+                if next_page is None:
+                    keep_going = False
+                else:
+                    toots = next_page
+                    if not self.args.all_pages:
+                        self.logger.info(
+                            f"Page {this_page} of max {self.args.max_pages}"
+                        )
+                    else:
+                        self.logger.info("Next Page...")
 
     def run(self) -> None:
         """Import toots from configured Mastodon sites."""
