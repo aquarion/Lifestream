@@ -45,71 +45,63 @@ entry_store = EntryStore()
 
 logger = logging.getLogger("Mastodon")
 
-for site in sites:  # noqa: C901
-    source = site
-    type = "mastodon"
+
+def _get_thumbnail(toot):
+    for media in toot["media_attachments"]:
+        if media["type"] == "image":
+            return media["url"]
+    return ""
+
+
+def _connect(site):
     try:
-        base_url = lifestream.config.get("mastodon:%s" % source, "base_url")
-        client_key = lifestream.config.get("mastodon:%s" % source, "client_key")
-        client_secret = lifestream.config.get("mastodon:%s" % source, "client_secret")
-        access_token = lifestream.config.get("mastodon:%s" % source, "access_token")
+        base_url = lifestream.config.get("mastodon:%s" % site, "base_url")
+        client_key = lifestream.config.get("mastodon:%s" % site, "client_key")
+        client_secret = lifestream.config.get("mastodon:%s" % site, "client_secret")
+        access_token = lifestream.config.get("mastodon:%s" % site, "access_token")
     except configparser.NoSectionError:
-        logger.error("No [mastodon:%s] section found in config" % source)
+        logger.error("No [mastodon:%s] section found in config" % site)
         sys.exit(5)
     except configparser.NoOptionError as e:
         logger.error(e.message)
         sys.exit(5)
-
-    mastodon = mastodonpy.Mastodon(
+    return mastodonpy.Mastodon(
         client_id=client_key,
         client_secret=client_secret,
         api_base_url=base_url,
         access_token=access_token,
     )
 
-    this_page = 0
-    keep_going = True
 
-    how_are_you = mastodon.instance_health()
+def process_site(site):
+    mastodon = _connect(site)
 
-    if not how_are_you:
+    if not mastodon.instance_health():
         logger.error("{} is not fine".format(site))
         sys.exit(5)
 
     me = mastodon.me()
-
+    this_page = 0
+    keep_going = True
     last_seen = False
 
     while keep_going:
-
         if last_seen:
             toots = mastodon.account_statuses(me["id"], min_id=last_seen)
         else:
             toots = mastodon.account_statuses(me["id"])
 
         for toot in toots:
-            title = toot["content"]
-
-            if len(toot["media_attachments"]):
-                for media in toot["media_attachments"]:
-                    if media["type"] == "image":
-                        thumbnail = media["url"]
-                        break
-            else:
-                thumbnail = ""
-
             entry_store.add_entry(
                 id=toot["id"],
-                title=title,
-                source=source,
+                title=toot["content"],
+                source=site,
                 date=toot["created_at"],
                 url=toot["url"],
-                image=thumbnail,
+                image=_get_thumbnail(toot),
                 fulldata_json=lifestream.force_json(toot),
-                type=type,
+                type="mastodon",
             )
-
-        #     logger.info("%s: %s" % (post.date.strftime("%Y-%m-%d"), title))
 
         if not len(toots):
             keep_going = False
@@ -121,3 +113,7 @@ for site in sites:  # noqa: C901
             logger.info("Page %d of max %d" % (this_page, args.max_pages))
         else:
             logger.info("Next Page...")
+
+
+for site in sites:
+    process_site(site)

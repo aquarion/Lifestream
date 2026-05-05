@@ -51,37 +51,29 @@ APP_CLIENT_SECRET = lifestream.config.get("bungie", "client_secret")
 # authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
 
 
-def authenticate(  # noqa: C901 - complexity tracked in https://github.com/aquarion/Lifestream/issues/60
-    OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False
-):
-
-    request_token_url = (
-        "https://www.bungie.net/en/oauth/authorize?client_id=%s&response_type=code&state=6i0mkLx79Hp91nzWVceHrzHG4"
-        % (client_id)
-    )
-
-    if not force_reauth:
-        try:
-            f = open(OAUTH_FILENAME, "rb")
-            oauth_token = pickle.load(f)
-            f.close()
-        except (
-            Exception
-        ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
-            logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
-            oauth_token = False
-    else:
+def _load_cached_token(OAUTH_FILENAME, force_reauth):
+    if force_reauth:
         logger.info("Forcing reauth")
-        oauth_token = False
+        return False
+    try:
+        with open(OAUTH_FILENAME, "rb") as f:
+            return pickle.load(f)  # noqa: S301
+    except (
+        Exception
+    ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+        logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
+        return False
 
+
+def _fetch_access_code(client_id):
     try:
         CodeFetcher9000.are_we_working()
         CodeFetcher9000.get_url()
-        UseCodeFetcher = True
+        use_code_fetcher = True
     except CodeFetcher9000.WeSayNotToday:
         try:
-            "{}/keyback/destiny".format(lifestream.config.get("dayze", "base")),
-            UseCodeFetcher = False
+            "{}/keyback/destiny".format(lifestream.config.get("dayze", "base"))
+            use_code_fetcher = False
         except configparser.Error:
             logger.error("Dayze base not configured")
             print(
@@ -89,19 +81,32 @@ def authenticate(  # noqa: C901 - complexity tracked in https://github.com/aquar
             )
             sys.exit(32)
 
-    if oauth_token:
+    request_token_url = (
+        "https://www.bungie.net/en/oauth/authorize?client_id=%s&response_type=code&state=6i0mkLx79Hp91nzWVceHrzHG4"
+        % client_id
+    )
+    print("Go to the following link in your browser:")
+    print(request_token_url)
+    print()
 
-        expiration_date = oauth_token["expire_dt"]
-        if datetime.now() > expiration_date:
+    if use_code_fetcher:
+        return CodeFetcher9000.get_code("code")["code"][0]
+    print("If you configure CodeFetcher9000, this is a lot easier.")
+    print(" - ")
+    return input("What is the PIN? ")
+
+
+def authenticate(OAUTH_FILENAME, api_key, client_id, client_secret, force_reauth=False):
+    oauth_token = _load_cached_token(OAUTH_FILENAME, force_reauth)
+
+    if oauth_token:
+        if datetime.now() > oauth_token["expire_dt"]:
             logger.info("Refreshing access token with refresh token")
             oauth_token = refresh_token(
                 OAUTH_FILENAME, oauth_token, client_id, client_secret
             )
-            expiration_date = oauth_token["expire_dt"]
 
-        refresh_expiration_date = oauth_token["refresh_expire_dt"]
-        delta = refresh_expiration_date - datetime.now()
-
+        delta = oauth_token["refresh_expire_dt"] - datetime.now()
         if delta.days <= 7:
             print(
                 "Refresh token will expire in {}!".format(
@@ -111,23 +116,7 @@ def authenticate(  # noqa: C901 - complexity tracked in https://github.com/aquar
 
         return oauth_token
 
-    # Step 2: Redirect to the provider. Since this is a CLI script we do not
-    # redirect. In a web application you would redirect the user to the URL
-    # below.
-
-    print("Go to the following link in your browser:")
-    print(request_token_url)
-    print()
-
-    if UseCodeFetcher:
-        oauth_redirect = CodeFetcher9000.get_code("code")
-        access_key = oauth_redirect["code"][0]
-    else:
-        print("If you configure CodeFetcher9000, this is a lot easier.")
-        print(" - ")
-        access_key = input("What is the PIN? ")
-
-    access_token_url = "https://www.bungie.net/platform/app/oauth/token/"
+    access_key = _fetch_access_code(client_id)
 
     payload = {
         "grant_type": "authorization_code",
@@ -135,18 +124,19 @@ def authenticate(  # noqa: C901 - complexity tracked in https://github.com/aquar
         "client_id": client_id,
         "client_secret": client_secret,
     }
-    access_token = requests.post(access_token_url, data=payload)
-    oauth_token = access_token.json()
+    oauth_token = requests.post(
+        "https://www.bungie.net/platform/app/oauth/token/", data=payload
+    ).json()
 
-    delta = timedelta(seconds=int(oauth_token["expires_in"]))
-    oauth_token["expire_dt"] = datetime.now() + delta
+    oauth_token["expire_dt"] = datetime.now() + timedelta(
+        seconds=int(oauth_token["expires_in"])
+    )
+    oauth_token["refresh_expire_dt"] = datetime.now() + timedelta(
+        seconds=int(oauth_token["refresh_expires_in"])
+    )
 
-    refresh_delta = timedelta(seconds=int(oauth_token["refresh_expires_in"]))
-    oauth_token["refresh_expire_dt"] = datetime.now() + refresh_delta
-
-    f = open(OAUTH_FILENAME, "wb")
-    pickle.dump(oauth_token, f)
-    f.close()
+    with open(OAUTH_FILENAME, "wb") as f:
+        pickle.dump(oauth_token, f)  # noqa: S301
 
     return oauth_token
 

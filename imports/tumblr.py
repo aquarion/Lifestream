@@ -100,66 +100,67 @@ tumblr = tumblrAuth(lifestream.config, OAUTH_TUMBLR)
 blogs = lifestream.config.get("tumblr", "blogs").split(",")
 
 
-for blog in blogs:  # noqa: C901
+def _post_title(post):
+    post_type = post["type"]
+    if "title" in post and post["title"]:
+        title = post["title"]
+    elif "caption" in post:
+        title = post["caption"]
+    elif "text" in post:
+        title = post["text"]
+    elif "body" in post:
+        title = post["body"]
+    else:
+        logger.info(post)
+        title = "Tumblr %s" % post_type
+    if post_type == "quote":
+        title = post["text"]
+    return title
+
+
+def process_blog(blog):
     logger.info(blog)
     logger.info("----")
     details = tumblr.posts(blog)
-    startat = 0.0
 
     if "errors" in details:
         logger.error("Error in tumbling {}:  {} ".format(blog, details["meta"]["msg"]))
-        continue
+        return
 
-    if FULL_IMPORT:
-        max_posts = details["blog"]["posts"]
-    else:
-        max_posts = 20
+    max_posts = details["blog"]["posts"] if FULL_IMPORT else 20
+    startat = 0.0
 
     while startat < max_posts:
         details = tumblr.posts(blog, offset=startat, limit=20)
         startat += 20
 
         posts = details["posts"]
-
         logger.info(
             "%s %d/%d %.2f%%"
             % (blog, startat, max_posts, (startat / max_posts) * 100.0)
         )
 
         for post in posts:
-            id = post["id"]
-            type = post["type"]
-            url = post["post_url"]
-            image = False
-
+            post_type = post["type"]
             localdate = dateutil.parser.parse(post["date"])
             utcdate = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-
-            if "title" in post and post["title"]:
-                title = post["title"]
-            elif "caption" in post:
-                title = post["caption"]
-            elif "text" in post:
-                title = post["text"]
-            elif "body" in post:
-                title = post["body"]
-            else:
-                logger.info(post)
-                title = "Tumblr %s" % type
-
-            if type == "quote":
-                title = post["text"]
-
-            if type == "photo":
-                image = post["photos"][0]["original_size"]["url"]
+            image = (
+                post["photos"][0]["original_size"]["url"]
+                if post_type == "photo"
+                else False
+            )
 
             entry_store.add_entry(
-                type,
-                id,
-                title,
+                post_type,
+                post["id"],
+                _post_title(post),
                 "tumblr",
                 utcdate,
-                url=url,
+                url=post["post_url"],
                 image=image,
                 fulldata_json=post,
             )
+
+
+for blog in blogs:
+    process_blog(blog)
