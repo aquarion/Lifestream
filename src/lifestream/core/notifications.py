@@ -69,17 +69,12 @@ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     msg["To"] = to_addr
 
     try:
-        if use_tls:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
-        else:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-
-        if smtp_user and smtp_password:
-            server.login(smtp_user, smtp_password)
-
-        server.sendmail(from_addr, [to_addr], msg.as_string())
-        server.quit()
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            if use_tls:
+                server.starttls()
+            if smtp_user and smtp_password:
+                server.login(smtp_user, smtp_password)
+            server.sendmail(from_addr, [to_addr], msg.as_string())
         logger.info(f"Sent failure notification email for job {job_name}")
     except Exception as e:
         logger.error(f"Failed to send notification email: {e}")
@@ -106,13 +101,11 @@ def send_failure_slack(job_name: str, error: Exception | str, duration: float) -
             logger.warning("Slack channel configured but no [slack] section found")
             return
 
-        token = config.get("slack", "token")
+        webhook_url = config.get("slack", "webhook_url")
         botname = config.get("slack", "slack_botname", fallback="Lifestream")
     except (configparser.NoSectionError, configparser.NoOptionError) as e:
         logger.warning(f"Slack notification not configured properly: {e}")
         return
-
-    webhook_url = f"https://hooks.slack.com/services/{token}"
 
     message = {
         "channel": f"#{slack_channel}",

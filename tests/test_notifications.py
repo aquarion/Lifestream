@@ -61,6 +61,8 @@ class TestSendFailureEmail:
         mock_config.getboolean.return_value = True
 
         mock_smtp_instance = MagicMock()
+        mock_smtp_instance.__enter__ = MagicMock(return_value=mock_smtp_instance)
+        mock_smtp_instance.__exit__ = MagicMock(return_value=None)
 
         with patch.object(
             notifications, "_is_notifications_enabled", return_value=True
@@ -94,7 +96,10 @@ class TestSendFailureSlack:
         mock_config = MagicMock()
         mock_config.get.side_effect = lambda s, k, **kw: {
             ("notifications", "slack_channel"): "test-channel",
-            ("slack", "token"): "test-token",
+            (
+                "slack",
+                "webhook_url",
+            ): "https://hooks.slack.com/services/T00000000/B00000000/xxxxx",
             ("slack", "slack_botname"): "TestBot",
         }.get((s, k), kw.get("fallback"))
         mock_config.has_section.return_value = True
