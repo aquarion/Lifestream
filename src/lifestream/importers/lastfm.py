@@ -38,8 +38,7 @@ class LastfmImporter(FeedImporter):
 
         fp = feedparser.parse(url)
 
-        for i in range(1, len(fp["entries"])):
-            o_item = fp["entries"][i]
+        for o_item in fp["entries"]:
 
             item_id = hashlib.md5()
             item_id.update(o_item["guid"].encode("utf-8"))
