@@ -5,6 +5,8 @@ import pickle
 import time
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from lifestream import cache
 
 
@@ -13,20 +15,21 @@ class TestRedisConnection:
 
     def test_get_redis_connection_creates_connection(self):
         """Test that get_redis_connection creates a Redis client."""
-        # Reset module state
         cache._redis_connection = None
+        try:
+            with patch.object(cache, "redis") as mock_redis_module:
+                mock_conn = MagicMock()
+                mock_conn.ping.return_value = True
+                mock_redis_module.Redis.return_value = mock_conn
+                mock_redis_module.exceptions = cache.redis.exceptions
 
-        with patch.object(cache, "redis") as mock_redis_module:
-            mock_conn = MagicMock()
-            mock_redis_module.Redis.return_value = mock_conn
+                result = cache.get_redis_connection()
 
-            result = cache.get_redis_connection()
-
-            assert result is mock_conn
-            mock_redis_module.Redis.assert_called_once()
-
-        # Clean up
-        cache._redis_connection = None
+                assert result is mock_conn
+                mock_redis_module.Redis.assert_called_once()
+                mock_conn.ping.assert_called_once()
+        finally:
+            cache._redis_connection = None
 
     def test_get_redis_connection_reuses_connection(self):
         """Test that get_redis_connection reuses existing connection."""
@@ -39,6 +42,31 @@ class TestRedisConnection:
             assert result is mock_conn
         finally:
             cache._redis_connection = original
+
+    def test_get_redis_connection_raises_with_clear_message_on_failure(self):
+        """Test that Redis ConnectionError includes host info."""
+        import redis as redis_module
+
+        cache._redis_connection = None
+        try:
+            mock_conn = MagicMock()
+            mock_conn.ping.side_effect = redis_module.exceptions.ConnectionError(
+                "refused"
+            )
+
+            with patch.object(cache, "redis") as mock_redis_module:
+                mock_redis_module.Redis.return_value = mock_conn
+                mock_redis_module.exceptions = redis_module.exceptions
+
+                with pytest.raises(
+                    redis_module.exceptions.ConnectionError,
+                    match="Cannot connect to Redis at",
+                ):
+                    cache.get_redis_connection()
+
+            assert cache._redis_connection is None
+        finally:
+            cache._redis_connection = None
 
 
 class TestBackoff:

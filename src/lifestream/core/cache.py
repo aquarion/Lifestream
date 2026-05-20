@@ -17,12 +17,25 @@ def get_redis_connection():
     """Get a Redis connection using config settings."""
     global _redis_connection
     if _redis_connection is None:
-        _redis_connection = redis.Redis(
-            host=config.get("redis", "host", fallback="localhost"),
-            port=int(config.get("redis", "port", fallback=6379)),
+        host = config.get("redis", "host", fallback="localhost")
+        port = int(config.get("redis", "port", fallback=6379))
+        conn = redis.Redis(
+            host=host,
+            port=port,
             username=config.get("redis", "username", fallback=None),
             password=config.get("redis", "password", fallback=None),
         )
+        try:
+            conn.ping()
+        except redis.exceptions.ConnectionError as e:
+            raise redis.exceptions.ConnectionError(
+                f"Cannot connect to Redis at {host}:{port}: {e}"
+            ) from e
+        except redis.exceptions.AuthenticationError as e:
+            raise redis.exceptions.AuthenticationError(
+                f"Redis authentication failed — check redis.username/password in config: {e}"
+            ) from e
+        _redis_connection = conn
     return _redis_connection
 
 
