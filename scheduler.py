@@ -22,17 +22,6 @@ import signal
 import sys
 from datetime import datetime
 
-parser = argparse.ArgumentParser(
-    description="Lifestream Scheduler",
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    epilog=__doc__,
-)
-parser.add_argument("--list", action="store_true", help="List configured jobs")
-parser.add_argument("--status", action="store_true", help="Show job status")
-parser.add_argument("--run", metavar="JOB", help="Run a specific job immediately")
-parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-SCHEDULER_ARGS, _ = parser.parse_known_args()
-
 from apscheduler.executors.pool import ThreadPoolExecutor  # noqa: E402
 from apscheduler.jobstores.redis import RedisJobStore  # noqa: E402
 from apscheduler.schedulers.blocking import BlockingScheduler  # noqa: E402
@@ -222,6 +211,7 @@ def show_status():
 
     if not jobs:
         print("No jobs currently scheduled")
+        scheduler.shutdown(wait=False)
         return
 
     print(f"{'Job Name':<25} {'Next Run':<25} {'Status'}")
@@ -267,10 +257,22 @@ def run_job_now(job_name):
 
 
 def main():
-    args = SCHEDULER_ARGS
+    parser = argparse.ArgumentParser(
+        description="Lifestream Scheduler",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    parser.add_argument("--list", action="store_true", help="List configured jobs")
+    parser.add_argument("--status", action="store_true", help="Show job status")
+    parser.add_argument("--run", metavar="JOB", help="Run a specific job immediately")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    args, _ = parser.parse_known_args()
+
+    from lifestream.core.logging import setup_logging
+
+    setup_logging(debug=args.debug, verbose=args.debug)
 
     if args.debug:
-        logging.getLogger("").setLevel(logging.DEBUG)
         logging.getLogger("apscheduler").setLevel(logging.DEBUG)
 
     if args.list:
@@ -312,6 +314,12 @@ def main():
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
         logger.info("Scheduler stopped")
+    except Exception as e:
+        logger.error(f"Scheduler failed to start: {e}")
+        logger.error(
+            "Check that Redis is running and reachable (see [redis] in config.ini)"
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":
