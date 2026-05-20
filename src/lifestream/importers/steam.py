@@ -17,8 +17,6 @@ class SteamImporter(BaseImporter):
     description = "Import achievements from Steam"
     config_section = "steam"
 
-    STEAMTIME = pytz.timezone("US/Pacific")
-
     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
         """Add Steam-specific arguments."""
         parser.add_argument(
@@ -107,7 +105,7 @@ class SteamImporter(BaseImporter):
                         message = f"{name} &ndash; {ach_name}"
 
                         achieved_date = datetime.fromtimestamp(
-                            player_achievement["unlocktime"]
+                            player_achievement["unlocktime"], tz=pytz.utc
                         )
 
                         self.logger.info(message)
