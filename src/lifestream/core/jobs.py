@@ -14,6 +14,14 @@ from lifestream.core.notifications import send_failure_notifications
 
 logger = logging.getLogger(__name__)
 
+try:
+    from lifestream.importers import IMPORTERS as _IMPORTERS
+except ImportError as _import_err:
+    logger.warning(
+        "Failed to import lifestream.importers (legacy fallback only): %s", _import_err
+    )
+    _IMPORTERS = {}
+
 
 def run_import(job_name: str) -> None:
     """
@@ -35,12 +43,7 @@ def run_import(job_name: str) -> None:
     try:
         # Try new-style importer — only catch ImportError from the import itself,
         # not from inside the importer's run() method
-        try:
-            from lifestream.importers import IMPORTERS
-
-            importer_cls = IMPORTERS.get(job_name)
-        except ImportError:
-            importer_cls = None  # Package not available, fall through to legacy
+        importer_cls = _IMPORTERS.get(job_name) if _IMPORTERS else None
 
         if importer_cls is not None:
             importer = importer_cls()
@@ -61,13 +64,18 @@ def run_import(job_name: str) -> None:
         # Most import scripts have a main() function, some run at import time
         if hasattr(module, "main"):
             module.main()
+        else:
+            logger.warning(
+                "Legacy module '%s' has no main() — ran at import time or did nothing",
+                job_name,
+            )
 
         duration = (datetime.now() - start_time).total_seconds()
         logger.info(f"Completed job: {job_name} in {duration:.1f}s")
 
     except Exception as e:
         duration = (datetime.now() - start_time).total_seconds()
-        logger.error(f"Job {job_name} failed after {duration:.1f}s: {e}")
+        logger.exception(f"Job {job_name} failed after {duration:.1f}s")
         send_failure_notifications(job_name, e, duration)
         raise
 
@@ -118,6 +126,6 @@ def run_shell_command(job_name: str, command: str) -> None:
         raise
     except Exception as e:
         duration = (datetime.now() - start_time).total_seconds()
-        logger.error(f"Shell job {job_name} failed after {duration:.1f}s: {e}")
+        logger.exception(f"Shell job {job_name} failed after {duration:.1f}s")
         send_failure_notifications(job_name, e, duration)
         raise
