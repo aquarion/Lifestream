@@ -68,6 +68,31 @@ class TestRedisConnection:
         finally:
             cache._redis_connection = None
 
+    def test_get_redis_connection_raises_on_auth_error(self):
+        """Test that AuthenticationError includes config guidance and does not cache connection."""
+        import redis as redis_module
+
+        cache._redis_connection = None
+        try:
+            mock_conn = MagicMock()
+            mock_conn.ping.side_effect = redis_module.exceptions.AuthenticationError(
+                "WRONGPASS"
+            )
+
+            with patch.object(cache, "redis") as mock_redis_module:
+                mock_redis_module.Redis.return_value = mock_conn
+                mock_redis_module.exceptions = redis_module.exceptions
+
+                with pytest.raises(
+                    redis_module.exceptions.AuthenticationError,
+                    match="check redis.username/password in config",
+                ):
+                    cache.get_redis_connection()
+
+            assert cache._redis_connection is None
+        finally:
+            cache._redis_connection = None
+
 
 class TestBackoff:
     """Tests for backoff functions."""

@@ -27,13 +27,13 @@ def get_redis_connection():
         )
         try:
             conn.ping()
-        except redis.exceptions.ConnectionError as e:
-            raise redis.exceptions.ConnectionError(
-                f"Cannot connect to Redis at {host}:{port}: {e}"
-            ) from e
         except redis.exceptions.AuthenticationError as e:
             raise redis.exceptions.AuthenticationError(
                 f"Redis authentication failed — check redis.username/password in config: {e}"
+            ) from e
+        except redis.exceptions.ConnectionError as e:
+            raise redis.exceptions.ConnectionError(
+                f"Cannot connect to Redis at {host}:{port}: {e}"
             ) from e
         _redis_connection = conn
     return _redis_connection
