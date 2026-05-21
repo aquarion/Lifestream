@@ -34,7 +34,16 @@ class AtomImporter(FeedImporter):
         self.logger.info("Grabbing %s", url)
         fp = feedparser.parse(url)
 
+        if fp.bozo:
+            raise RuntimeError(f"Failed to parse feed at {url}: {fp.bozo_exception}")
+
         for o_item in fp["entries"]:
+            if o_item.get("updated_parsed") is None:
+                self.logger.warning(
+                    "Skipping entry with no date: %s", o_item.get("title", "<no title>")
+                )
+                continue
+
             item_id = o_item["guid"]
             dt = datetime.fromtimestamp(mktime(o_item["updated_parsed"]))
             updated = dt.strftime("%Y-%m-%d %H:%M")
