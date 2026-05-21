@@ -27,7 +27,7 @@ class TestWordpressImporter:
                 imp.process_site("missing")
 
     def test_process_site_raises_on_invalid_credentials(self):
-        """Invalid credentials raise RuntimeError, not silent loop exit."""
+        """Invalid credentials raise ConfigurationError, not silent loop exit."""
         from wordpress_xmlrpc import exceptions as wp_exc
 
         imp = self._make_importer()
@@ -41,5 +41,5 @@ class TestWordpressImporter:
             with patch(
                 "lifestream.importers.wordpress.Client", return_value=mock_client
             ):
-                with pytest.raises(RuntimeError, match="Invalid credentials"):
+                with pytest.raises(ConfigurationError, match="Invalid credentials"):
                     imp.process_site("mysite")

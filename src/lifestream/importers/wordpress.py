@@ -77,7 +77,7 @@ class WordpressImporter(BaseImporter):
             try:
                 posts = wp.call(GetPosts(options))
             except wordpress_exceptions.InvalidCredentialsError as e:
-                raise RuntimeError(
+                raise ConfigurationError(
                     f"Invalid credentials for WordPress site '{source}': {e}"
                 ) from e
 
