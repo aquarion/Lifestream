@@ -14,13 +14,12 @@ from lifestream.core.notifications import send_failure_notifications
 
 logger = logging.getLogger(__name__)
 
+_IMPORTERS: dict = {}
+_IMPORTERS_IMPORT_ERROR: ImportError | None = None
 try:
     from lifestream.importers import IMPORTERS as _IMPORTERS
 except ImportError as _import_err:
-    logger.warning(
-        "Failed to import lifestream.importers (legacy fallback only): %s", _import_err
-    )
-    _IMPORTERS = {}
+    _IMPORTERS_IMPORT_ERROR = _import_err
 
 
 def run_import(job_name: str) -> None:
@@ -37,13 +36,19 @@ def run_import(job_name: str) -> None:
     Raises:
         Exception: Re-raises any exception from the job after logging and notifying
     """
+    if _IMPORTERS_IMPORT_ERROR is not None:
+        logger.warning(
+            "Failed to import lifestream.importers (legacy fallback only): %s",
+            _IMPORTERS_IMPORT_ERROR,
+        )
+
     logger.info(f"Starting job: {job_name}")
     start_time = datetime.now()
 
     try:
         # Try new-style importer — only catch ImportError from the import itself,
         # not from inside the importer's run() method
-        importer_cls = _IMPORTERS.get(job_name) if _IMPORTERS else None
+        importer_cls = _IMPORTERS.get(job_name)
 
         if importer_cls is not None:
             importer = importer_cls()
