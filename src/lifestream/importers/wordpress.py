@@ -63,11 +63,9 @@ class WordpressImporter(BaseImporter):
             user = config.get(section, "username")
             passwd = config.get(section, "password")
         except configparser.NoSectionError:
-            self.logger.error(f"No [{section}] section found in config")
-            return
+            raise ConfigurationError(f"No [{section}] section found in config")
         except configparser.NoOptionError as e:
-            self.logger.error(str(e))
-            return
+            raise ConfigurationError(str(e))
 
         wp = Client(url, user, passwd)
 
@@ -79,9 +77,9 @@ class WordpressImporter(BaseImporter):
             try:
                 posts = wp.call(GetPosts(options))
             except wordpress_exceptions.InvalidCredentialsError as e:
-                self.logger.error(f"Invalid credentials for {source}: {e}")
-                keep_going = False
-                continue
+                raise RuntimeError(
+                    f"Invalid credentials for WordPress site '{source}': {e}"
+                ) from e
 
             for post in posts:
                 if len(post.title):
