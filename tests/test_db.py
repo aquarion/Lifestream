@@ -127,3 +127,91 @@ class TestEntryStore:
         captured = capsys.readouterr()
         assert "[NO-DB] STAT:" in captured.out
         assert result is True
+
+    def test_add_entry_inserts_new_entry(self):
+        """add_entry executes INSERT when the entry does not yet exist."""
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = None  # Entry doesn't exist
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                store.add_entry(
+                    type="test", id="abc", title="T", source="s", date="2024-01-01"
+                )
+
+        calls = [str(c) for c in mock_cursor.execute.call_args_list]
+        assert any("INSERT INTO" in c for c in calls)
+
+    def test_add_entry_updates_existing_when_update_true(self):
+        """add_entry executes UPDATE when the entry exists and update=True."""
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {
+            "date_created": "2024-01-01"
+        }  # Entry exists
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                store.add_entry(
+                    type="test",
+                    id="abc",
+                    title="Updated",
+                    source="s",
+                    date="2024-01-02",
+                    update=True,
+                )
+
+        calls = [str(c) for c in mock_cursor.execute.call_args_list]
+        assert any("UPDATE" in c for c in calls)
+
+    def test_add_entry_returns_false_for_existing_when_update_false(self):
+        """add_entry returns False and does not UPDATE when entry exists and update=False."""
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {
+            "date_created": "2024-01-01"
+        }  # Entry exists
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                result = store.add_entry(
+                    type="test",
+                    id="abc",
+                    title="T",
+                    source="s",
+                    date="2024-01-01",
+                    update=False,
+                )
+
+        assert result is False
+        calls = [str(c) for c in mock_cursor.execute.call_args_list]
+        assert not any("UPDATE" in c for c in calls)
+        assert not any("INSERT" in c for c in calls)
+
+    def test_add_location_executes_replace(self):
+        """add_location issues REPLACE INTO lifestream_locations."""
+        from datetime import datetime
+
+        import pytz
+
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        ts = datetime(2024, 6, 1, 12, 0, 0, tzinfo=pytz.utc)
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                store.add_location(ts, "test_source", 51.5, -0.1, "London")
+
+        calls = [str(c) for c in mock_cursor.execute.call_args_list]
+        assert any("replace into lifestream_locations" in c.lower() for c in calls)
+        mock_conn.commit.assert_called()
