@@ -35,7 +35,15 @@ class AtomImporter(FeedImporter):
         fp = feedparser.parse(url)
 
         if fp.bozo:
-            raise RuntimeError(f"Failed to parse feed at {url}: {fp.bozo_exception}")
+            import urllib.error
+
+            if isinstance(fp.bozo_exception, urllib.error.URLError):
+                raise RuntimeError(
+                    f"Failed to fetch feed at {url}: {fp.bozo_exception}"
+                )
+            self.logger.warning(
+                "Feed at %s is not well-formed: %s", url, fp.bozo_exception
+            )
 
         for o_item in fp["entries"]:
             if o_item.get("updated_parsed") is None:
