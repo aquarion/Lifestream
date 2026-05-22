@@ -88,6 +88,7 @@ class TestRunImportNewStyle:
                 jobs.run_import("myimporter")
 
         mock_instance.run.assert_called_once()
+        mock_cls.assert_called_once_with()
 
     def test_new_style_importer_config_failure_raises(self):
         """run_import raises RuntimeError when validate_config() returns False."""
@@ -102,6 +103,10 @@ class TestRunImportNewStyle:
                     jobs.run_import("myimporter")
 
             mock_notify.assert_called_once()
+            args = mock_notify.call_args[0]
+            assert args[0] == "myimporter"
+
+        mock_cls.assert_called_once_with()
 
     def test_new_style_importer_exception_propagates(self):
         """run_import re-raises from importer.run() after notifying."""
@@ -117,6 +122,10 @@ class TestRunImportNewStyle:
                     jobs.run_import("myimporter")
 
             mock_notify.assert_called_once()
+            args = mock_notify.call_args[0]
+            assert args[0] == "myimporter"
+
+        mock_cls.assert_called_once_with()
 
 
 class TestRunShellCommand:

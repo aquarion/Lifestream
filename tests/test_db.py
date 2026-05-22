@@ -142,8 +142,9 @@ class TestEntryStore:
                     type="test", id="abc", title="T", source="s", date="2024-01-01"
                 )
 
-        calls = [str(c) for c in mock_cursor.execute.call_args_list]
-        assert any("INSERT INTO" in c for c in calls)
+        executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
+        assert any("INSERT INTO" in sql for sql in executed_sqls)
+        mock_conn.commit.assert_called()
 
     def test_add_entry_updates_existing_when_update_true(self):
         """add_entry executes UPDATE when the entry exists and update=True."""
@@ -166,8 +167,9 @@ class TestEntryStore:
                     update=True,
                 )
 
-        calls = [str(c) for c in mock_cursor.execute.call_args_list]
-        assert any("UPDATE" in c for c in calls)
+        executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
+        assert any("UPDATE" in sql for sql in executed_sqls)
+        mock_conn.commit.assert_called()
 
     def test_add_entry_returns_false_for_existing_when_update_false(self):
         """add_entry returns False and does not UPDATE when entry exists and update=False."""
@@ -191,9 +193,9 @@ class TestEntryStore:
                 )
 
         assert result is False
-        calls = [str(c) for c in mock_cursor.execute.call_args_list]
-        assert not any("UPDATE" in c for c in calls)
-        assert not any("INSERT" in c for c in calls)
+        executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
+        assert not any("UPDATE" in sql for sql in executed_sqls)
+        assert not any("INSERT" in sql for sql in executed_sqls)
 
     def test_add_location_executes_replace(self):
         """add_location issues REPLACE INTO lifestream_locations."""
@@ -212,6 +214,8 @@ class TestEntryStore:
                 store = db.EntryStore(no_db=False)
                 store.add_location(ts, "test_source", 51.5, -0.1, "London")
 
-        calls = [str(c) for c in mock_cursor.execute.call_args_list]
-        assert any("replace into lifestream_locations" in c.lower() for c in calls)
+        executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
+        assert any(
+            "replace into lifestream_locations" in sql.lower() for sql in executed_sqls
+        )
         mock_conn.commit.assert_called()
