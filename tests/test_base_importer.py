@@ -1,5 +1,3 @@
-"""Tests for BaseImporter.execute() exit codes."""
-
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -28,14 +26,12 @@ class ConcreteImporter(BaseImporter):
 
 class TestBaseImporterExecute:
     def test_execute_returns_0_on_success(self):
-        """execute() returns 0 when run() succeeds."""
         imp = ConcreteImporter()
         with patch("lifestream.importers.base.setup_logging"):
             result = imp.execute([])
         assert result == 0
 
     def test_execute_returns_5_on_validate_config_false(self):
-        """execute() returns 5 when validate_config() returns False."""
         imp = ConcreteImporter()
         imp.validate_config = MagicMock(return_value=False)
         with patch("lifestream.importers.base.setup_logging"):
@@ -43,34 +39,31 @@ class TestBaseImporterExecute:
         assert result == 5
 
     def test_execute_returns_5_on_configuration_error(self):
-        """execute() returns 5 when run() raises ConfigurationError."""
         imp = ConcreteImporter(run_fn=lambda: _raise(ConfigurationError("missing key")))
         with patch("lifestream.importers.base.setup_logging"):
             result = imp.execute([])
         assert result == 5
 
     def test_execute_returns_1_on_unexpected_exception(self):
-        """execute() returns 1 when run() raises any other exception."""
         imp = ConcreteImporter(run_fn=lambda: _raise(RuntimeError("boom")))
         with patch("lifestream.importers.base.setup_logging"):
             result = imp.execute([])
         assert result == 1
 
     def test_execute_returns_130_on_keyboard_interrupt(self):
-        """execute() returns 130 when run() raises KeyboardInterrupt."""
         imp = ConcreteImporter(run_fn=lambda: _raise(KeyboardInterrupt()))
         with patch("lifestream.importers.base.setup_logging"):
             result = imp.execute([])
         assert result == 130
 
     def test_require_config_raises_on_missing_key(self):
-        """require_config() raises ConfigurationError for missing keys."""
         imp = ConcreteImporter()
         mock_config = MagicMock()
         mock_config.has_option.return_value = False
 
         with patch("lifestream.importers.base.config", mock_config):
             with pytest.raises(
-                ConfigurationError, match="Missing required config keys"
+                ConfigurationError,
+                match=r"Missing required config keys in \[test_importer\]: api_key, username",
             ):
                 imp.require_config("api_key", "username")
