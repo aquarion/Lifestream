@@ -49,9 +49,13 @@ class FlickrImporter(BaseImporter):
 
         since = 0
         if not self.entry_store.no_db:
-            sql = 'select date_created from lifestream where type = "flickr" order by date_created desc limit 1'
-            self.entry_store.cursor.execute(sql)
-            res = self.entry_store.cursor.fetchone()
+            with self.entry_store.dbcxn.cursor() as cur:
+                cur.execute(
+                    "SELECT date_created FROM lifestream WHERE type = %s "
+                    "ORDER BY date_created DESC LIMIT 1",
+                    ("flickr",),
+                )
+                res = cur.fetchone()
             since = res[0] if res else 0
 
         flickr = flickrapi.FlickrAPI(api_key)
