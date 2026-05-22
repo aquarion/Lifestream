@@ -31,6 +31,20 @@ class TestRunImport:
                     # Should not raise
                     jobs.run_import("test_module")
 
+    def test_run_import_does_not_call_legacy_if_new_style_found(self):
+        """Test run_import uses new-style importer and skips legacy path."""
+        mock_cls = MagicMock()
+        mock_instance = MagicMock()
+        mock_cls.return_value = mock_instance
+        mock_instance.validate_config.return_value = True
+
+        with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
+            with patch.object(jobs.importlib, "import_module") as mock_import:
+                with patch.object(jobs, "send_failure_notifications"):
+                    jobs.run_import("myimporter")
+                    # Verify legacy path was not used
+                    mock_import.assert_not_called()
+
     def test_run_import_sends_notification_on_failure(self):
         """Test run_import sends notification when job fails."""
         mock_module = MagicMock()
@@ -57,6 +71,52 @@ class TestRunImport:
                 with patch.object(jobs, "send_failure_notifications"):
                     jobs.run_import("test_module")
                     mock_reload.assert_called_once_with(mock_module)
+
+
+class TestRunImportNewStyle:
+    """Tests for run_import using new-style IMPORTERS registry."""
+
+    def test_new_style_importer_run_called(self):
+        """run_import calls importer.run() for registered new-style importers."""
+        mock_cls = MagicMock()
+        mock_instance = MagicMock()
+        mock_cls.return_value = mock_instance
+        mock_instance.validate_config.return_value = True
+
+        with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
+            with patch.object(jobs, "send_failure_notifications"):
+                jobs.run_import("myimporter")
+
+        mock_instance.run.assert_called_once()
+
+    def test_new_style_importer_config_failure_raises(self):
+        """run_import raises RuntimeError when validate_config() returns False."""
+        mock_cls = MagicMock()
+        mock_instance = MagicMock()
+        mock_cls.return_value = mock_instance
+        mock_instance.validate_config.return_value = False
+
+        with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
+            with patch.object(jobs, "send_failure_notifications") as mock_notify:
+                with pytest.raises(RuntimeError, match="Config validation failed"):
+                    jobs.run_import("myimporter")
+
+            mock_notify.assert_called_once()
+
+    def test_new_style_importer_exception_propagates(self):
+        """run_import re-raises from importer.run() after notifying."""
+        mock_cls = MagicMock()
+        mock_instance = MagicMock()
+        mock_cls.return_value = mock_instance
+        mock_instance.validate_config.return_value = True
+        mock_instance.run.side_effect = ValueError("API error")
+
+        with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
+            with patch.object(jobs, "send_failure_notifications") as mock_notify:
+                with pytest.raises(ValueError, match="API error"):
+                    jobs.run_import("myimporter")
+
+            mock_notify.assert_called_once()
 
 
 class TestRunShellCommand:
