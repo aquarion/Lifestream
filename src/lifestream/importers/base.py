@@ -294,7 +294,17 @@ class OAuthImporter(BaseImporter):
         try:
             with open(path, "rb") as f:
                 return pickle.load(f)
-        except (FileNotFoundError, pickle.UnpicklingError):
+        except FileNotFoundError:
+            self.logger.info(
+                "OAuth token file not found at %s — run with --reauth", path
+            )
+            return None
+        except pickle.UnpicklingError as e:
+            self.logger.error(
+                "OAuth token file at %s is corrupt (%s). Delete it and re-run with --reauth.",
+                path,
+                e,
+            )
             return None
 
     def save_oauth_token(self, token) -> None:
