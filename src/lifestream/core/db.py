@@ -10,8 +10,8 @@ import pytz
 
 from .config import config
 
-# Suppress MySQL warnings as errors
-warnings.filterwarnings("error", category=MySQLdb.Warning)
+# Suppress MySQL warnings
+warnings.filterwarnings("ignore", category=MySQLdb.Warning)
 
 # Module-level state for no-db mode
 _no_db_mode = False
