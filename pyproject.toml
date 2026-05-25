@@ -36,7 +36,7 @@ guildwars2api = { git = "git@github.com:aquarion/guildwars2api.git", tag = "0.1a
 h11 = "^0.16.0"
 httplib2 = "^0.31.0"
 httpretty = "^1.1.4"
-idna = "^3.7"
+idna = "^3.16"
 ipdb = "^0.13.13"
 ipython = "^9.10.1"
 jedi = "^0.19.1"
