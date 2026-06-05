@@ -100,7 +100,7 @@ redis = "^7.0.1"
 paramiko = "^5.0.0"
 tqdm = "^4.67.1"
 atproto = "^0.0.65"
-pre-commit = "^4.5.1"
+pre-commit = "^4.6.0"
 
 
 [tool.poetry]
