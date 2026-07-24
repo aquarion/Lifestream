@@ -58,9 +58,7 @@ def _load_cached_token(OAUTH_FILENAME, force_reauth):
     try:
         with open(OAUTH_FILENAME, "rb") as f:
             return pickle.load(f)  # noqa: S301
-    except (
-        Exception
-    ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+    except (FileNotFoundError, EOFError, pickle.UnpicklingError):
         logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
         return False
 

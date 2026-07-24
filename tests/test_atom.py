@@ -21,6 +21,7 @@ class TestAtomImporter:
         imp = self._make_importer()
 
         mock_fp_obj = MagicMock()
+        mock_fp_obj.status = 200
         mock_fp_obj.bozo = True
         mock_fp_obj.bozo_exception = urllib.error.URLError("connection refused")
         mock_fp_obj.__getitem__ = lambda _, k: []
@@ -40,6 +41,7 @@ class TestAtomImporter:
             "links": [{"href": "http://x.com/1"}],
         }
         mock_fp_obj = MagicMock()
+        mock_fp_obj.status = 200
         mock_fp_obj.bozo = True
         mock_fp_obj.bozo_exception = Exception("not well-formed")
         mock_fp_obj.__getitem__ = lambda _, k: [entry] if k == "entries" else []
@@ -48,6 +50,21 @@ class TestAtomImporter:
             imp.run()
 
         imp._entry_store.add_entry.assert_called_once()
+
+    def test_run_raises_on_http_error_status(self):
+        """A feed fetch returning an HTTP error status raises RuntimeError."""
+        imp = self._make_importer()
+
+        mock_fp_obj = MagicMock()
+        mock_fp_obj.status = 403
+        mock_fp_obj.bozo = False
+        mock_fp_obj.__getitem__ = lambda _, k: []
+
+        with patch("feedparser.parse", return_value=mock_fp_obj):
+            with pytest.raises(RuntimeError, match="HTTP 403"):
+                imp.run()
+
+        imp._entry_store.add_entry.assert_not_called()
 
     def test_run_skips_entries_with_no_date(self):
         """Entries with updated_parsed=None are skipped without crashing."""
@@ -60,6 +77,7 @@ class TestAtomImporter:
             "links": [{"href": "http://x.com"}],
         }
         mock_fp_obj = MagicMock()
+        mock_fp_obj.status = 200
         mock_fp_obj.bozo = False
         mock_fp_obj.__getitem__ = lambda _, k: [entry] if k == "entries" else []
 

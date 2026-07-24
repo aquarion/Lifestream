@@ -34,6 +34,10 @@ class AtomImporter(FeedImporter):
         self.logger.info("Grabbing %s", url)
         fp = feedparser.parse(url)
 
+        status = getattr(fp, "status", None)
+        if status is not None and status >= 400:
+            raise RuntimeError(f"Failed to fetch feed at {url}: HTTP {status}")
+
         if fp.bozo:
             import urllib.error
 

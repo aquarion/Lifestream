@@ -219,3 +219,50 @@ class TestEntryStore:
             "replace into lifestream_locations" in sql.lower() for sql in executed_sqls
         )
         mock_conn.commit.assert_called()
+
+    def test_add_location_persists_fulldata(self):
+        """add_location serializes the fulldata argument into fulldata_json, not empty string."""
+        from datetime import datetime
+
+        import pytz
+
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        ts = datetime(2024, 6, 1, 12, 0, 0, tzinfo=pytz.utc)
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                store.add_location(
+                    ts,
+                    "test_source",
+                    51.5,
+                    -0.1,
+                    "London",
+                    fulldata={"raw": "payload"},
+                )
+
+        params = [c.args[1] for c in mock_cursor.execute.call_args_list]
+        assert any('"raw": "payload"' in str(p[-1]) for p in params)
+
+    def test_add_location_without_fulldata_stores_empty_string(self):
+        """add_location with no fulldata stores an empty string, not the string 'None'."""
+        from datetime import datetime
+
+        import pytz
+
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        ts = datetime(2024, 6, 1, 12, 0, 0, tzinfo=pytz.utc)
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                store.add_location(ts, "test_source", 51.5, -0.1, "London")
+
+        params = [c.args[1] for c in mock_cursor.execute.call_args_list]
+        assert any(p[-1] == "" for p in params)

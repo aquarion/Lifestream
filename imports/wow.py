@@ -122,9 +122,7 @@ if not args.reauth:
         f = open(OAUTH_FILENAME, "rb")
         oauth_token = pickle.load(f)
         f.close()
-    except (
-        Exception
-    ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+    except (FileNotFoundError, EOFError, pickle.UnpicklingError):
         logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
         oauth_token = False
 else:
@@ -142,9 +140,7 @@ try:
     f = open(CLIENT_AUTH_FILENAME, "rb")
     client_token = pickle.load(f)
     f.close()
-except (
-    Exception
-):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+except (FileNotFoundError, EOFError, pickle.UnpicklingError):
     logger.error("Couldn't open %s, reloading..." % CLIENT_AUTH_FILENAME)
     client_token = False
 

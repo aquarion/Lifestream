@@ -50,9 +50,7 @@ def tumblrAuth(config, OAUTH_TUMBLR):
         f = open(OAUTH_TUMBLR, "rb")
         oauth_token = pickle.load(f)
         f.close()
-    except (
-        Exception
-    ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+    except (FileNotFoundError, EOFError, pickle.UnpicklingError):
         print("Couldn't open %s, reloading..." % OAUTH_TUMBLR)
         oauth_token = False
 

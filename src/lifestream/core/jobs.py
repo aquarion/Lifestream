@@ -52,14 +52,10 @@ def run_import(job_name: str) -> None:
 
         if importer_cls is not None:
             importer = importer_cls()
-            # Use _args directly rather than execute() so exceptions propagate
-            # to the scheduler's failure handler instead of being swallowed.
-            importer._args = importer.parse_args([])
-            if not importer.validate_config():
-                raise RuntimeError(f"Config validation failed for {job_name}")
-            importer.run()
-            duration = (datetime.now() - start_time).total_seconds()
-            logger.info(f"Completed job: {job_name} in {duration:.1f}s")
+            # run_with_setup() shares BaseImporter.execute()'s setup/validation
+            # logic but lets exceptions propagate to the except clauses below,
+            # instead of execute()'s own exit-code mapping swallowing them.
+            importer.run_with_setup(args=[])
             return
 
         # Fallback to legacy import style
@@ -78,6 +74,23 @@ def run_import(job_name: str) -> None:
         duration = (datetime.now() - start_time).total_seconds()
         logger.info(f"Completed job: {job_name} in {duration:.1f}s")
 
+    except SystemExit as e:
+        # Legacy imports/*.py scripts signal failure via sys.exit(), which
+        # raises SystemExit — a BaseException, not an Exception — so it would
+        # otherwise skip the except Exception handler below entirely and
+        # never trigger a failure notification.
+        duration = (datetime.now() - start_time).total_seconds()
+        code = e.code
+        if code in (None, 0):
+            logger.info(f"Completed job: {job_name} in {duration:.1f}s")
+        else:
+            logger.error(
+                f"Job {job_name} exited via sys.exit({code!r}) after {duration:.1f}s"
+            )
+            send_failure_notifications(
+                job_name, RuntimeError(f"sys.exit({code!r})"), duration
+            )
+        raise
     except Exception as e:
         duration = (datetime.now() - start_time).total_seconds()
         logger.exception(f"Job {job_name} failed after {duration:.1f}s")

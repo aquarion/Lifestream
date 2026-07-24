@@ -22,7 +22,7 @@ from .oauth_utils import read_token_file, write_token_file  # noqa: F401
 warnings.filterwarnings("error", category=MySQLdb.Warning)
 
 # Path resolution - use __file__ to get reliable paths independent of how the script is run
-# This module is in imports/lifestream/, so project root is two directories up
+# This module is in imports/lifestream_legacy/, so project root is two directories up
 _module_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.normpath(os.path.join(_module_dir, "..", ".."))
 

@@ -69,9 +69,7 @@ def authenticate(OAUTH_FILENAME, appid, secret, force_reauth=False):
             f = open(OAUTH_FILENAME, "rb")
             oauth_token = pickle.load(f)
             f.close()
-        except (
-            Exception
-        ):  # TODO: narrow down to specific exceptions (IOError, pickle.UnpicklingError)
+        except (FileNotFoundError, EOFError, pickle.UnpicklingError):
             logger.error("Couldn't open %s, reloading..." % OAUTH_FILENAME)
             oauth_token = False
     else:

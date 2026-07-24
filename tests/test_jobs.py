@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from lifestream import jobs
+from lifestream.importers.base import ConfigurationError
 
 
 class TestRunImport:
@@ -36,7 +37,6 @@ class TestRunImport:
         mock_cls = MagicMock()
         mock_instance = MagicMock()
         mock_cls.return_value = mock_instance
-        mock_instance.validate_config.return_value = True
 
         with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
             with patch.object(jobs.importlib, "import_module") as mock_import:
@@ -74,32 +74,40 @@ class TestRunImport:
 
 
 class TestRunImportNewStyle:
-    """Tests for run_import using new-style IMPORTERS registry."""
+    """Tests for run_import using new-style IMPORTERS registry.
 
-    def test_new_style_importer_run_called(self):
-        """run_import calls importer.run() for registered new-style importers."""
+    run_with_setup() itself (parse_args/logging/no-db/validate_config/run) is
+    exercised in tests/test_base_importer.py; these tests only verify that
+    run_import() calls it and reacts correctly to what it raises.
+    """
+
+    def test_new_style_importer_run_with_setup_called(self):
+        """run_import calls importer.run_with_setup() for registered new-style importers."""
         mock_cls = MagicMock()
         mock_instance = MagicMock()
         mock_cls.return_value = mock_instance
-        mock_instance.validate_config.return_value = True
 
         with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
             with patch.object(jobs, "send_failure_notifications"):
                 jobs.run_import("myimporter")
 
-        mock_instance.run.assert_called_once()
+        mock_instance.run_with_setup.assert_called_once_with(args=[])
         mock_cls.assert_called_once_with()
 
-    def test_new_style_importer_config_failure_raises(self):
-        """run_import raises RuntimeError when validate_config() returns False."""
+    def test_new_style_importer_config_error_raises(self):
+        """run_import re-raises ConfigurationError from run_with_setup() after notifying."""
         mock_cls = MagicMock()
         mock_instance = MagicMock()
         mock_cls.return_value = mock_instance
-        mock_instance.validate_config.return_value = False
+        mock_instance.run_with_setup.side_effect = ConfigurationError(
+            "Config validation failed for myimporter"
+        )
 
         with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
             with patch.object(jobs, "send_failure_notifications") as mock_notify:
-                with pytest.raises(RuntimeError, match="Config validation failed"):
+                with pytest.raises(
+                    ConfigurationError, match="Config validation failed"
+                ):
                     jobs.run_import("myimporter")
 
             mock_notify.assert_called_once()
@@ -109,12 +117,11 @@ class TestRunImportNewStyle:
         mock_cls.assert_called_once_with()
 
     def test_new_style_importer_exception_propagates(self):
-        """run_import re-raises from importer.run() after notifying."""
+        """run_import re-raises from importer.run_with_setup() after notifying."""
         mock_cls = MagicMock()
         mock_instance = MagicMock()
         mock_cls.return_value = mock_instance
-        mock_instance.validate_config.return_value = True
-        mock_instance.run.side_effect = ValueError("API error")
+        mock_instance.run_with_setup.side_effect = ValueError("API error")
 
         with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
             with patch.object(jobs, "send_failure_notifications") as mock_notify:
@@ -126,6 +133,51 @@ class TestRunImportNewStyle:
             assert args[0] == "myimporter"
 
         mock_cls.assert_called_once_with()
+
+
+class TestRunImportSystemExit:
+    """Tests for run_import handling legacy scripts that call sys.exit()."""
+
+    def test_notifies_on_nonzero_sys_exit(self):
+        """A legacy script's sys.exit(N) for N != 0 triggers a failure notification."""
+        mock_module = MagicMock()
+        mock_module.main.side_effect = SystemExit(2)
+
+        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
+            with patch.object(jobs.importlib, "reload", return_value=mock_module):
+                with patch.object(jobs, "send_failure_notifications") as mock_notify:
+                    with pytest.raises(SystemExit):
+                        jobs.run_import("test_module")
+
+                    mock_notify.assert_called_once()
+                    call_args = mock_notify.call_args[0]
+                    assert call_args[0] == "test_module"
+
+    def test_does_not_notify_on_sys_exit_zero(self):
+        """A legacy script's sys.exit(0)/sys.exit() is not treated as a failure."""
+        mock_module = MagicMock()
+        mock_module.main.side_effect = SystemExit(0)
+
+        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
+            with patch.object(jobs.importlib, "reload", return_value=mock_module):
+                with patch.object(jobs, "send_failure_notifications") as mock_notify:
+                    with pytest.raises(SystemExit):
+                        jobs.run_import("test_module")
+
+                    mock_notify.assert_not_called()
+
+    def test_notifies_on_sys_exit_with_string_message(self):
+        """A legacy script's sys.exit('message') is treated as a failure."""
+        mock_module = MagicMock()
+        mock_module.main.side_effect = SystemExit("something went wrong")
+
+        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
+            with patch.object(jobs.importlib, "reload", return_value=mock_module):
+                with patch.object(jobs, "send_failure_notifications") as mock_notify:
+                    with pytest.raises(SystemExit):
+                        jobs.run_import("test_module")
+
+                    mock_notify.assert_called_once()
 
 
 class TestRunShellCommand:

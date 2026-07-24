@@ -68,16 +68,20 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now lifestream-scheduler
 ```
 
-### Manual / Crontab (Legacy)
+### Manual
 
-Individual import scripts can be run directly:
+New-style importers (in `src/lifestream/importers/`) can be run directly via
+the `lifestream-import` console script:
 
 ```bash
-cd imports
-poetry run python lastfm.py
+poetry run lifestream-import --list
+poetry run lifestream-import lastfm
 ```
 
-See `docs/crontab.example` for cron-based scheduling using `bin/run_import.sh`.
+Remaining legacy scripts under `imports/` (not yet migrated to the new-style
+importer classes) are still run directly, e.g. `poetry run python imports/wow.py`.
+See `docs/crontab.example` for cron-based scheduling of either style using
+`bin/run_import.sh` (legacy; superseded by the scheduler above).
 
 ## Project Structure
 
@@ -86,13 +90,20 @@ scheduler.py          # Main scheduler daemon
 config.ini            # Configuration (not in repo)
 schema.sql            # Database schema
 
-imports/              # Import scripts for each service
-  lifestream/         # Core library
-    __init__.py       # Config, logging, argument parsing
+src/lifestream/
+  cli.py              # `lifestream-import` console script
+  core/               # Core library
+    config.py         # Config/credentials/project-root helpers
     cache.py          # Redis caching utilities
     db.py             # Database connection and EntryStore
     jobs.py           # Job execution functions
+    logging.py        # Logging setup
     notifications.py  # Email/Slack notification sending
+    oauth_utils.py    # OAuth token file helpers
+    steam_api.py      # Steam Web API client
+  importers/          # New-style importer classes (BaseImporter subclasses)
+
+imports/              # Remaining legacy import scripts, not yet migrated
 
 tests/                # Test suite
 docs/                 # Systemd service, crontab examples

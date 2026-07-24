@@ -164,6 +164,41 @@ class BaseImporter(ABC):
         """
         pass
 
+    def run_with_setup(self, args: list[str] | None = None) -> None:
+        """
+        Parse args, configure logging/no-db mode, validate config, and run the import.
+
+        This is the shared core behind execute() (the CLI entry point, which maps
+        exceptions to process exit codes) and the scheduler's job dispatch (which
+        lets exceptions propagate to its own failure-notification handler). Having
+        one implementation means both callers get the same setup and validation
+        guarantees instead of the scheduler re-deriving them ad hoc.
+
+        Raises:
+            ConfigurationError: if validate_config() returns False, or is raised
+                directly by validate_config()/require_config().
+        """
+        self._args = self.parse_args(args)
+
+        setup_logging(
+            debug=self.args.debug,
+            verbose=self.args.verbose,
+        )
+
+        if self.args.no_db:
+            set_no_db_mode(True)
+
+        if not self.validate_config():
+            raise ConfigurationError(f"Config validation failed for {self.name}")
+
+        start_time = datetime.now()
+        self.logger.info(f"Starting {self.name} import")
+
+        self.run()
+
+        duration = (datetime.now() - start_time).total_seconds()
+        self.logger.info(f"Completed {self.name} import in {duration:.1f}s")
+
     def execute(self, args: list[str] | None = None) -> int:
         """
         Execute the importer with full setup.
@@ -174,35 +209,11 @@ class BaseImporter(ABC):
             args: Command line arguments (uses sys.argv if None)
 
         Returns:
-            Exit code (0 for success)
+            Exit code: 0 on success, 5 on ConfigurationError/failed validate_config(),
+            130 on KeyboardInterrupt, 1 on any other unhandled exception.
         """
         try:
-            # Parse arguments
-            self._args = self.parse_args(args)
-
-            # Setup logging based on arguments
-            setup_logging(
-                debug=self.args.debug,
-                verbose=self.args.verbose,
-            )
-
-            # Set no-db mode if requested
-            if self.args.no_db:
-                set_no_db_mode(True)
-
-            # Validate config
-            if not self.validate_config():
-                return 5
-
-            # Run the import
-            start_time = datetime.now()
-            self.logger.info(f"Starting {self.name} import")
-
-            self.run()
-
-            duration = (datetime.now() - start_time).total_seconds()
-            self.logger.info(f"Completed {self.name} import in {duration:.1f}s")
-
+            self.run_with_setup(args)
             return 0
 
         except ConfigurationError as e:

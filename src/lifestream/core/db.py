@@ -193,11 +193,13 @@ class EntryStore:
             )
             return
 
+        fulldata_json = json.dumps(fulldata) if fulldata else ""
+
         l_sql = (
             "replace into lifestream_locations "
             "(`id`, `source`, `lat`, `long`, `lat_vague`, `long_vague`, "
             "`timestamp`, `accuracy`, `title`, `icon`, `fulldata_json`) "
-            'values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s, "")'
+            "values (%s, %s, %s, %s, %s, %s, %s, 1, %s, %s, %s)"
         )
         time_start = datetime(1970, 1, 1, 0, 0, 0, 0, pytz.UTC)
         epoch = (timestamp - time_start).total_seconds()
@@ -213,6 +215,7 @@ class EntryStore:
                 timestamp,
                 title,
                 icon,
+                fulldata_json,
             ),
         )
         self.dbcxn.commit()
