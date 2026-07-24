@@ -30,17 +30,73 @@ class TestRunImportLegacy:
         script = self._make_script(tmp_path)
         mock_result = MagicMock(returncode=0, stdout="", stderr="")
 
-        with patch.object(jobs, "get_project_root", return_value=tmp_path):
-            with patch.object(
-                jobs.subprocess, "run", return_value=mock_result
-            ) as mock_run:
-                with patch.object(jobs, "send_failure_notifications"):
-                    jobs.run_import("test_module")
+        with patch.object(jobs.sys, "argv", ["scheduler.py"]):
+            with patch.object(jobs, "get_project_root", return_value=tmp_path):
+                with patch.object(
+                    jobs.subprocess, "run", return_value=mock_result
+                ) as mock_run:
+                    with patch.object(jobs, "send_failure_notifications"):
+                        jobs.run_import("test_module")
 
         mock_run.assert_called_once()
         call_args = mock_run.call_args
         assert call_args.args[0] == [jobs.sys.executable, str(script)]
         assert call_args.kwargs["cwd"] == tmp_path
+
+    def test_forwards_debug_flag_to_legacy_subprocess(self, tmp_path):
+        """If the scheduler itself was started with --debug, legacy jobs get it too,
+        so their own logging (which reads its own sys.argv) isn't silently at WARNING.
+        """
+        script = self._make_script(tmp_path)
+        mock_result = MagicMock(returncode=0, stdout="", stderr="")
+
+        with patch.object(jobs.sys, "argv", ["scheduler.py", "--debug"]):
+            with patch.object(jobs, "get_project_root", return_value=tmp_path):
+                with patch.object(
+                    jobs.subprocess, "run", return_value=mock_result
+                ) as mock_run:
+                    with patch.object(jobs, "send_failure_notifications"):
+                        jobs.run_import("test_module")
+
+        assert mock_run.call_args.args[0] == [
+            jobs.sys.executable,
+            str(script),
+            "--debug",
+        ]
+
+    def test_forwards_verbose_flag_to_legacy_subprocess(self, tmp_path):
+        """--verbose is forwarded the same way as --debug, when --debug isn't set."""
+        script = self._make_script(tmp_path)
+        mock_result = MagicMock(returncode=0, stdout="", stderr="")
+
+        with patch.object(jobs.sys, "argv", ["scheduler.py", "--verbose"]):
+            with patch.object(jobs, "get_project_root", return_value=tmp_path):
+                with patch.object(
+                    jobs.subprocess, "run", return_value=mock_result
+                ) as mock_run:
+                    with patch.object(jobs, "send_failure_notifications"):
+                        jobs.run_import("test_module")
+
+        assert mock_run.call_args.args[0] == [
+            jobs.sys.executable,
+            str(script),
+            "--verbose",
+        ]
+
+    def test_does_not_forward_flags_when_neither_set(self, tmp_path):
+        """No extra args are appended when the scheduler wasn't run with --debug/--verbose."""
+        script = self._make_script(tmp_path)
+        mock_result = MagicMock(returncode=0, stdout="", stderr="")
+
+        with patch.object(jobs.sys, "argv", ["scheduler.py"]):
+            with patch.object(jobs, "get_project_root", return_value=tmp_path):
+                with patch.object(
+                    jobs.subprocess, "run", return_value=mock_result
+                ) as mock_run:
+                    with patch.object(jobs, "send_failure_notifications"):
+                        jobs.run_import("test_module")
+
+        assert mock_run.call_args.args[0] == [jobs.sys.executable, str(script)]
 
     def test_does_not_run_legacy_if_new_style_found(self, tmp_path):
         """run_import uses new-style importer and skips the legacy subprocess path."""

@@ -87,8 +87,19 @@ def _run_legacy_import(job_name: str, start_time: datetime) -> None:
         send_failure_notifications(job_name, error, duration)
         raise error
 
+    cmd = [sys.executable, str(script_path)]
+    # Legacy scripts (imports/lifestream_legacy) decide their own log level by
+    # checking "--debug"/"--verbose" in their own sys.argv. A subprocess starts
+    # with none of that, so without forwarding it explicitly, a legacy job's
+    # own logging silently stays at WARNING regardless of how the scheduler
+    # itself was invoked.
+    if "--debug" in sys.argv:
+        cmd.append("--debug")
+    elif "--verbose" in sys.argv:
+        cmd.append("--verbose")
+
     result = subprocess.run(
-        [sys.executable, str(script_path)],
+        cmd,
         cwd=get_project_root(),
         capture_output=True,
         text=True,
@@ -105,6 +116,11 @@ def _run_legacy_import(job_name: str, start_time: datetime) -> None:
         logger.error(f"Job {job_name} failed after {duration:.1f}s: {result.stderr}")
         send_failure_notifications(job_name, RuntimeError(error_msg), duration)
         raise RuntimeError(error_msg)
+
+    if result.stdout:
+        logger.debug("[%s stdout]\n%s", job_name, result.stdout)
+    if result.stderr:
+        logger.debug("[%s stderr]\n%s", job_name, result.stderr)
 
     logger.info(f"Completed job: {job_name} in {duration:.1f}s")
 
