@@ -63,10 +63,13 @@ jobs:
       run: poetry install --no-interaction
 
     - name: Run pre-commit hooks
+      # --all-files would lint the whole monorepo (this job only checked
+      # out to test this subproject); scope it to this subproject's own
+      # tracked files against the shared root config instead.
       run: |
         source $VENV
         pre-commit install --config ../../.pre-commit-config.yaml
-        pre-commit run --all-files --config ../../.pre-commit-config.yaml
+        pre-commit run --config ../../.pre-commit-config.yaml --files $(git ls-files .)
 
     - name: Run tests with pytest
       run: |
