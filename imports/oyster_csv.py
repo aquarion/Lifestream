@@ -1,19 +1,18 @@
-#!/usr/bin/python
 # Python
 import csv
 import hashlib
 import logging
 from datetime import datetime
 
-import pytz
-
 # Local
-import lifestream
+import lifestream_legacy as lifestream
+import pytz
+from lifestream_legacy.db import EntryStore
 
 # Libraries
 
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 
 logger = logging.getLogger("Oyster-CSV")
@@ -48,8 +47,7 @@ for row in dataReader:
         elif not time_from:
             time_from = "00:00"
 
-        timestamp = datetime.strptime(
-            "%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
+        timestamp = datetime.strptime("%s %s" % (date, time_from), "%d-%b-%Y %H:%M")
         loc_date = londontime.localize(timestamp)
         utcdate = loc_date.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
 
@@ -59,7 +57,7 @@ for row in dataReader:
 
         logger.info("%s: %s" % (action, utcdate))
         # add_entry(self, type, id, title, source, date, url='', image='', fulldata_json=False, update=False)
-        Lifestream.add_entry(
+        entry_store.add_entry(
             "oyster", id.hexdigest(), action, "oyster", utcdate, False, False, row
         )
 

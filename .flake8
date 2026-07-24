@@ -1,4 +1,4 @@
 [flake8]
-extend-ignore = E501
-exclude = .git,__pycache__,docs/source/conf.py,old,build,dist
+extend-ignore = E501, E203
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,.direnv,the_fallen
 max-complexity = 10

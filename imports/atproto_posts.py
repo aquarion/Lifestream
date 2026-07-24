@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Python
 import configparser
@@ -7,10 +6,11 @@ import sys
 from urllib.parse import urlparse
 
 import dateutil.parser
-from atproto import Client as atClient
 
 # Local
-import lifestream
+import lifestream_legacy as lifestream
+from atproto import Client as atClient
+from lifestream_legacy.db import EntryStore
 
 lifestream.arguments.add_argument(
     "--site", required=False, help="Site to choose from", default=False
@@ -44,42 +44,66 @@ else:
         if subsection[0] == "atproto":
             sites.append(subsection[1])
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("AtProto")
 
-for site in sites:
-    source = site
-    type = "atproto"
+
+def _get_thumbnail(embed):
+    if embed and embed["py_type"] == "app.bsky.embed.images#viewImage":
+        for media in embed.images:
+            if media["py_type"] == "app.bsky.embed.images#viewImage":
+                return media["thumb"]
+    return ""
+
+
+def _process_post(item, site, handle):
+    if item.post.author.handle != handle:
+        logger.debug("Skipping retweet from %s" % item.post.author.handle)
+        return
+    if item.post.record.reply:
+        logger.debug("Skipping reply to %s" % item.post.record.reply.parent.uri)
+        return
+    post = item.post.record
+    date = dateutil.parser.isoparse(post.created_at)
+    post_id = urlparse(item.post.uri).path.split("/")[2]
+    url = "https://{}/profile/{}/post/{}".format(site, handle, post_id)
+    entry_store.add_entry(
+        id=item.post.uri,
+        title=post.text,
+        source=site,
+        date=date,
+        url=url,
+        image=_get_thumbnail(item.post.embed),
+        fulldata_json=item.post.model_dump_json(),
+        type="atproto",
+    )
+    logger.info("%s: %s" % (date.strftime("%Y-%m-%d"), post.text))
+
+
+def process_site(site):
     try:
-        # base_url = lifestream.config.get("atproto:%s" % source, "base_url")
-        username = lifestream.config.get("atproto:%s" % source, "username")
-        password = lifestream.config.get("atproto:%s" % source, "password")
-        handle = lifestream.config.get("atproto:%s" % source, "handle")
+        username = lifestream.config.get("atproto:%s" % site, "username")
+        password = lifestream.config.get("atproto:%s" % site, "password")
+        handle = lifestream.config.get("atproto:%s" % site, "handle")
         server_base = lifestream.config.get(
-            "atproto:%s" % source, "server_base", fallback=None
+            "atproto:%s" % site, "server_base", fallback=None
         )
     except configparser.NoSectionError:
-        logger.error("No [atproto:%s] section found in config" % source)
+        logger.error("No [atproto:%s] section found in config" % site)
         sys.exit(5)
     except configparser.NoOptionError as e:
         logger.error(e.message)
         sys.exit(5)
 
-    if server_base:
-        atserver = atClient(server_base)
-    else:
-        atserver = atClient()  # Default to bsky.app
-
+    atserver = atClient(server_base) if server_base else atClient()
     atserver.login(username, password)
 
     this_page = 0
     keep_going = True
-
     last_seen = False
 
     while keep_going:
-
         if last_seen:
             atResponse = atserver.get_author_feed(
                 actor=handle, cursor=last_seen, limit=30
@@ -90,48 +114,7 @@ for site in sites:
         last_seen = atResponse.cursor
 
         for item in atResponse.feed:
-            if item.post.author.handle != handle:
-                logger.debug("Skipping retweet from %s" %
-                             item.post.author.handle)
-                continue
-
-            if item.post.record.reply:
-                logger.debug("Skipping reply to %s" %
-                             item.post.record.reply.parent.uri)
-                continue
-
-            post = item.post.record
-            embed = item.post.embed
-
-            title = post.text
-            source = site
-            date = dateutil.parser.isoparse(post.created_at)
-
-            at_url = urlparse(item.post.uri)
-            post_id = at_url.path.split("/")[2]
-
-            url = "https://{}/profile/{}/post/{}".format(site, handle, post_id)
-
-            if embed and embed["py_type"] == "app.bsky.embed.images#viewImage":
-                for media in embed.images:
-                    if media["py_type"] == "app.bsky.embed.images#viewImage":
-                        thumbnail = media["thumb"]
-                        break
-            else:
-                thumbnail = ""
-
-            Lifestream.add_entry(
-                id=item.post.uri,
-                title=title,
-                source=source,
-                date=date,
-                url=url,
-                image=thumbnail,
-                fulldata_json=item.post.model_dump_json(),
-                type=type,
-            )
-
-            logger.info("%s: %s" % (date.strftime("%Y-%m-%d"), title))
+            _process_post(item, site, handle)
 
         if not len(atResponse.feed):
             logger.info("No more posts")
@@ -145,3 +128,7 @@ for site in sites:
             logger.info("Page %d of max %d" % (this_page, args.max_pages))
         else:
             logger.info("Next Page...")
+
+
+for site in sites:
+    process_site(site)

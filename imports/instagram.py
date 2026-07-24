@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 import logging
@@ -8,12 +7,12 @@ import sys
 from datetime import datetime
 from pprint import pprint
 
-from InstagramAPI import InstagramAPI
-
 # Local
-import lifestream
+import lifestream_legacy as lifestream
+from InstagramAPI import InstagramAPI
+from lifestream_legacy.db import EntryStore
 
-Lifestream = lifestream.Lifestream()
+entry_store = EntryStore()
 
 logger = logging.getLogger("Instagram")
 
@@ -28,53 +27,60 @@ api = InstagramAPI(
     lifestream.config.get("instagram", "username"),
     lifestream.config.get("instagram", "password"),
 )
-if api.login():
+
+
+def _item_image(item):
+    if "image_versions2" in item:
+        return item["image_versions2"]["candidates"][0]["url"]
+    if "carousel_media" in item:
+        return item["carousel_media"][0]["image_versions2"]["candidates"][0]["url"]
+    raise Exception("No image thumbnail found")
+
+
+def process_item(item):
+    try:
+        caption = item["caption"]["text"]
+    except TypeError:
+        caption = ""
+
+    try:
+        timestamp = datetime.fromtimestamp(item["taken_at"])
+        url = "https://instagram.com/p/{}".format(item["code"])
+        image = _item_image(item)
+        logger.info("{}: {}".format(timestamp, caption.encode("ascii", "ignore")))
+        entry_store.add_entry(
+            "photo",
+            item["id"],
+            caption,
+            "instagram",
+            timestamp,
+            url=url,
+            image=image,
+            fulldata_json=item,
+        )
+    except Exception as e:
+        pprint(item)
+        raise e
+
+
+def process_feed():
     if args.all:
-        feed = api.getTotalSelfUserFeed()  # get self user feed
+        feed = api.getTotalSelfUserFeed()
     else:
-        feed = api.getSelfUserFeed()  # get self user feed
+        feed = api.getSelfUserFeed()
 
     if not feed:
         logger.error("Failed to get feed")
         sys.exit(5)
 
-    if feed == True:
+    if feed is True:
         feed = api.LastJson["items"]
 
     for item in feed:
+        process_item(item)
 
-        try:
-            caption = item["caption"]["text"]
-        except TypeError:
-            caption = ""
 
-        try:
-            timestamp = datetime.fromtimestamp(item["taken_at"])
-            url = "https://instagram.com/p/{}".format(item["code"])
-            if "image_versions2" in item:
-                image = item["image_versions2"]["candidates"][0]["url"]
-            elif "carousel_media" in item:
-                image = item["carousel_media"][0]["image_versions2"]["candidates"][0][
-                    "url"
-                ]
-            else:
-                raise Exception("No image thumbnail found")
-
-            logger.info("{}: {}".format(
-                timestamp, caption.encode("ascii", "ignore")))
-
-            Lifestream.add_entry(
-                "photo",
-                item["id"],
-                caption,
-                "instagram",
-                timestamp,
-                url=url,
-                image=image,
-                fulldata_json=item,
-            )
-        except Exception as e:
-            pprint(item)
-            raise e
+if api.login():
+    process_feed()
 else:
     logger.error("Can't login!")

@@ -48,7 +48,7 @@ jobs:
       uses: actions/cache@v6
       with:
         path: contrib/ffxiv-upload-achievement-icons/.venv
-        key: ${{ runner.os }}-poetry-${{ hashFiles('contrib/ffxiv-upload-achievement-icons/poetry.lock') }}
+        key: ${{ runner.os }}-ffxiv-venv-${{ hashFiles('contrib/ffxiv-upload-achievement-icons/poetry.lock') }}
 
     - name: Use system git client for VCS dependencies
       # Poetry 2.x's default pure-Python git client (dulwich) fails to

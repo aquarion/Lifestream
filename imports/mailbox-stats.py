@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # Python
 import datetime
 import email
@@ -8,10 +7,10 @@ import mailbox
 import sys
 import time
 
-import lifestreamutils
-
 # Local
-import lifestream
+from lifestream_legacy.db import EntryStore
+
+entry_store = EntryStore()
 
 if len(sys.argv) < 2:
     print("Usage: %s statistic filename" % (sys.argv[0]))
@@ -21,9 +20,6 @@ STATISTIC = sys.argv[1]
 FILENAME = sys.argv[2]
 
 DEBUG = False
-
-dbcxn = lifestream.getDatabaseConnection()
-cursor = lifestream.cursor(dbcxn)
 
 inbox = mailbox.mbox(FILENAME)
 
@@ -45,14 +41,14 @@ for key in inbox.keys():
 
     try:
         subject = msg["Subject"][0:64]
-    except:
+    except Exception:  # TODO: narrow down to TypeError, KeyError
         subject = "No Subject"
 
     try:
         dte = datetime.datetime.fromtimestamp(
             time.mktime(email.utils.parsedate(msg["Date"]))
         )
-    except:
+    except Exception:  # TODO: narrow down to TypeError, ValueError
         continue
 
     iso = dte.strftime("%Y-%m-%d")
@@ -70,6 +66,4 @@ if DEBUG:
     print("Databasing....")
 
 for date in list(dates.keys()):
-    lifestreamutils.newstat(date, STATISTIC, dates[date]["total"])
-
-dbcxn.close()
+    entry_store.add_stat(date, STATISTIC, dates[date]["total"])
