@@ -17,33 +17,16 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 
 # # # # Add imports from lib/python ####
 
-# Add the lib/python directory to the sys.path
-basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+basedir = os.path.dirname(os.path.abspath(__file__))
 site.addsitedir(os.path.join(basedir, "lib", "python"))
-
+site.addsitedir(os.path.join(basedir, "..", "imports"))
 
 # pylint: disable=wrong-import-position
 from SaintCoinach import SaintCoinach  # noqa: E402
 
 # pylint: enable=wrong-import-position
 
-# # # # Setup ####
-
-basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
-site.addsitedir(os.path.join(basedir, "..", "imports"))
-
-
-# Parse command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
-# Toggle tqdm progress bars
-parser.add_argument(
-    "--disable-tqdm",
-    action="store_true",
-    help="Disable tqdm progress bars",
-)
-args = parser.parse_args()
+CONFIG_FILE = os.path.join(basedir, "ffxiv_config.ini")
 
 # Set up logging
 
@@ -75,7 +58,7 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("update_achievement_images")
 logger.propagate = True
 
 logging.getLogger("fabric").setLevel(logging.WARNING)  # for example
@@ -83,19 +66,22 @@ logging.getLogger("paramiko").setLevel(
     logging.WARNING
 )  # fabric uses paramiko underneath
 
-ch = logging.StreamHandler()
-ch.setFormatter(CustomFormatter())
-logger.addHandler(ch)
 
-# Set default logging level and adjust based on command line arguments
-logger.setLevel(logging.WARNING)  # Default level
+def configure_logging(debug=False, verbose=False):
+    """Attach a handler (once) and set the logger's level."""
+    if not logger.handlers:
+        ch = logging.StreamHandler()
+        ch.setFormatter(CustomFormatter())
+        logger.addHandler(ch)
 
-if args.debug:
-    logger.setLevel(logging.DEBUG)
-    logger.debug("Debug mode enabled")
-elif args.verbose:
-    logger.setLevel(logging.INFO)
-    logger.info("Verbose mode enabled")
+    if debug:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Debug mode enabled")
+    elif verbose:
+        logger.setLevel(logging.INFO)
+        logger.info("Verbose mode enabled")
+    else:
+        logger.setLevel(logging.WARNING)
 
 
 class AchievementFileNotFoundError(Exception):
@@ -281,36 +267,18 @@ def process_achivement(achievement, saint_coinach_client, ssh_client, files, con
     return False
 
 
-def main():
-    """Main function to update achievement icons."""
+def upload_icons(config, saint_coinach_client, use_tqdm=True):
+    """Upload achievement icons to the remote server.
 
-    print("Updating achievement icons")
-
-    # Load and extract all configuration values
-    config = configparser.ConfigParser()
-    config.read("ffxiv_config.ini")
-
-    data_dir = config.get("local", "data_directory")
-    # icon_directory = config.get("local", "icon_directory")
+    Expects ``saint_coinach_client`` to already have an up-to-date achievement
+    database (callers that just refreshed it themselves don't need to pay for
+    a second refresh here). Returns the number of icons uploaded.
+    """
     remote_server = config.get("remote", "remote_server")
     remote_user = config.get("remote", "remote_user")
     remote_icons = config.get("remote", "remote_icon_directory")
 
-    if not os.path.isdir(data_dir):
-        os.makedirs(data_dir)
-
-    database_path = data_dir + "/saintcoinach_achievements.db"
-
-    saint_coinach_client = SaintCoinach(database_path, config)
-    saint_coinach_client.set_log_level(logger.level)
     saint_coinach_client.find_icons_path(config.get("local", "icon_directory"))
-
-    # Update the local Saint Coinach achievement database
-    # If the database is more than 7 days old, update it
-    logger.info("Connecting to local database %s", database_path)
-
-    schema_file_path = os.path.join(basedir, "etc", "achievements_schema.sql")
-    saint_coinach_client.update_achievement_database(schema_file_path=schema_file_path)
 
     logger.info("Connecting to remote server %s", remote_server)
     ssh_client = SSHClient(remote_server, remote_user)
@@ -324,7 +292,7 @@ def main():
 
     upload_count = 0
 
-    if not args.disable_tqdm:
+    if use_tqdm:
         tqdm_args = {
             "desc": "Achievements",
             "unit": " achievement",
@@ -345,6 +313,43 @@ def main():
             )
             if result:
                 upload_count += 1
+
+    return upload_count
+
+
+def main():
+    """Standalone entry point: refresh the database, then upload icons."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
+    parser.add_argument(
+        "--disable-tqdm",
+        action="store_true",
+        help="Disable tqdm progress bars",
+    )
+    args = parser.parse_args()
+
+    configure_logging(args.debug, args.verbose)
+
+    print("Updating achievement icons")
+
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE)
+
+    data_dir = config.get("local", "data_directory")
+    if not os.path.isdir(data_dir):
+        os.makedirs(data_dir)
+
+    database_path = os.path.join(data_dir, "saintcoinach_achievements.db")
+
+    saint_coinach_client = SaintCoinach(database_path, config)
+    saint_coinach_client.set_log_level(logger.level)
+
+    logger.info("Connecting to local database %s", database_path)
+    schema_file_path = os.path.join(basedir, "etc", "achievements_schema.sql")
+    saint_coinach_client.update_achievement_database(schema_file_path=schema_file_path)
+
+    upload_count = upload_icons(config, saint_coinach_client, use_tqdm=not args.disable_tqdm)
 
     print(f"Uploaded {upload_count} icons")
 

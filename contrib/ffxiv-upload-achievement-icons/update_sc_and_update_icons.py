@@ -14,7 +14,9 @@ Steps:
 3. Export just those icons (standard + ``hr1``) into
    ``<icon_directory>/<game_version>/ui/icon/...``.
 4. Prune older ``<game_version>`` icon caches, keeping the current one.
-5. Run ``update_achievement_images.py`` to upload the icons.
+5. Upload the icons via ``update_achievement_images.upload_icons``, reusing
+   the same database connection instead of re-running that module as a
+   separate process.
 """
 
 import argparse
@@ -24,8 +26,6 @@ import os
 import re
 import shutil
 import site
-import subprocess
-import sys
 
 basedir = os.path.dirname(os.path.abspath(__file__))
 site.addsitedir(os.path.join(basedir, "lib", "python"))
@@ -33,6 +33,8 @@ site.addsitedir(os.path.join(basedir, "lib", "python"))
 # pylint: disable=wrong-import-position
 from icon_export import IconExporter  # noqa: E402
 from SaintCoinach import SaintCoinach  # noqa: E402
+
+import update_achievement_images as uploader  # noqa: E402
 
 # pylint: enable=wrong-import-position
 
@@ -67,8 +69,8 @@ def load_config():
     return config
 
 
-def collect_icon_ids(config):
-    """Refresh the achievement database and return the set of icon IDs used."""
+def build_client(config):
+    """Create a SaintCoinach client with a freshly-refreshed achievement database."""
     data_dir = config.get("local", "data_directory")
     os.makedirs(data_dir, exist_ok=True)
 
@@ -78,7 +80,11 @@ def collect_icon_ids(config):
     client = SaintCoinach(database_path, config)
     client.set_log_level(logger.level)
     client.update_achievement_database(schema_file_path=schema_file_path)
+    return client
 
+
+def collect_icon_ids(client):
+    """Return the set of icon IDs used by achievements in the database."""
     icon_ids = []
     for achievement in client.list_achievements():
         icon = achievement["Icon"]
@@ -129,14 +135,6 @@ def export_icons(config, icon_ids, use_tqdm):
     print(f"Exported {written} icon files")
 
 
-def run_uploader(passthrough_args):
-    """Run update_achievement_images.py as a separate process."""
-    script = os.path.join(basedir, "update_achievement_images.py")
-    command = [sys.executable, script] + passthrough_args
-    logger.info("Running uploader: %s", " ".join(command))
-    subprocess.run(command, cwd=basedir, check=True)
-
-
 def main():
     """Entry point."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -170,20 +168,18 @@ def main():
         logger.setLevel(logging.WARNING)
 
     config = load_config()
+    client = build_client(config)
 
     if not args.skip_export:
-        icon_ids = collect_icon_ids(config)
+        icon_ids = collect_icon_ids(client)
         export_icons(config, icon_ids, use_tqdm=not args.disable_tqdm)
 
     if not args.skip_upload:
-        passthrough = []
-        if args.debug:
-            passthrough.append("--debug")
-        if args.verbose:
-            passthrough.append("--verbose")
-        if args.disable_tqdm:
-            passthrough.append("--disable-tqdm")
-        run_uploader(passthrough)
+        uploader.configure_logging(args.debug, args.verbose)
+        upload_count = uploader.upload_icons(
+            config, client, use_tqdm=not args.disable_tqdm
+        )
+        print(f"Uploaded {upload_count} icons")
 
 
 if __name__ == "__main__":
