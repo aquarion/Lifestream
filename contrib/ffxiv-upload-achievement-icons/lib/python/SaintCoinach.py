@@ -8,7 +8,7 @@ import os
 import re
 import sqlite3
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from glob import iglob
 
 import requests
@@ -157,8 +157,13 @@ class SaintCoinach:
         if last_update is None:
             return False
 
-        last_update_time = datetime.strptime(last_update, "%Y-%m-%d %H:%M:%S")
-        if datetime.now() - last_update_time < timedelta(seconds=seconds):
+        # SQLite's DATETIME('now') stores UTC, so compare against UTC rather
+        # than local time -- otherwise this drifts by the local UTC offset
+        # (e.g. always "expired" or always "fresh" depending on the season).
+        last_update_time = datetime.strptime(last_update, "%Y-%m-%d %H:%M:%S").replace(
+            tzinfo=timezone.utc
+        )
+        if datetime.now(timezone.utc) - last_update_time < timedelta(seconds=seconds):
             return True
         return False
 

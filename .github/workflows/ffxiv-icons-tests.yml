@@ -24,6 +24,11 @@ jobs:
     defaults:
       run:
         shell: bash
+        # poetry install/pytest/pre-commit all need to run against this
+        # subproject's own pyproject.toml/poetry.lock, not the monorepo
+        # root's (which pulls in private SSH-only git dependencies CI
+        # can't authenticate to).
+        working-directory: contrib/ffxiv-upload-achievement-icons
 
     steps:
     - uses: actions/checkout@v6
@@ -42,8 +47,15 @@ jobs:
     - name: Cache Poetry dependencies
       uses: actions/cache@v5
       with:
-        path: .cache
-        key: ${{ runner.os }}-poetry-${{ hashFiles('./poetry.lock') }}
+        path: contrib/ffxiv-upload-achievement-icons/.venv
+        key: ${{ runner.os }}-poetry-${{ hashFiles('contrib/ffxiv-upload-achievement-icons/poetry.lock') }}
+
+    - name: Use system git client for VCS dependencies
+      # Poetry 2.x's default pure-Python git client (dulwich) fails to
+      # negotiate the protocol against GitHub in CI (HangupException /
+      # "remote server unexpectedly closed the connection") when fetching
+      # the saintcoinach git dependency. See python-poetry/poetry#10167.
+      run: poetry config system-git-client true
 
     - name: Install dependencies
       run: poetry install --no-interaction --no-root
@@ -51,12 +63,15 @@ jobs:
       run: poetry install --no-interaction
 
     - name: Run pre-commit hooks
+      # --all-files would lint the whole monorepo (this job only checked
+      # out to test this subproject); scope it to this subproject's own
+      # tracked files against the shared root config instead.
       run: |
         source $VENV
-        pre-commit install
-        pre-commit run --all-files
+        pre-commit install --config ../../.pre-commit-config.yaml
+        pre-commit run --config ../../.pre-commit-config.yaml --files $(git ls-files .)
 
-    - name: Run tests with pytest (alternative)
+    - name: Run tests with pytest
       run: |
         source $VENV
-        pytest --version
+        pytest
