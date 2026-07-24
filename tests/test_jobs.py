@@ -8,69 +8,95 @@ from lifestream import jobs
 from lifestream.importers.base import ConfigurationError
 
 
-class TestRunImport:
-    """Tests for run_import function."""
+class TestRunImportLegacy:
+    """Tests for run_import's legacy imports/<job>.py subprocess fallback.
 
-    def test_run_import_calls_main_if_exists(self):
-        """Test run_import calls module's main() function."""
-        mock_module = MagicMock()
-        mock_module.main = MagicMock()
+    Legacy scripts run as their own subprocess (rather than importlib.reload()
+    in-process) because several of them mutate module-level global state (e.g.
+    a shared argparse.ArgumentParser) at import time, which breaks on a second
+    reload within the same long-lived scheduler process. See jobs.py's
+    run_import() docstring.
+    """
 
-        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
-            with patch.object(jobs.importlib, "reload", return_value=mock_module):
+    def _make_script(self, tmp_path, name="test_module"):
+        imports_dir = tmp_path / "imports"
+        imports_dir.mkdir(exist_ok=True)
+        script = imports_dir / f"{name}.py"
+        script.write_text("# stub legacy script")
+        return script
+
+    def test_runs_legacy_script_as_subprocess(self, tmp_path):
+        """run_import invokes `python imports/<job>.py` as a subprocess."""
+        script = self._make_script(tmp_path)
+        mock_result = MagicMock(returncode=0, stdout="", stderr="")
+
+        with patch.object(jobs, "get_project_root", return_value=tmp_path):
+            with patch.object(
+                jobs.subprocess, "run", return_value=mock_result
+            ) as mock_run:
                 with patch.object(jobs, "send_failure_notifications"):
                     jobs.run_import("test_module")
-                    mock_module.main.assert_called_once()
 
-    def test_run_import_skips_main_if_not_exists(self):
-        """Test run_import works for modules without main()."""
-        mock_module = MagicMock(spec=[])  # No main attribute
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args
+        assert call_args.args[0] == [jobs.sys.executable, str(script)]
+        assert call_args.kwargs["cwd"] == tmp_path
 
-        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
-            with patch.object(jobs.importlib, "reload", return_value=mock_module):
-                with patch.object(jobs, "send_failure_notifications"):
-                    # Should not raise
-                    jobs.run_import("test_module")
-
-    def test_run_import_does_not_call_legacy_if_new_style_found(self):
-        """Test run_import uses new-style importer and skips legacy path."""
+    def test_does_not_run_legacy_if_new_style_found(self, tmp_path):
+        """run_import uses new-style importer and skips the legacy subprocess path."""
         mock_cls = MagicMock()
         mock_instance = MagicMock()
         mock_cls.return_value = mock_instance
 
         with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
-            with patch.object(jobs.importlib, "import_module") as mock_import:
+            with patch.object(jobs.subprocess, "run") as mock_run:
                 with patch.object(jobs, "send_failure_notifications"):
                     jobs.run_import("myimporter")
-                    # Verify legacy path was not used
-                    mock_import.assert_not_called()
 
-    def test_run_import_sends_notification_on_failure(self):
-        """Test run_import sends notification when job fails."""
-        mock_module = MagicMock()
-        mock_module.main.side_effect = Exception("Job failed!")
+        mock_run.assert_not_called()
 
-        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
-            with patch.object(jobs.importlib, "reload", return_value=mock_module):
+    def test_raises_and_notifies_on_nonzero_exit(self, tmp_path):
+        """A legacy script exiting non-zero notifies and raises RuntimeError."""
+        self._make_script(tmp_path)
+        mock_result = MagicMock(returncode=1, stdout="", stderr="boom")
+
+        with patch.object(jobs, "get_project_root", return_value=tmp_path):
+            with patch.object(jobs.subprocess, "run", return_value=mock_result):
                 with patch.object(jobs, "send_failure_notifications") as mock_notify:
-                    with pytest.raises(Exception, match="Job failed!"):
+                    with pytest.raises(RuntimeError, match="exited with code 1"):
                         jobs.run_import("test_module")
 
-                    mock_notify.assert_called_once()
-                    call_args = mock_notify.call_args[0]
-                    assert call_args[0] == "test_module"
+        mock_notify.assert_called_once()
+        assert mock_notify.call_args[0][0] == "test_module"
 
-    def test_run_import_reloads_module(self):
-        """Test run_import reloads module for fresh state."""
-        mock_module = MagicMock()
+    def test_raises_when_no_script_or_new_style_importer_found(self, tmp_path):
+        """An unknown job name (no registry entry, no imports/<job>.py) raises clearly."""
+        (tmp_path / "imports").mkdir()
 
-        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
+        with patch.object(jobs, "get_project_root", return_value=tmp_path):
+            with patch.object(jobs, "send_failure_notifications") as mock_notify:
+                with pytest.raises(RuntimeError, match="No importer found"):
+                    jobs.run_import("does_not_exist")
+
+        mock_notify.assert_called_once()
+
+    def test_repeated_runs_do_not_share_process_state(self, tmp_path):
+        """Regression: each run is a fresh subprocess, so running the same
+        legacy job twice in a row succeeds both times (it would previously
+        crash on the second run via importlib.reload() due to shared
+        module-level state, e.g. atproto_posts.py's argparse parser)."""
+        self._make_script(tmp_path)
+        mock_result = MagicMock(returncode=0, stdout="", stderr="")
+
+        with patch.object(jobs, "get_project_root", return_value=tmp_path):
             with patch.object(
-                jobs.importlib, "reload", return_value=mock_module
-            ) as mock_reload:
+                jobs.subprocess, "run", return_value=mock_result
+            ) as mock_run:
                 with patch.object(jobs, "send_failure_notifications"):
                     jobs.run_import("test_module")
-                    mock_reload.assert_called_once_with(mock_module)
+                    jobs.run_import("test_module")
+
+        assert mock_run.call_count == 2
 
 
 class TestRunImportNewStyle:
@@ -133,51 +159,6 @@ class TestRunImportNewStyle:
             assert args[0] == "myimporter"
 
         mock_cls.assert_called_once_with()
-
-
-class TestRunImportSystemExit:
-    """Tests for run_import handling legacy scripts that call sys.exit()."""
-
-    def test_notifies_on_nonzero_sys_exit(self):
-        """A legacy script's sys.exit(N) for N != 0 triggers a failure notification."""
-        mock_module = MagicMock()
-        mock_module.main.side_effect = SystemExit(2)
-
-        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
-            with patch.object(jobs.importlib, "reload", return_value=mock_module):
-                with patch.object(jobs, "send_failure_notifications") as mock_notify:
-                    with pytest.raises(SystemExit):
-                        jobs.run_import("test_module")
-
-                    mock_notify.assert_called_once()
-                    call_args = mock_notify.call_args[0]
-                    assert call_args[0] == "test_module"
-
-    def test_does_not_notify_on_sys_exit_zero(self):
-        """A legacy script's sys.exit(0)/sys.exit() is not treated as a failure."""
-        mock_module = MagicMock()
-        mock_module.main.side_effect = SystemExit(0)
-
-        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
-            with patch.object(jobs.importlib, "reload", return_value=mock_module):
-                with patch.object(jobs, "send_failure_notifications") as mock_notify:
-                    with pytest.raises(SystemExit):
-                        jobs.run_import("test_module")
-
-                    mock_notify.assert_not_called()
-
-    def test_notifies_on_sys_exit_with_string_message(self):
-        """A legacy script's sys.exit('message') is treated as a failure."""
-        mock_module = MagicMock()
-        mock_module.main.side_effect = SystemExit("something went wrong")
-
-        with patch.object(jobs.importlib, "import_module", return_value=mock_module):
-            with patch.object(jobs.importlib, "reload", return_value=mock_module):
-                with patch.object(jobs, "send_failure_notifications") as mock_notify:
-                    with pytest.raises(SystemExit):
-                        jobs.run_import("test_module")
-
-                    mock_notify.assert_called_once()
 
 
 class TestRunShellCommand:

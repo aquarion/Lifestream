@@ -4,9 +4,9 @@ Job execution functions for Lifestream scheduler.
 Handles running Python import modules and shell commands as scheduled jobs.
 """
 
-import importlib
 import logging
 import subprocess
+import sys
 from datetime import datetime
 
 from lifestream.core.config import get_project_root
@@ -24,11 +24,22 @@ except ImportError as _import_err:
 
 def run_import(job_name: str) -> None:
     """
-    Run an import job by importing and executing its main() function.
+    Run an import job.
 
     This supports both:
-    - New-style importers in lifestream.importers (preferred)
-    - Legacy importers in the imports/ directory (fallback)
+    - New-style importers in lifestream.importers (preferred): run in-process.
+    - Legacy importers in the imports/ directory (fallback): run as a subprocess.
+
+    Legacy scripts run out-of-process (rather than via importlib.reload() in the
+    scheduler's own process) because several of them mutate module-level global
+    state (e.g. a shared argparse.ArgumentParser in lifestream_legacy.arguments)
+    at import time. That's safe for a fresh `python imports/x.py` process per run
+    (how they always ran under crontab), but reload()ing the same long-lived
+    process repeatedly re-runs that top-level code against state left over from
+    the previous run and raises on the second invocation (e.g. "argument --site:
+    conflicting option string"). Subprocess isolation sidesteps this, and any
+    other import-time global-state footgun these scripts might have, without
+    requiring each one to be individually audited/fixed.
 
     Args:
         job_name: The name of the importer to run (e.g., 'lastfm', 'flickr')
@@ -45,57 +56,57 @@ def run_import(job_name: str) -> None:
     logger.info(f"Starting job: {job_name}")
     start_time = datetime.now()
 
-    try:
-        # Try new-style importer — only catch ImportError from the import itself,
-        # not from inside the importer's run() method
-        importer_cls = _IMPORTERS.get(job_name)
+    # Try new-style importer — only catch ImportError from the import itself,
+    # not from inside the importer's run() method
+    importer_cls = _IMPORTERS.get(job_name)
 
-        if importer_cls is not None:
+    if importer_cls is not None:
+        try:
             importer = importer_cls()
             # run_with_setup() shares BaseImporter.execute()'s setup/validation
             # logic but lets exceptions propagate to the except clauses below,
             # instead of execute()'s own exit-code mapping swallowing them.
             importer.run_with_setup(args=[])
-            return
+        except Exception as e:
+            duration = (datetime.now() - start_time).total_seconds()
+            logger.exception(f"Job {job_name} failed after {duration:.1f}s")
+            send_failure_notifications(job_name, e, duration)
+            raise
+        return
 
-        # Fallback to legacy import style
-        module = importlib.import_module(job_name)
-        importlib.reload(module)  # Reload to ensure fresh state
+    _run_legacy_import(job_name, start_time)
 
-        # Most import scripts have a main() function, some run at import time
-        if hasattr(module, "main"):
-            module.main()
-        else:
-            logger.warning(
-                "Legacy module '%s' has no main() — ran at import time or did nothing",
-                job_name,
-            )
 
+def _run_legacy_import(job_name: str, start_time: datetime) -> None:
+    """Run a legacy imports/<job_name>.py script as its own subprocess."""
+    script_path = get_project_root() / "imports" / f"{job_name}.py"
+    if not script_path.exists():
         duration = (datetime.now() - start_time).total_seconds()
-        logger.info(f"Completed job: {job_name} in {duration:.1f}s")
+        error = RuntimeError(f"No importer found for job '{job_name}'")
+        logger.error(str(error))
+        send_failure_notifications(job_name, error, duration)
+        raise error
 
-    except SystemExit as e:
-        # Legacy imports/*.py scripts signal failure via sys.exit(), which
-        # raises SystemExit — a BaseException, not an Exception — so it would
-        # otherwise skip the except Exception handler below entirely and
-        # never trigger a failure notification.
-        duration = (datetime.now() - start_time).total_seconds()
-        code = e.code
-        if code in (None, 0):
-            logger.info(f"Completed job: {job_name} in {duration:.1f}s")
-        else:
-            logger.error(
-                f"Job {job_name} exited via sys.exit({code!r}) after {duration:.1f}s"
-            )
-            send_failure_notifications(
-                job_name, RuntimeError(f"sys.exit({code!r})"), duration
-            )
-        raise
-    except Exception as e:
-        duration = (datetime.now() - start_time).total_seconds()
-        logger.exception(f"Job {job_name} failed after {duration:.1f}s")
-        send_failure_notifications(job_name, e, duration)
-        raise
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        cwd=get_project_root(),
+        capture_output=True,
+        text=True,
+        timeout=3600,
+    )
+
+    duration = (datetime.now() - start_time).total_seconds()
+
+    if result.returncode != 0:
+        error_msg = (
+            f"Legacy script {job_name}.py exited with code {result.returncode}: "
+            f"{result.stderr[-2000:]}"
+        )
+        logger.error(f"Job {job_name} failed after {duration:.1f}s: {result.stderr}")
+        send_failure_notifications(job_name, RuntimeError(error_msg), duration)
+        raise RuntimeError(error_msg)
+
+    logger.info(f"Completed job: {job_name} in {duration:.1f}s")
 
 
 def run_shell_command(job_name: str, command: str) -> None:
