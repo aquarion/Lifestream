@@ -17,7 +17,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -45,8 +45,15 @@ jobs:
         path: .cache
         key: ${{ runner.os }}-poetry-${{ hashFiles('./poetry.lock') }}
 
+    - name: Use system git client for VCS dependencies
+      # Poetry 2.x's default pure-Python git client (dulwich) fails to
+      # negotiate the protocol against GitHub in CI (HangupException /
+      # "remote server unexpectedly closed the connection") when fetching
+      # the saintcoinach git dependency. See python-poetry/poetry#10167.
+      run: poetry config system-git-client true
+
     - name: Install dependencies
-      run: poetry install -vvv --no-interaction --no-root
+      run: poetry install --no-interaction --no-root
     - name: Install library
       run: poetry install --no-interaction
 
