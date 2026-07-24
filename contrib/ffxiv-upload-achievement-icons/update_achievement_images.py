@@ -349,7 +349,9 @@ def main():
     schema_file_path = os.path.join(basedir, "etc", "achievements_schema.sql")
     saint_coinach_client.update_achievement_database(schema_file_path=schema_file_path)
 
-    upload_count = upload_icons(config, saint_coinach_client, use_tqdm=not args.disable_tqdm)
+    upload_count = upload_icons(
+        config, saint_coinach_client, use_tqdm=not args.disable_tqdm
+    )
 
     print(f"Uploaded {upload_count} icons")
 

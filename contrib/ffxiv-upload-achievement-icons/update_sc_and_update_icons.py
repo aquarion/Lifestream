@@ -31,10 +31,9 @@ basedir = os.path.dirname(os.path.abspath(__file__))
 site.addsitedir(os.path.join(basedir, "lib", "python"))
 
 # pylint: disable=wrong-import-position
+import update_achievement_images as uploader  # noqa: E402
 from icon_export import IconExporter  # noqa: E402
 from SaintCoinach import SaintCoinach  # noqa: E402
-
-import update_achievement_images as uploader  # noqa: E402
 
 # pylint: enable=wrong-import-position
 
