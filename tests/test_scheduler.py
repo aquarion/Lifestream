@@ -165,13 +165,30 @@ class TestRunJobNow:
             with patch.object(scheduler, "run_import") as mock_run_import:
                 scheduler.run_job_now("myimporter")
 
-        mock_run_import.assert_called_once_with("myimporter")
+        mock_run_import.assert_called_once_with("myimporter", extra_args=None)
+
+    def test_forwards_extra_args_to_import_job(self):
+        """Extra CLI args (e.g. --reauth) are forwarded through to run_import()."""
+        with patch.object(scheduler, "get_schedules", return_value={}):
+            with patch.object(scheduler, "run_import") as mock_run_import:
+                scheduler.run_job_now("myimporter", extra_args=["--reauth"])
+
+        mock_run_import.assert_called_once_with("myimporter", extra_args=["--reauth"])
 
     def test_runs_shell_job_with_configured_command(self):
         schedules = {"!backup": {"cron": "0 3 * * *", "command": "echo backup"}}
         with patch.object(scheduler, "get_schedules", return_value=schedules):
             with patch.object(scheduler, "run_shell_command") as mock_run_shell:
                 scheduler.run_job_now("!backup")
+
+        mock_run_shell.assert_called_once_with("backup", "echo backup")
+
+    def test_ignores_extra_args_for_shell_job(self):
+        """Shell jobs run a fixed cmd= from config; extra args are logged and dropped."""
+        schedules = {"!backup": {"cron": "0 3 * * *", "command": "echo backup"}}
+        with patch.object(scheduler, "get_schedules", return_value=schedules):
+            with patch.object(scheduler, "run_shell_command") as mock_run_shell:
+                scheduler.run_job_now("!backup", extra_args=["--reauth"])
 
         mock_run_shell.assert_called_once_with("backup", "echo backup")
 

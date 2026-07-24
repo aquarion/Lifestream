@@ -22,7 +22,7 @@ except ImportError as _import_err:
     _IMPORTERS_IMPORT_ERROR = _import_err
 
 
-def run_import(job_name: str) -> None:
+def run_import(job_name: str, extra_args: list[str] | None = None) -> None:
     """
     Run an import job.
 
@@ -43,6 +43,9 @@ def run_import(job_name: str) -> None:
 
     Args:
         job_name: The name of the importer to run (e.g., 'lastfm', 'flickr')
+        extra_args: Extra CLI arguments to pass to the importer, e.g.
+            ['--reauth']. Only meaningful for manual/`--run` invocations —
+            scheduled cron runs never pass any.
 
     Raises:
         Exception: Re-raises any exception from the job after logging and notifying
@@ -66,7 +69,7 @@ def run_import(job_name: str) -> None:
             # run_with_setup() shares BaseImporter.execute()'s setup/validation
             # logic but lets exceptions propagate to the except clauses below,
             # instead of execute()'s own exit-code mapping swallowing them.
-            importer.run_with_setup(args=[])
+            importer.run_with_setup(args=extra_args or [])
         except Exception as e:
             duration = (datetime.now() - start_time).total_seconds()
             logger.exception(f"Job {job_name} failed after {duration:.1f}s")
@@ -74,10 +77,12 @@ def run_import(job_name: str) -> None:
             raise
         return
 
-    _run_legacy_import(job_name, start_time)
+    _run_legacy_import(job_name, start_time, extra_args)
 
 
-def _run_legacy_import(job_name: str, start_time: datetime) -> None:
+def _run_legacy_import(
+    job_name: str, start_time: datetime, extra_args: list[str] | None = None
+) -> None:
     """Run a legacy imports/<job_name>.py script as its own subprocess."""
     script_path = get_project_root() / "imports" / f"{job_name}.py"
     if not script_path.exists():
@@ -97,6 +102,8 @@ def _run_legacy_import(job_name: str, start_time: datetime) -> None:
         cmd.append("--debug")
     elif "--verbose" in sys.argv:
         cmd.append("--verbose")
+    if extra_args:
+        cmd.extend(extra_args)
 
     result = subprocess.run(
         cmd,

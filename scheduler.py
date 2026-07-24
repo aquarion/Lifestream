@@ -17,7 +17,6 @@ Usage:
 
 import argparse
 import logging
-import os
 import signal
 import sys
 from datetime import datetime
@@ -26,11 +25,6 @@ from apscheduler.executors.pool import ThreadPoolExecutor  # noqa: E402
 from apscheduler.jobstores.redis import RedisJobStore  # noqa: E402
 from apscheduler.schedulers.blocking import BlockingScheduler  # noqa: E402
 from apscheduler.triggers.cron import CronTrigger  # noqa: E402
-
-# Add imports/ to path for legacy script fallback (run_import falls back to importlib)
-basedir = os.path.dirname(os.path.abspath(__file__))
-imports_dir = os.path.join(basedir, "imports")
-sys.path.append(imports_dir)
 
 from lifestream.core.config import config  # noqa: E402
 from lifestream.core.jobs import run_import, run_shell_command  # noqa: E402
@@ -235,8 +229,17 @@ def show_status():
     scheduler.shutdown(wait=False)
 
 
-def run_job_now(job_name):
-    """Run a specific job immediately."""
+def run_job_now(job_name, extra_args=None):
+    """
+    Run a specific job immediately.
+
+    Args:
+        job_name: The job to run (as it appears in [schedules], including any
+            leading '!' for shell jobs).
+        extra_args: Extra CLI arguments to forward to the importer, e.g.
+            ['--reauth']. Ignored for shell jobs, which take a fixed command
+            from config rather than argparse-style flags.
+    """
     schedules = get_schedules()
 
     if job_name.startswith("!"):
@@ -247,13 +250,20 @@ def run_job_now(job_name):
                 f"Shell job '{actual_name}' not found in schedules or has no cmd= configured"
             )
             sys.exit(1)
+        if extra_args:
+            logger.warning(
+                "Ignoring extra args %s for shell job '%s' (shell jobs run a fixed "
+                "cmd= from config, not argparse flags)",
+                extra_args,
+                actual_name,
+            )
         run_shell_command(actual_name, job_config["command"])
         return
 
     if job_name not in schedules:
         logger.info(f"Job {job_name} not in schedules, attempting direct run...")
 
-    run_import(job_name)
+    run_import(job_name, extra_args=extra_args)
 
 
 def main():
@@ -266,7 +276,9 @@ def main():
     parser.add_argument("--status", action="store_true", help="Show job status")
     parser.add_argument("--run", metavar="JOB", help="Run a specific job immediately")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    args, _ = parser.parse_known_args()
+    # Unrecognized args are forwarded to the importer when used with --run,
+    # e.g. `scheduler.py --run facebook_posts --reauth`.
+    args, extra_args = parser.parse_known_args()
 
     from lifestream.core.logging import setup_logging
 
@@ -284,7 +296,7 @@ def main():
         return
 
     if args.run:
-        run_job_now(args.run)
+        run_job_now(args.run, extra_args=extra_args)
         return
 
     # Default: run the scheduler daemon

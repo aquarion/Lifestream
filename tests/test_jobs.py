@@ -98,6 +98,25 @@ class TestRunImportLegacy:
 
         assert mock_run.call_args.args[0] == [jobs.sys.executable, str(script)]
 
+    def test_forwards_extra_args_to_legacy_subprocess(self, tmp_path):
+        """extra_args (e.g. --reauth) are appended to the legacy script's argv."""
+        script = self._make_script(tmp_path)
+        mock_result = MagicMock(returncode=0, stdout="", stderr="")
+
+        with patch.object(jobs.sys, "argv", ["scheduler.py"]):
+            with patch.object(jobs, "get_project_root", return_value=tmp_path):
+                with patch.object(
+                    jobs.subprocess, "run", return_value=mock_result
+                ) as mock_run:
+                    with patch.object(jobs, "send_failure_notifications"):
+                        jobs.run_import("test_module", extra_args=["--reauth"])
+
+        assert mock_run.call_args.args[0] == [
+            jobs.sys.executable,
+            str(script),
+            "--reauth",
+        ]
+
     def test_does_not_run_legacy_if_new_style_found(self, tmp_path):
         """run_import uses new-style importer and skips the legacy subprocess path."""
         mock_cls = MagicMock()
@@ -175,6 +194,18 @@ class TestRunImportNewStyle:
 
         mock_instance.run_with_setup.assert_called_once_with(args=[])
         mock_cls.assert_called_once_with()
+
+    def test_new_style_importer_forwards_extra_args(self):
+        """extra_args (e.g. --reauth) are passed through to run_with_setup()."""
+        mock_cls = MagicMock()
+        mock_instance = MagicMock()
+        mock_cls.return_value = mock_instance
+
+        with patch("lifestream.core.jobs._IMPORTERS", {"myimporter": mock_cls}):
+            with patch.object(jobs, "send_failure_notifications"):
+                jobs.run_import("myimporter", extra_args=["--reauth"])
+
+        mock_instance.run_with_setup.assert_called_once_with(args=["--reauth"])
 
     def test_new_style_importer_config_error_raises(self):
         """run_import re-raises ConfigurationError from run_with_setup() after notifying."""
