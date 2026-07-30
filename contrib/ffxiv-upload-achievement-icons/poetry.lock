@@ -1227,16 +1227,16 @@ files = []
 develop = false
 
 [package.dependencies]
-Pillow = {version = ">=9.0", optional = true}
+Pillow = {version = ">=9.2", optional = true}
 
 [package.extras]
-images = ["Pillow (>=9.0)"]
+images = ["Pillow (>=9.2)"]
 
 [package.source]
 type = "git"
 url = "https://github.com/aquarion/saintcoinach-py.git"
-reference = "b1a081a323b4949e69d06c47f0b32e0a61d70cc9"
-resolved_reference = "b1a081a323b4949e69d06c47f0b32e0a61d70cc9"
+reference = "f36c994676746d79aa85b58f26949d192c32fedc"
+resolved_reference = "f36c994676746d79aa85b58f26949d192c32fedc"
 
 [[package]]
 name = "tomlkit"
@@ -1413,4 +1413,4 @@ dev = ["pytest", "setuptools"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "e586fc1e1b17937adefb844b39f5cbccb324cf570d2e7c96a8c1c602bb8af356"
+content-hash = "39263e0d78fd6d8a493b69b8a2b2dbcf8f72e7855cd74f2fb8d5520b2e349997"

@@ -20,7 +20,7 @@ pre-commit = "^4.5.1"
 # commit so `poetry install` installs it straight from the lock rather than
 # re-checking the remote branch head on every run (bump this rev to pick up
 # saintcoinach-py updates).
-saintcoinach = { git = "https://github.com/aquarion/saintcoinach-py.git", rev = "b1a081a323b4949e69d06c47f0b32e0a61d70cc9", extras = ["images"] }
+saintcoinach = { git = "https://github.com/aquarion/saintcoinach-py.git", rev = "f36c994676746d79aa85b58f26949d192c32fedc", extras = ["images"] }
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^7.1.2"
