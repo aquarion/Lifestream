@@ -35,15 +35,10 @@ def authenticate(importer: OAuthImporter) -> TumblrRestClient:
             raise ConfigurationError(f"Invalid response {resp['status']}.")
 
         request_token = dict(urllib.parse.parse_qsl(content))
-        print("Go to the following link in your browser:")
         # intentional: user must visit this URL to complete OAuth flow
-        print(
-            "%s?oauth_token=%s"
-            % (
-                AUTHORIZE_URL,
-                request_token["oauth_token"],
-            )  # codeql[py/clear-text-logging-sensitive-data]
-        )
+        authorize_link = f"{AUTHORIZE_URL}?oauth_token={request_token['oauth_token']}"  # codeql[py/clear-text-logging-sensitive-data]
+        print("Go to the following link in your browser:")
+        print(authorize_link)
         print()
 
         accepted = "n"
