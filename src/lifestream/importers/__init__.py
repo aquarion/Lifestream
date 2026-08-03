@@ -13,10 +13,12 @@ from lifestream.importers.base import (
 )
 from lifestream.importers.flickr import FlickrImporter
 from lifestream.importers.github_commits import GithubCommitsImporter
+from lifestream.importers.historic import HistoricImporter
 from lifestream.importers.lastfm import LastfmImporter
 from lifestream.importers.mastodon_toots import MastodonImporter
 from lifestream.importers.steam import SteamImporter
 from lifestream.importers.switchbot import SwitchbotImporter
+from lifestream.importers.tumblr import TumblrImporter
 from lifestream.importers.wordpress import WordpressImporter
 
 __all__ = [
@@ -28,10 +30,12 @@ __all__ = [
     "AtomImporter",
     "FlickrImporter",
     "GithubCommitsImporter",
+    "HistoricImporter",
     "LastfmImporter",
     "MastodonImporter",
     "SteamImporter",
     "SwitchbotImporter",
+    "TumblrImporter",
     "WordpressImporter",
 ]
 
@@ -41,10 +45,12 @@ IMPORTERS = {
     "flickr": FlickrImporter,
     "github": GithubCommitsImporter,
     "github_commits": GithubCommitsImporter,  # legacy schedule name
+    "historic": HistoricImporter,
     "lastfm": LastfmImporter,
     "mastodon": MastodonImporter,
     "mastodon_toots": MastodonImporter,  # legacy schedule name
     "steam": SteamImporter,
     "switchbot": SwitchbotImporter,
+    "tumblr": TumblrImporter,
     "wordpress": WordpressImporter,
 }

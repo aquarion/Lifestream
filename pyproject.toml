@@ -117,6 +117,8 @@ lifestream-mastodon = "lifestream.importers.mastodon_toots:main"
 lifestream-steam = "lifestream.importers.steam:main"
 lifestream-switchbot = "lifestream.importers.switchbot:main"
 lifestream-wordpress = "lifestream.importers.wordpress:main"
+lifestream-tumblr = "lifestream.importers.tumblr:main"
+lifestream-historic = "lifestream.importers.historic:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
