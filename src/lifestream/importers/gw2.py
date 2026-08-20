@@ -12,20 +12,24 @@ from lifestream.importers.base import BaseImporter
 
 @file_cache("gw2.categories", 86400)
 def _get_categories():
-    category_list = requests.get(
-        "https://api.guildwars2.com/v2/achievements/categories/"
-    ).json()
+    list_response = requests.get(
+        "https://api.guildwars2.com/v2/achievements/categories/", timeout=30
+    )
+    list_response.raise_for_status()
+    category_list = list_response.json()
 
     category_fetch = []
 
     step = 200
     for i in range(0, len(category_list), step):
-        category_data = {"ids": ",".join(str(x) for x in category_list[i : i + step])}
-        category_request = requests.get(
+        category_params = {"ids": ",".join(str(x) for x in category_list[i : i + step])}
+        category_response = requests.get(
             "https://api.guildwars2.com/v2/achievements/categories",
-            data=category_data,
-        ).json()
-        category_fetch += category_request
+            params=category_params,
+            timeout=30,
+        )
+        category_response.raise_for_status()
+        category_fetch += category_response.json()
 
     return category_fetch
 

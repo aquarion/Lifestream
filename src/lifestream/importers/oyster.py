@@ -14,7 +14,7 @@ from time import sleep
 
 import pytz
 
-from lifestream.importers.base import BaseImporter
+from lifestream.importers.base import BaseImporter, ConfigurationError
 
 LONDON_TZ = pytz.timezone("Europe/London")
 
@@ -58,8 +58,13 @@ class OysterImporter(BaseImporter):
 
         html = browser.response().read().decode("utf-8")
         codes = re.findall(r'/oyster/journeyDetailsPrint\.do\?_qv=(.*?)"', html)
+        if len(codes) < 2:
+            raise ConfigurationError(
+                "Could not find a journey history download link on the Oyster "
+                "website — the page format may have changed"
+            )
 
-        browser.open(f"/oyster/journeyDetailsPrint.do?_qv={codes[1]}")
+        browser.open(f"/oyster/journeyDetailsPrint.do?_qv={codes[-1]}")
 
         return browser.response().read().decode("utf-8")
 
