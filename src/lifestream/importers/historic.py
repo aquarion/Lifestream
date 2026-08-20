@@ -53,9 +53,11 @@ class HistoricImporter(OAuthImporter):
         date_from = now - TEN_YEARS
         date_to = date_from + WINDOW
 
-        with self.entry_store.dbcxn.cursor() as cursor:
-            cursor.execute(SELECT_SQL, (date_from.isoformat(), date_to.isoformat()))
-            rows = cursor.fetchall()
+        rows = []
+        if not self.entry_store.no_db:
+            with self.entry_store.dbcxn.cursor() as cursor:
+                cursor.execute(SELECT_SQL, (date_from.isoformat(), date_to.isoformat()))
+                rows = cursor.fetchall()
 
         if not rows:
             self.logger.info("Nothing posted in this window ten years ago")

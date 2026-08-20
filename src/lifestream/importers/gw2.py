@@ -109,7 +109,7 @@ class GW2Importer(BaseImporter):
                 )
             else:
                 self.logger.error("Error fetching achievements: %s", e)
-            return
+            raise
 
         for category in _get_categories():
             for achievement_id in category["achievements"]:

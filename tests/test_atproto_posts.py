@@ -35,6 +35,15 @@ class TestAtprotoImporter:
         imp = self._make_importer(["--site", "other.com"])
         assert imp._get_sites() == ["other.com"]
 
+    def test_get_sites_ignores_bare_atproto_section(self):
+        """A literal [atproto] section (no ':site' suffix) must not IndexError."""
+        cfg = configparser.ConfigParser()
+        cfg.add_section("atproto")
+        cfg.add_section("atproto:example.com")
+        with patch("lifestream.importers.atproto_posts.config", cfg):
+            imp = self._make_importer()
+            assert imp._get_sites() == ["example.com"]
+
     def test_validate_config_fails_with_no_sites(self):
         empty_cfg = configparser.ConfigParser()
         with patch("lifestream.importers.atproto_posts.config", empty_cfg):

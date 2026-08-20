@@ -6,11 +6,16 @@ import math
 import re
 import sqlite3
 from datetime import datetime
+from urllib.parse import urlparse
 
 import bs4
 import requests
 
-from lifestream.importers.base import BaseImporter
+from lifestream.core import resolve_path
+from lifestream.importers.base import BaseImporter, ConfigurationError
+
+CHARACTER_SELECTORS = "datafiles/lodestone-css-selectors/profile/character.json"
+ACHIEVEMENT_SELECTORS = "datafiles/lodestone-css-selectors/profile/achievements.json"
 
 
 class Lodestone:
@@ -58,10 +63,21 @@ class Lodestone:
             return tags[0].get(selector_map["attribute"])
         return tags[0]
 
+    def _load_selector_map(self, relative_path: str) -> dict:
+        path = resolve_path(relative_path)
+        try:
+            with open(path) as f:
+                return json.load(f)
+        except FileNotFoundError as e:
+            raise ConfigurationError(
+                f"Lodestone CSS selector file not found at {path} — is the "
+                "datafiles/lodestone-css-selectors git submodule checked out? "
+                "(git submodule update --init)"
+            ) from e
+
     def get_character_info(self, character_id):
         html = self.get_character_detail(character_id)
-        with open("datafiles/lodestone-css-selectors/profile/character.json") as f:
-            selector_map = json.load(f)
+        selector_map = self._load_selector_map(CHARACTER_SELECTORS)
         soup = bs4.BeautifulSoup(html, "html.parser")
 
         return {
@@ -75,7 +91,16 @@ class Lodestone:
         achievements = self.parse_achievements_page(html)
         page = 1
         while self.next:
-            next_page_contents = requests.get(self.next, timeout=30).text
+            host = urlparse(self.next).hostname or ""
+            if not (
+                host == "finalfantasyxiv.com" or host.endswith(".finalfantasyxiv.com")
+            ):
+                raise ValueError(
+                    f"Refusing to fetch next-page link off-site: {self.next}"
+                )
+            next_response = requests.get(self.next, timeout=30)
+            next_response.raise_for_status()
+            next_page_contents = next_response.text
             achievements += self.parse_achievements_page(next_page_contents)
             page += 1
             if page > self.max_pages and not self.all_achievements:
@@ -98,8 +123,7 @@ class Lodestone:
         return f"{foldername}/{filename}.png"
 
     def parse_achievements_page(self, html):
-        with open("datafiles/lodestone-css-selectors/profile/achievements.json") as f:
-            selector_map = json.load(f)
+        selector_map = self._load_selector_map(ACHIEVEMENT_SELECTORS)
         soup = bs4.BeautifulSoup(html, "html.parser")
 
         root = self.pull_value(selector_map["ROOT"], soup)

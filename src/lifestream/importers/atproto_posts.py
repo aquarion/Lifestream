@@ -53,7 +53,7 @@ class AtprotoImporter(BaseImporter):
         sites = []
         for section in config.sections():
             subsection = section.split(":")
-            if subsection[0] == "atproto":
+            if len(subsection) == 2 and subsection[0] == "atproto":
                 sites.append(subsection[1])
         return sites
 

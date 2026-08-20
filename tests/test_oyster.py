@@ -8,6 +8,9 @@ import sys
 from types import ModuleType
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from lifestream.importers.base import ConfigurationError
 from lifestream.importers.oyster import OysterImporter
 
 CSV_BODY = (
@@ -66,3 +69,24 @@ class TestOysterImporter:
         assert args[4] == "2024-01-01 08:15"
 
         browser.open.assert_any_call("/oyster/journeyDetailsPrint.do?_qv=bbb")
+
+    def test_run_raises_configuration_error_when_download_link_missing(
+        self, monkeypatch
+    ):
+        """Fewer than two _qv links on the journey history page is a clear
+        ConfigurationError, not an IndexError crash."""
+        imp = self._make_importer()
+
+        browser = MagicMock()
+        browser.find_link.return_value = "journey-history-link"
+        html_response = MagicMock()
+        html_response.read.return_value = b"<p>no journey links here</p>"
+        browser.response.return_value = html_response
+
+        monkeypatch.setattr("lifestream.importers.oyster.sleep", lambda _: None)
+
+        with patch.dict(sys.modules, {"mechanize": _fake_mechanize_module(browser)}):
+            with pytest.raises(ConfigurationError, match="journey history"):
+                imp.run()
+
+        imp._entry_store.add_entry.assert_not_called()

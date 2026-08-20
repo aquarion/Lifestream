@@ -12,6 +12,7 @@ class TestHistoricImporter:
         imp = HistoricImporter()
         imp._args = imp.parse_args([])
         imp._entry_store = MagicMock()
+        imp._entry_store.no_db = False
         return imp
 
     def test_validate_config_fails_when_keys_missing(self):
@@ -72,6 +73,17 @@ class TestHistoricImporter:
         assert kwargs["id"] == "systemid1"
         assert kwargs["reblog_key"] == "rbkey123"
         assert kwargs["state"] == "queue"
+
+    def test_run_does_not_touch_dbcxn_in_no_db_mode(self):
+        """--no-db must not crash by reaching for a cursor on a None dbcxn."""
+        imp = self._make_importer()
+        imp._entry_store.no_db = True
+        imp._entry_store.dbcxn = None
+
+        with patch("lifestream.importers.historic.authenticate") as mock_auth:
+            imp.run()  # should not raise
+
+        mock_auth.assert_not_called()
 
     def test_run_skips_rows_without_title_or_fulldata(self):
         imp = self._make_importer()

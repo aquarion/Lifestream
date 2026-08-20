@@ -33,7 +33,7 @@ class OysterCsvImporter(BaseImporter):
             return
 
         for row in rows[1:]:
-            if not row:
+            if len(row) < 4:
                 continue
 
             date, time_from, time_to, action = row[0], row[1], row[2], row[3]

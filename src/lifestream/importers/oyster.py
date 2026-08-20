@@ -64,7 +64,7 @@ class OysterImporter(BaseImporter):
                 "website — the page format may have changed"
             )
 
-        browser.open(f"/oyster/journeyDetailsPrint.do?_qv={codes[-1]}")
+        browser.open(f"/oyster/journeyDetailsPrint.do?_qv={codes[1]}")
 
         return browser.response().read().decode("utf-8")
 
@@ -79,7 +79,7 @@ class OysterImporter(BaseImporter):
 
         rows = list(csv.reader(io.StringIO(data)))
         for row in rows[1:]:
-            if not row:
+            if len(row) < 4:
                 continue
 
             date, time_from, time_to, action = row[0], row[1], row[2], row[3]

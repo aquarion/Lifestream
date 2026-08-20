@@ -29,6 +29,9 @@ autopep8 = "^2.3.2"
 isort = "^6.0.1"
 pytest = "^9.0.2"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
