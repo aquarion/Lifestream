@@ -8,6 +8,8 @@ Each importer is a class that inherits from BaseImporter.
 from lifestream.importers.atom import AtomImporter
 from lifestream.importers.atproto_posts import AtprotoImporter
 from lifestream.importers.base import BaseImporter, FeedImporter, OAuthImporter
+from lifestream.importers.facebook_page import FacebookPageImporter
+from lifestream.importers.facebook_posts import FacebookPostsImporter
 from lifestream.importers.ffxiv import FFXIVImporter
 from lifestream.importers.flickr import FlickrImporter
 from lifestream.importers.github_commits import GithubCommitsImporter
@@ -31,6 +33,8 @@ __all__ = [
     # Importers
     "AtomImporter",
     "AtprotoImporter",
+    "FacebookPageImporter",
+    "FacebookPostsImporter",
     "FFXIVImporter",
     "FlickrImporter",
     "GithubCommitsImporter",
@@ -51,6 +55,8 @@ __all__ = [
 IMPORTERS = {
     "atom": AtomImporter,
     "atproto_posts": AtprotoImporter,
+    "facebook_page": FacebookPageImporter,
+    "facebook_posts": FacebookPostsImporter,
     "ffxiv": FFXIVImporter,
     "flickr": FlickrImporter,
     "github": GithubCommitsImporter,

@@ -125,6 +125,8 @@ lifestream-gw2 = "lifestream.importers.gw2:main"
 lifestream-instagram = "lifestream.importers.instagram:main"
 lifestream-oyster = "lifestream.importers.oyster:main"
 lifestream-oyster-csv = "lifestream.importers.oyster_csv:main"
+lifestream-facebook-posts = "lifestream.importers.facebook_posts:main"
+lifestream-facebook-page = "lifestream.importers.facebook_page:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
