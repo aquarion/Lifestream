@@ -119,6 +119,12 @@ lifestream-switchbot = "lifestream.importers.switchbot:main"
 lifestream-wordpress = "lifestream.importers.wordpress:main"
 lifestream-tumblr = "lifestream.importers.tumblr:main"
 lifestream-historic = "lifestream.importers.historic:main"
+lifestream-atproto-posts = "lifestream.importers.atproto_posts:main"
+lifestream-ffxiv = "lifestream.importers.ffxiv:main"
+lifestream-gw2 = "lifestream.importers.gw2:main"
+lifestream-instagram = "lifestream.importers.instagram:main"
+lifestream-oyster = "lifestream.importers.oyster:main"
+lifestream-oyster-csv = "lifestream.importers.oyster_csv:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
