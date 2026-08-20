@@ -100,6 +100,7 @@ def get_code(key_wanted_arg: str):
     httpd = http.server.HTTPServer(("0.0.0.0", port), MyHandler)
 
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(certfile=certfile, keyfile=keyfile)
     httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
 
