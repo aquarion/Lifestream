@@ -319,9 +319,15 @@ class OAuthImporter(BaseImporter):
             return None
 
     def save_oauth_token(self, token) -> None:
-        """Save OAuth token to file."""
+        """Save OAuth token to file, readable only by the owner."""
+        import os
         import pickle
 
         path = self.get_oauth_path()
-        with open(path, "wb") as f:
+        # Set the restrictive mode atomically at creation (open()'s mode=
+        # argument is masked by umask, same as a plain open("wb") would be)
+        # rather than chmod-ing after write, which leaves a brief window
+        # where the token file is readable per the process umask.
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as f:
             pickle.dump(token, f)
