@@ -96,7 +96,9 @@ class FacebookBaseImporter(OAuthImporter):
 
         redirect_uri, use_code_fetcher = self._get_redirect_uri()
 
-        request_token_url = (
+        # intentional: user must visit this URL to complete OAuth; contains
+        # no secret, only the public appid, redirect_uri, and scope
+        request_token_url = (  # codeql[py/clear-text-logging-sensitive-data]
             f"{REQUEST_TOKEN_URL}?client_id={appid}&redirect_uri={redirect_uri}"
             f"&response_type=token&scope={OAUTH_SCOPE}"
         )
