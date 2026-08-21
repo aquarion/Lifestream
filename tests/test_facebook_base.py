@@ -50,7 +50,7 @@ class TestFacebookBaseImporter:
         with (
             patch("lifestream.importers.facebook_base.code_fetcher") as mock_cf,
             patch(
-                "lifestream.importers.facebook_base.requests.get",
+                "lifestream.importers.facebook_base.requests.post",
                 return_value=extend_response,
             ),
             patch("builtins.print"),
@@ -87,7 +87,7 @@ class TestFacebookBaseImporter:
             patch("lifestream.importers.facebook_base.code_fetcher") as mock_cf,
             patch("lifestream.importers.facebook_base.raw_config") as mock_raw_config,
             patch(
-                "lifestream.importers.facebook_base.requests.get",
+                "lifestream.importers.facebook_base.requests.post",
                 return_value=extend_response,
             ),
             patch("builtins.input", return_value="1234"),

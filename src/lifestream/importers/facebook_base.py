@@ -110,9 +110,11 @@ class FacebookBaseImporter(OAuthImporter):
             print("If you configure CodeFetcher9000, this is a lot easier.")
             access_key = input("What is the PIN? ")
 
-        extend_response = requests.get(
+        # POST, not GET: a GET would put client_secret in the request URL,
+        # where it's liable to end up in proxy/web-server access logs.
+        extend_response = requests.post(
             EXTEND_TOKEN_URL,
-            params={
+            data={
                 "grant_type": "fb_exchange_token",
                 "client_id": appid,
                 "client_secret": secret,
