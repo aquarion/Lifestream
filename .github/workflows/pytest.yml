@@ -35,6 +35,14 @@ jobs:
         path: .venv
         key: ${{ runner.os }}-lifestream-venv-${{ hashFiles('pyproject.toml') }}
 
+    - name: Use system git client for VCS dependencies
+      # Poetry 2.x's default pure-Python git client (dulwich) fails to
+      # negotiate the protocol against GitHub in CI (HangupException /
+      # "remote server unexpectedly closed the connection") when fetching
+      # git dependencies. See python-poetry/poetry#10167 and
+      # .github/workflows/ffxiv-icons-tests.yml.
+      run: poetry config system-git-client true
+
     - name: Install dependencies
       run: poetry install --no-interaction
 
