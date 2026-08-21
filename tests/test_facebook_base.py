@@ -118,12 +118,31 @@ class TestFacebookBaseImporter:
         ):
             imp.check_token_expiry(credentials)  # should not raise
 
+    def test_check_token_expiry_raises_configuration_error_when_expire_dt_missing(self):
+        """A cached token missing expire_dt fails with ConfigurationError, not KeyError."""
+        imp = self._make_importer()
+        with pytest.raises(ConfigurationError, match="reauth"):
+            imp.check_token_expiry({})
+
+    def test_check_token_expiry_does_not_understate_elapsed_days(self):
+        """Regression: timedelta.days floors negative durations, so naively negating
+        it previously reported "1 days ago" for a token that expired 10 minutes ago."""
+        imp = self._make_importer()
+        credentials = {"expire_dt": datetime.now() - timedelta(minutes=10)}
+        with pytest.raises(ConfigurationError, match="expired 0 days ago"):
+            imp.check_token_expiry(credentials)
+
     def test_post_is_visible_keeps_non_custom_privacy(self):
         post = {"privacy": {"value": "EVERYONE"}}
         assert FacebookPostsImporter._post_is_visible(post, "url", {}, set()) is True
 
     def test_post_is_visible_hides_custom_with_no_allow_list(self):
         post = {"privacy": {"value": "CUSTOM", "allow": ""}}
+        assert FacebookPostsImporter._post_is_visible(post, "url", {}, set()) is False
+
+    def test_post_is_visible_hides_custom_with_missing_allow_key(self):
+        """Regression: the 'allow' key can be entirely absent, not just falsy."""
+        post = {"privacy": {"value": "CUSTOM"}}
         assert FacebookPostsImporter._post_is_visible(post, "url", {}, set()) is False
 
     def test_post_is_visible_respects_filter_membership(self):
@@ -194,3 +213,30 @@ class TestFacebookBaseImporter:
             "created_time": "2024-01-01T12:00:00+0000",
         }
         imp.process_post(post, {"id": "1"})  # should not raise
+
+    def test_run_pagination_raises_on_error_response_missing_data_key(self):
+        """Regression: a Graph API error response ({"error": ...}, no "data" key)
+        must not be silently treated as zero posts."""
+        imp = self._make_importer()
+        imp.process_post = MagicMock()
+        with pytest.raises(RuntimeError, match="no 'data' key"):
+            imp.run_pagination({"id": "1"}, {"error": {"message": "Invalid token"}})
+        imp.process_post.assert_not_called()
+
+    def test_run_pagination_follows_next_page_until_limit(self):
+        imp = self._make_importer()
+        imp._args = imp.parse_args(["--pages", "2"])
+        imp.process_post = MagicMock()
+
+        page_response = {"data": [{"id": "1"}], "paging": {"next": "https://next"}}
+        next_response = MagicMock()
+        next_response.json.return_value = page_response
+
+        with patch(
+            "lifestream.importers.facebook_base.requests.get",
+            return_value=next_response,
+        ) as mock_get:
+            imp.run_pagination({"id": "1"}, page_response)
+
+        assert mock_get.call_count == 1
+        assert imp.process_post.call_count == 2

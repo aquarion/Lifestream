@@ -41,7 +41,7 @@ class TestFacebookPageImporter:
             side_effect=[{"id": "somepage"}, {"data": [], "paging": {}}]
         )
 
-        with patch("lifestream.importers.facebook_page.requests.get"):
+        with patch("lifestream.importers.facebook_base.requests.get"):
             imp.run()
 
         first_call_args = imp.graph_get.call_args_list[0].args
@@ -58,7 +58,7 @@ class TestFacebookPageImporter:
             ]
         )
 
-        with patch("lifestream.importers.facebook_page.requests.get") as mock_get:
+        with patch("lifestream.importers.facebook_base.requests.get") as mock_get:
             imp.run()
 
         mock_get.assert_not_called()

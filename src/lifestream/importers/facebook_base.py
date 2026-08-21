@@ -6,6 +6,7 @@ share the same [facebook] app credentials, the same facebook.oauth token
 file, and identical privacy-filtering/persistence logic for posts.
 """
 
+import argparse
 import configparser
 import logging
 from datetime import datetime, timedelta
@@ -26,12 +27,37 @@ GRAPH_API_BASE = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
 REQUEST_TOKEN_URL = "https://www.facebook.com/dialog/oauth"
 EXTEND_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 
+# Both importers persist to and read from the same facebook.oauth token file
+# (see oauth_filename below), so a single OAuth grant has to cover whatever
+# either importer needs — there's no way to hold two differently-scoped
+# tokens under one file. user_posts,user_status is the union of what the
+# two legacy scripts requested individually.
+OAUTH_SCOPE = "user_posts,user_status"
+
 
 class FacebookBaseImporter(OAuthImporter):
     """Shared auth/config/persistence for the Facebook importers."""
 
     config_section = "facebook"
     oauth_filename = "facebook.oauth"
+
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Add the pagination arguments shared by both Facebook importers."""
+        super().add_arguments(parser)
+        parser.add_argument(
+            "--pages",
+            required=False,
+            type=int,
+            help="Number of pages to go back. 0 (or --all) to go forever",
+            default=5,
+        )
+        parser.add_argument(
+            "--all",
+            required=False,
+            help="Get all posts",
+            default=False,
+            action="store_true",
+        )
 
     def validate_config(self) -> bool:
         """Ensure Facebook app credentials are configured."""
@@ -72,7 +98,7 @@ class FacebookBaseImporter(OAuthImporter):
 
         request_token_url = (
             f"{REQUEST_TOKEN_URL}?client_id={appid}&redirect_uri={redirect_uri}"
-            "&response_type=token&scope=user_posts,user_status"
+            f"&response_type=token&scope={OAUTH_SCOPE}"
         )
         print("Go to the following link in your browser:")
         print(request_token_url)
@@ -106,13 +132,20 @@ class FacebookBaseImporter(OAuthImporter):
 
     def check_token_expiry(self, credentials: dict) -> None:
         """Raise if the token has already expired; warn (with backoff) if it's close."""
-        delta = credentials["expire_dt"] - datetime.now()
-
-        if delta.total_seconds() <= 0:
+        expire_dt = credentials.get("expire_dt")
+        if expire_dt is None:
             raise ConfigurationError(
-                f"Facebook token expired {-delta.days} days ago — run with --reauth"
+                "Facebook token has no expiry recorded — run with --reauth"
             )
 
+        now = datetime.now()
+        if expire_dt <= now:
+            raise ConfigurationError(
+                f"Facebook token expired {(now - expire_dt).days} days ago — "
+                "run with --reauth"
+            )
+
+        delta = expire_dt - now
         if delta.days <= 7:
             if check_and_set_backoff("facebook:token:warning_sent", 86400):
                 self.logger.info(
@@ -150,15 +183,14 @@ class FacebookBaseImporter(OAuthImporter):
         if privacy != "CUSTOM":
             logger.info("... %s privacy post, vote KEEP", privacy)
             return True
-        if not post["privacy"]["allow"]:
+        allow = post["privacy"].get("allow")
+        if not allow:
             logger.info("Ignoring post %s due to an ad-hoc privacy filter", url)
             return False
 
-        post_filter_ids = set(post["privacy"]["allow"].split(","))
+        post_filter_ids = set(allow.split(","))
         if not set(filters.keys()) & post_filter_ids:
-            logger.error(
-                "[ERROR] on %s - List ID %s not known", url, post["privacy"]["allow"]
-            )
+            logger.error("[ERROR] on %s - List ID %s not known", url, allow)
             return False
 
         for filter_id in post_filter_ids:
@@ -208,3 +240,40 @@ class FacebookBaseImporter(OAuthImporter):
                 self.logger.info(e)
             else:
                 self.logger.error(e)
+
+    def run_pagination(self, profile: dict, posts: dict) -> None:
+        """
+        Process a Graph API posts response and follow its pagination.
+
+        Shared by FacebookPostsImporter and FacebookPageImporter — the only
+        difference between them is which object's posts get fetched first;
+        walking the resulting pages is identical for both.
+        """
+        infinite = self.args.pages == 0 or self.args.all
+        page = 0
+        while True:
+            page += 1
+            self.logger.info("Page %d", page)
+
+            if "data" not in posts:
+                raise RuntimeError(
+                    f"Unexpected Facebook Graph API response (no 'data' key): {posts}"
+                )
+
+            for post in posts["data"]:
+                self.process_post(post, profile)
+
+            if not infinite and page >= self.args.pages:
+                self.logger.info("Hit the page limit (%d), stopping", self.args.pages)
+                break
+
+            next_url = posts.get("paging", {}).get("next")
+            if not next_url:
+                self.logger.info("No more pages")
+                break
+            # Facebook returns a fully-qualified next-page URL with its own
+            # access_token already embedded — fetch it as-is rather than
+            # re-joining it onto GRAPH_API_BASE.
+            next_response = requests.get(next_url, timeout=30)
+            next_response.raise_for_status()
+            posts = next_response.json()

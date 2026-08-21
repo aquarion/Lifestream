@@ -1,35 +1,23 @@
 """Facebook Page posts importer for Lifestream."""
 
-import argparse
-
-import requests
-
 from lifestream.importers.facebook_base import FacebookBaseImporter
 
 
 class FacebookPageImporter(FacebookBaseImporter):
-    """Import posts from a single configured Facebook Page."""
+    """
+    Import posts from a single configured Facebook Page.
+
+    Note: the legacy imports/facebook_page.py this replaces had every
+    entry_store.add_entry() call commented out — it only printed post
+    messages and never persisted anything. This importer actually stores
+    posts, the same as facebook_posts.py does. That's an intentional part
+    of finishing the conversion (see issue #79), not an accidental side
+    effect — the schedule entry in config.example.ini stays commented out
+    until an operator deliberately enables it.
+    """
 
     name = "facebook_page"
     description = "Import posts from a configured Facebook Page"
-
-    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
-        """Add Facebook-page-specific arguments."""
-        super().add_arguments(parser)
-        parser.add_argument(
-            "--pages",
-            required=False,
-            type=int,
-            help="Number of pages to go back. 0 (or --all) to go forever",
-            default=5,
-        )
-        parser.add_argument(
-            "--all",
-            required=False,
-            help="Get all posts",
-            default=False,
-            action="store_true",
-        )
 
     def validate_config(self) -> bool:
         """Ensure Facebook app credentials and a target page_id are configured."""
@@ -55,26 +43,7 @@ class FacebookPageImporter(FacebookBaseImporter):
             "properties,link,picture,created_time",
         )
 
-        infinite = self.args.pages == 0 or self.args.all
-        page = 0
-        while True:
-            page += 1
-            self.logger.info("Page %d", page)
-
-            for post in posts.get("data", []):
-                self.process_post(post, profile)
-
-            if not infinite and page >= self.args.pages:
-                self.logger.info("Hit the page limit (%d), stopping", self.args.pages)
-                break
-
-            next_url = posts.get("paging", {}).get("next")
-            if not next_url:
-                self.logger.info("No more pages")
-                break
-            next_response = requests.get(next_url, timeout=30)
-            next_response.raise_for_status()
-            posts = next_response.json()
+        self.run_pagination(profile, posts)
 
 
 def main():

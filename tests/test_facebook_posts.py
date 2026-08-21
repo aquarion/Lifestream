@@ -23,7 +23,7 @@ class TestFacebookPostsImporter:
         next_response = MagicMock()
         next_response.json.return_value = page_response
         with patch(
-            "lifestream.importers.facebook_posts.requests.get",
+            "lifestream.importers.facebook_base.requests.get",
             return_value=next_response,
         ) as mock_get:
             imp.run()
@@ -39,7 +39,7 @@ class TestFacebookPostsImporter:
             side_effect=[{"id": "me"}, {"data": [{"id": "1"}], "paging": {}}]
         )
 
-        with patch("lifestream.importers.facebook_posts.requests.get") as mock_get:
+        with patch("lifestream.importers.facebook_base.requests.get") as mock_get:
             imp.run()
 
         mock_get.assert_not_called()
@@ -53,7 +53,7 @@ class TestFacebookPostsImporter:
         second_response = MagicMock()
         second_response.json.return_value = {"data": [{"id": "2"}], "paging": {}}
         with patch(
-            "lifestream.importers.facebook_posts.requests.get",
+            "lifestream.importers.facebook_base.requests.get",
             return_value=second_response,
         ):
             imp.run()
