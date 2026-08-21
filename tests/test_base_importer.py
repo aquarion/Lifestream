@@ -122,6 +122,13 @@ class TestOAuthImporter:
         imp.save_oauth_token({"access_token": "abc123"})
         assert imp.load_oauth_token() == {"access_token": "abc123"}
 
+    def test_save_oauth_token_writes_owner_only_permissions(self, tmp_path):
+        """OAuth token files must not be world/group-readable regardless of umask."""
+        path = tmp_path / "token.oauth"
+        imp = self._make_importer(path)
+        imp.save_oauth_token({"access_token": "abc123"})
+        assert (path.stat().st_mode & 0o777) == 0o600
+
     def test_require_config_raises_on_missing_key(self):
         imp = ConcreteImporter()
         mock_config = MagicMock()
