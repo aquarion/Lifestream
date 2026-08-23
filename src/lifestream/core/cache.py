@@ -84,8 +84,15 @@ def redis_cache(cache_id: str, maxage: int):
 
             cached = cxn.get(cache_id)
             if cached is not None:
-                logger.info(f"Using cached result for '{cache_id}'")
-                return json.loads(cached)
+                try:
+                    result = json.loads(cached)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    logger.warning(
+                        f"Corrupted cache value for '{cache_id}', recomputing"
+                    )
+                else:
+                    logger.info(f"Using cached result for '{cache_id}'")
+                    return result
 
             res = fn(*args, **kwargs)
             logger.info(f"Saving result to cache '{cache_id}'")

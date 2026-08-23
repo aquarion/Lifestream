@@ -134,6 +134,9 @@ class TumblrImporter(OAuthImporter):
 
         while startat < max_posts:
             details = tumblr.posts(blog, offset=startat, limit=20)
+            if "errors" in details:
+                self.logger.error("Error fetching %s: %s", blog, details["meta"]["msg"])
+                return False
             startat += 20
 
             posts = details["posts"]

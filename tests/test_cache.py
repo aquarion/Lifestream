@@ -172,3 +172,19 @@ class TestRedisCache:
         mock_redis.set.assert_called_once_with(
             "test_key", '{"computed": true}', ex=3600
         )
+
+    def test_redis_cache_recomputes_on_corrupted_value(self):
+        """A malformed cached value is recomputed instead of raising or wedging the cache."""
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = "not valid json"
+
+        expensive_function = MagicMock(return_value={"computed": True})
+
+        with patch.object(cache, "get_redis_connection", return_value=mock_redis):
+            result = cache.redis_cache("test_key", maxage=3600)(expensive_function)()
+
+        assert result == {"computed": True}
+        expensive_function.assert_called_once()
+        mock_redis.set.assert_called_once_with(
+            "test_key", '{"computed": true}', ex=3600
+        )

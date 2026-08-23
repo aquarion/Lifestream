@@ -127,6 +127,20 @@ class TestTumblrImporter:
         assert args[1] == "123"
         assert args[3] == "tumblr"
 
+    def test_process_blog_stops_on_error_mid_pagination(self):
+        """A paginated fetch returning an error response fails the blog instead of KeyError-ing."""
+        imp = self._make_importer()
+        tumblr = MagicMock()
+        tumblr.posts.side_effect = [
+            {"blog": {"posts": 100}},
+            {"errors": True, "meta": {"msg": "rate limited"}},
+        ]
+
+        result = imp.process_blog(tumblr, "someblog", full_import=True)
+
+        assert result is False
+        imp._entry_store.add_entry.assert_not_called()
+
     def test_run_authenticates_and_processes_each_configured_blog(self):
         imp = self._make_importer()
         imp.get_config = MagicMock(return_value="blog1,blog2")

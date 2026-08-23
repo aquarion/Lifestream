@@ -95,6 +95,17 @@ class TestLastfmImporter:
 
         imp._entry_store.add_entry.assert_not_called()
 
+    def test_run_raises_on_3xx_status(self):
+        """A redirect status feedparser didn't resolve is a failure, not an empty feed."""
+        imp = self._make_importer()
+        mock_fp_obj = _make_fp([], status=304)
+
+        with patch("feedparser.parse", return_value=mock_fp_obj):
+            with pytest.raises(RuntimeError, match="HTTP 304"):
+                imp.run()
+
+        imp._entry_store.add_entry.assert_not_called()
+
     def test_run_raises_on_bozo_url_error(self):
         """A network failure surfaced as a bozo URLError raises RuntimeError."""
         import urllib.error

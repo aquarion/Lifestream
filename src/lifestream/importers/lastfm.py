@@ -39,7 +39,7 @@ class LastfmImporter(FeedImporter):
         fp = feedparser.parse(url)
 
         status = getattr(fp, "status", None)
-        if status is not None and status >= 400:
+        if status is not None and not 200 <= status < 300:
             raise RuntimeError(f"Failed to fetch feed at {url}: HTTP {status}")
 
         if fp.bozo:
