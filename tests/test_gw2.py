@@ -1,6 +1,6 @@
 """Tests for Guild Wars 2 achievements importer."""
 
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from guildwars2api.base import GuildWars2APIError
@@ -75,13 +75,17 @@ class TestGW2Importer:
         chunk_response = MagicMock()
         chunk_response.json.return_value = [{"id": 1, "achievements": []}]
 
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = None
+
         with (
             patch(
                 "lifestream.importers.gw2.requests.get",
                 side_effect=[list_response, chunk_response],
             ) as mock_get,
-            patch("lifestream.core.cache.os.path.exists", return_value=False),
-            patch("builtins.open", mock_open()),
+            patch(
+                "lifestream.core.cache.get_redis_connection", return_value=mock_redis
+            ),
         ):
             _get_categories()
 

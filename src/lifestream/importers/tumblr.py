@@ -116,19 +116,27 @@ class TumblrImporter(OAuthImporter):
         return title
 
     def process_blog(self, tumblr, blog, full_import):
-        """Import posts from a single Tumblr blog."""
+        """Import posts from a single Tumblr blog.
+
+        Returns:
+            True if the blog was imported successfully, False if fetching
+            it failed.
+        """
         self.logger.info(blog)
 
         details = tumblr.posts(blog)
         if "errors" in details:
             self.logger.error("Error fetching %s: %s", blog, details["meta"]["msg"])
-            return
+            return False
 
         max_posts = details["blog"]["posts"] if full_import else 20
         startat = 0.0
 
         while startat < max_posts:
             details = tumblr.posts(blog, offset=startat, limit=20)
+            if "errors" in details:
+                self.logger.error("Error fetching %s: %s", blog, details["meta"]["msg"])
+                return False
             startat += 20
 
             posts = details["posts"]
@@ -161,6 +169,8 @@ class TumblrImporter(OAuthImporter):
                     fulldata_json=post,
                 )
 
+        return True
+
     def run(self) -> None:
         """Import posts from all configured Tumblr blogs."""
         full_import = self.args.full_import
@@ -171,8 +181,14 @@ class TumblrImporter(OAuthImporter):
         tumblr = authenticate(self)
         blogs = self.get_config("blogs").split(",")
 
-        for blog in blogs:
-            self.process_blog(tumblr, blog, full_import)
+        failed_blogs = [
+            blog for blog in blogs if not self.process_blog(tumblr, blog, full_import)
+        ]
+
+        if failed_blogs:
+            raise RuntimeError(
+                f"Failed to import Tumblr blog(s): {', '.join(failed_blogs)}"
+            )
 
 
 def main():

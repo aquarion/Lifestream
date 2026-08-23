@@ -1,9 +1,7 @@
 """Caching functionality for Lifestream."""
 
+import json
 import logging
-import os
-import pickle
-import time
 
 import redis
 
@@ -67,13 +65,13 @@ def check_and_set_backoff(warning_id: str, hours: int = 24) -> int | bool:
         return cxn.ttl(warning_id)
 
 
-def file_cache(cache_id: str, maxage: int):
+def redis_cache(cache_id: str, maxage: int):
     """
-    A decorator that caches function results to a file.
+    A decorator that caches a function's JSON-serializable result in Redis.
 
     Args:
-        cache_id: Identifier for the cache file (stored in /tmp/)
-        maxage: Maximum age of cache in seconds
+        cache_id: Redis key to store the cached result under
+        maxage: Maximum age of the cached result in seconds (Redis TTL)
 
     Returns:
         Decorator function
@@ -81,30 +79,24 @@ def file_cache(cache_id: str, maxage: int):
 
     def decorator(fn):
         def wrapped(*args, **kwargs):
-            cachefile = "/tmp/" + cache_id
-            logger = logging.getLogger("file_cache")
+            cxn = get_redis_connection()
+            logger = logging.getLogger("redis_cache")
 
-            if os.path.exists(cachefile):
-                modified = os.path.getmtime(cachefile)
-                logger.debug(f"Found cache file at '{cachefile}'")
-                now = time.time()
-                if now > (modified + maxage):
-                    logger.debug(f"Ignoring old cache file '{cachefile}'")
+            cached = cxn.get(cache_id)
+            if cached is not None:
+                try:
+                    result = json.loads(cached)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    logger.warning(
+                        f"Corrupted cache value for '{cache_id}', recomputing"
+                    )
                 else:
-                    with open(cachefile, "rb") as cachehandle:
-                        logger.info(f"Using cached result from '{cachefile}'")
-                        try:
-                            return pickle.load(cachehandle)
-                        except (pickle.UnpicklingError, EOFError):
-                            logger.warning(
-                                f"Corrupted cache file '{cachefile}', recomputing"
-                            )
+                    logger.info(f"Using cached result for '{cache_id}'")
+                    return result
 
             res = fn(*args, **kwargs)
-
-            with open(cachefile, "wb") as cachehandle:
-                logger.info(f"Saving result to cache '{cachefile}'")
-                pickle.dump(res, cachehandle)
+            logger.info(f"Saving result to cache '{cache_id}'")
+            cxn.set(cache_id, json.dumps(res), ex=maxage)
 
             return res
 

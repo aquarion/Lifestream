@@ -6,11 +6,11 @@ import requests
 from guildwars2api.base import GuildWars2APIError
 from guildwars2api.v2 import GuildWars2API
 
-from lifestream.core import check_and_set_backoff, file_cache, niceTimeDelta
+from lifestream.core import check_and_set_backoff, niceTimeDelta, redis_cache
 from lifestream.importers.base import BaseImporter
 
 
-@file_cache("gw2.categories", 86400)
+@redis_cache("gw2.categories", 86400)
 def _get_categories():
     list_response = requests.get(
         "https://api.guildwars2.com/v2/achievements/categories/", timeout=30

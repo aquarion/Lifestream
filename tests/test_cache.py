@@ -1,8 +1,5 @@
 """Tests for lifestream.core.cache module."""
 
-import os
-import pickle
-import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -143,70 +140,51 @@ class TestBackoff:
             assert result == 7200
 
 
-class TestFileCache:
-    """Tests for file_cache decorator."""
+class TestRedisCache:
+    """Tests for redis_cache decorator."""
 
-    def test_file_cache_returns_cached_result(self):
-        """Test that file_cache returns cached data when fresh."""
-        cache_id = f"test_cache_{time.time()}"
-        cache_path = f"/tmp/{cache_id}"
+    def test_redis_cache_returns_cached_result(self):
+        """Test that redis_cache returns cached data without calling the function."""
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = '{"cached": true}'
 
-        with open(cache_path, "wb") as f:
-            pickle.dump({"cached": True}, f)
+        expensive_function = MagicMock(return_value={"computed": True})
 
-        try:
+        with patch.object(cache, "get_redis_connection", return_value=mock_redis):
+            result = cache.redis_cache("test_key", maxage=3600)(expensive_function)()
 
-            @cache.file_cache(cache_id, maxage=3600)
-            def expensive_function():
-                return {"computed": True}
+        assert result == {"cached": True}
+        expensive_function.assert_not_called()
 
-            result = expensive_function()
-            assert result == {"cached": True}
-        finally:
-            if os.path.exists(cache_path):
-                os.unlink(cache_path)
+    def test_redis_cache_computes_and_stores_on_miss(self):
+        """Test that redis_cache calls the function and stores the JSON result on a miss."""
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = None
 
-    def test_file_cache_computes_when_expired(self):
-        """Test that file_cache recomputes when cache is expired."""
-        cache_id = f"test_expired_{time.time()}"
-        cache_path = f"/tmp/{cache_id}"
+        @cache.redis_cache("test_key", maxage=3600)
+        def expensive_function():
+            return {"computed": True}
 
-        with open(cache_path, "wb") as f:
-            pickle.dump({"cached": True}, f)
-
-        old_time = time.time() - 7200
-        os.utime(cache_path, (old_time, old_time))
-
-        try:
-
-            @cache.file_cache(cache_id, maxage=3600)
-            def expensive_function():
-                return {"computed": True}
-
-            result = expensive_function()
-            assert result == {"computed": True}
-        finally:
-            if os.path.exists(cache_path):
-                os.unlink(cache_path)
-
-    def test_file_cache_creates_new_cache(self):
-        """Test that file_cache creates cache file when none exists."""
-        cache_id = f"test_new_{time.time()}"
-        cache_path = f"/tmp/{cache_id}"
-
-        if os.path.exists(cache_path):
-            os.unlink(cache_path)
-
-        try:
-
-            @cache.file_cache(cache_id, maxage=3600)
-            def expensive_function():
-                return {"computed": True}
-
+        with patch.object(cache, "get_redis_connection", return_value=mock_redis):
             result = expensive_function()
 
-            assert result == {"computed": True}
-            assert os.path.exists(cache_path)
-        finally:
-            if os.path.exists(cache_path):
-                os.unlink(cache_path)
+        assert result == {"computed": True}
+        mock_redis.set.assert_called_once_with(
+            "test_key", '{"computed": true}', ex=3600
+        )
+
+    def test_redis_cache_recomputes_on_corrupted_value(self):
+        """A malformed cached value is recomputed instead of raising or wedging the cache."""
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = "not valid json"
+
+        expensive_function = MagicMock(return_value={"computed": True})
+
+        with patch.object(cache, "get_redis_connection", return_value=mock_redis):
+            result = cache.redis_cache("test_key", maxage=3600)(expensive_function)()
+
+        assert result == {"computed": True}
+        expensive_function.assert_called_once()
+        mock_redis.set.assert_called_once_with(
+            "test_key", '{"computed": true}', ex=3600
+        )
