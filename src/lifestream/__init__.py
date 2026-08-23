@@ -9,7 +9,7 @@ __version__ = "2.0.0"
 
 # Expose core submodules so tests and callers can do `from lifestream import cache`
 from lifestream.core import cache, db, jobs, notifications
-from lifestream.core.cache import file_cache, get_redis_connection
+from lifestream.core.cache import get_redis_connection, redis_cache
 
 # Re-export commonly used items for convenience
 from lifestream.core.config import (
@@ -46,7 +46,7 @@ __all__ = [
     "get_cursor",
     # Cache
     "get_redis_connection",
-    "file_cache",
+    "redis_cache",
     # Utils
     "niceTimeDelta",
     "yearsago",

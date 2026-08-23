@@ -38,6 +38,21 @@ class LastfmImporter(FeedImporter):
 
         fp = feedparser.parse(url)
 
+        status = getattr(fp, "status", None)
+        if status is not None and status >= 400:
+            raise RuntimeError(f"Failed to fetch feed at {url}: HTTP {status}")
+
+        if fp.bozo:
+            import urllib.error
+
+            if isinstance(fp.bozo_exception, urllib.error.URLError):
+                raise RuntimeError(
+                    f"Failed to fetch feed at {url}: {fp.bozo_exception}"
+                )
+            self.logger.warning(
+                "Feed at %s is not well-formed: %s", url, fp.bozo_exception
+            )
+
         for o_item in fp["entries"]:
 
             item_id = hashlib.md5()

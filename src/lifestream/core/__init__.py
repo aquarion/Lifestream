@@ -11,8 +11,8 @@ This module provides:
 
 from .cache import (
     check_and_set_backoff,
-    file_cache,
     get_redis_connection,
+    redis_cache,
     set_backoff,
     should_backoff,
 )
@@ -66,7 +66,7 @@ __all__ = [
     "set_backoff",
     "should_backoff",
     "check_and_set_backoff",
-    "file_cache",
+    "redis_cache",
     # Utils
     "niceTimeDelta",
     "yearsago",

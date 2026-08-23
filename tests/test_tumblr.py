@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from lifestream.importers.tumblr import TumblrImporter, authenticate
 
 
@@ -95,8 +97,9 @@ class TestTumblrImporter:
         tumblr = MagicMock()
         tumblr.posts.return_value = {"errors": True, "meta": {"msg": "nope"}}
 
-        imp.process_blog(tumblr, "someblog", full_import=False)
+        result = imp.process_blog(tumblr, "someblog", full_import=False)
 
+        assert result is False
         imp._entry_store.add_entry.assert_not_called()
 
     def test_process_blog_adds_entries_for_each_post(self):
@@ -115,8 +118,9 @@ class TestTumblrImporter:
             ],
         }
 
-        imp.process_blog(tumblr, "someblog", full_import=False)
+        result = imp.process_blog(tumblr, "someblog", full_import=False)
 
+        assert result is True
         imp._entry_store.add_entry.assert_called_once()
         args = imp._entry_store.add_entry.call_args.args
         assert args[0] == "text"
@@ -126,7 +130,7 @@ class TestTumblrImporter:
     def test_run_authenticates_and_processes_each_configured_blog(self):
         imp = self._make_importer()
         imp.get_config = MagicMock(return_value="blog1,blog2")
-        imp.process_blog = MagicMock()
+        imp.process_blog = MagicMock(return_value=True)
 
         with patch(
             "lifestream.importers.tumblr.authenticate", return_value="tumblr-client"
@@ -137,3 +141,17 @@ class TestTumblrImporter:
         assert imp.process_blog.call_count == 2
         imp.process_blog.assert_any_call("tumblr-client", "blog1", False)
         imp.process_blog.assert_any_call("tumblr-client", "blog2", False)
+
+    def test_run_raises_when_a_blog_fails_but_still_processes_the_rest(self):
+        """One failing blog is reported, but doesn't stop the others from being tried."""
+        imp = self._make_importer()
+        imp.get_config = MagicMock(return_value="blog1,blog2,blog3")
+        imp.process_blog = MagicMock(side_effect=[True, False, True])
+
+        with patch(
+            "lifestream.importers.tumblr.authenticate", return_value="tumblr-client"
+        ):
+            with pytest.raises(RuntimeError, match="blog2"):
+                imp.run()
+
+        assert imp.process_blog.call_count == 3
