@@ -1,0 +1,50 @@
+name: Pytest
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Cache Poetry dependencies
+      uses: actions/cache@v6
+      with:
+        path: .venv
+        key: ${{ runner.os }}-lifestream-venv-${{ hashFiles('pyproject.toml') }}
+
+    - name: Use system git client for VCS dependencies
+      # Poetry 2.x's default pure-Python git client (dulwich) fails to
+      # negotiate the protocol against GitHub in CI (HangupException /
+      # "remote server unexpectedly closed the connection") when fetching
+      # git dependencies. See python-poetry/poetry#10167 and
+      # .github/workflows/ffxiv-icons-tests.yml.
+      run: poetry config system-git-client true
+
+    - name: Install dependencies
+      run: poetry install --no-interaction
+
+    - name: Run tests with pytest
+      run: poetry run pytest
