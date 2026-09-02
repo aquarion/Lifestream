@@ -105,3 +105,73 @@ class TestHistoricImporter:
             imp.run()
 
         mock_tumblr.reblog.assert_not_called()
+
+    def test_run_skips_posts_already_on_the_history_blog(self):
+        """A reblog on the history blog must not be reblogged onto it again."""
+        imp = self._make_importer()
+        when = datetime(2016, 8, 3, 10, 0, 0)
+        own = json.dumps(
+            {"reblog_key": "rbkey123", "blog_name": "aquarions-of-history"}
+        )
+        row = (
+            "A title",
+            when,
+            "https://aquarions-of-history.tumblr.com/post/1",
+            own,
+            "systemid1",
+            "tumblr",
+            "text",
+        )
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = [row]
+        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+
+        mock_tumblr = MagicMock()
+        with patch(
+            "lifestream.importers.historic.authenticate", return_value=mock_tumblr
+        ):
+            imp.run()
+
+        mock_tumblr.reblog.assert_not_called()
+
+    def test_run_skips_own_post_without_blog_name_by_url(self):
+        """Older rows may have no blog_name; the post URL still identifies it."""
+        imp = self._make_importer()
+        when = datetime(2016, 8, 3, 10, 0, 0)
+        rows = [
+            (
+                "Mine",
+                when,
+                "https://aquarions-of-history.tumblr.com/post/1",
+                json.dumps({"reblog_key": "a"}),
+                "id1",
+                "tumblr",
+                "text",
+            ),
+            (
+                "Theirs",
+                when,
+                "https://someone-else.tumblr.com/post/2",
+                json.dumps({"reblog_key": "b"}),
+                "id2",
+                "tumblr",
+                "text",
+            ),
+        ]
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = rows
+        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+
+        mock_tumblr = MagicMock()
+        with patch(
+            "lifestream.importers.historic.authenticate", return_value=mock_tumblr
+        ):
+            imp.run()
+
+        mock_tumblr.reblog.assert_called_once()
+        _, kwargs = mock_tumblr.reblog.call_args
+        assert kwargs["id"] == "id2"
