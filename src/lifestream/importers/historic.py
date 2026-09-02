@@ -8,6 +8,7 @@ queued to go out at the same time of day ten years later.
 
 import json
 from datetime import UTC, datetime, timedelta
+from urllib.parse import urlparse
 
 from dateutil.relativedelta import relativedelta
 
@@ -47,6 +48,19 @@ class HistoricImporter(OAuthImporter):
         """Historic reblogs share the [tumblr] OAuth token file."""
         return self.get_config("secrets_file")
 
+    @staticmethod
+    def _is_own_post(data, url) -> bool:
+        """Is this row a post that already lives on the history blog?
+
+        Reblogs land on TO_BLOG dated ten years after the original, the
+        Tumblr importer picks them back up, and ten years later they would
+        be reblogged onto TO_BLOG all over again.
+        """
+        blog_name = data.get("blog_name")
+        if blog_name:
+            return blog_name == TO_BLOG
+        return urlparse(url or "").hostname == f"{TO_BLOG}.tumblr.com"
+
     def run(self) -> None:
         """Reblog posts from exactly ten years ago in this run's window."""
         now = datetime.now(UTC)
@@ -77,6 +91,10 @@ class HistoricImporter(OAuthImporter):
                 continue
 
             data = json.loads(fulldata_json)
+
+            if self._is_own_post(data, url):
+                self.logger.info("Skipping %s, already on %s", title, TO_BLOG)
+                continue
 
             self.logger.info(
                 "Reblogging %r from %s", title.replace("@", "💬"), date_created
