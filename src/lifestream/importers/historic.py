@@ -33,7 +33,7 @@ MAX_POST_LENGTH = 300
 REPLAY_MEMORY_HOURS = 24
 
 # Twitter's own rendering of a retweet, which we replace with our own.
-RT_PREFIX_RE = re.compile(r"^RT @[A-Za-z0-9_]+: ")
+RT_PREFIX_RE = re.compile(r"^RT @([A-Za-z0-9_]+): ")
 
 
 def _defang(text: str) -> str:
@@ -50,17 +50,25 @@ def _tweet_text(title: str, data: dict) -> str:
     """
     Work out what to post for an archived tweet.
 
-    A retweet keeps its attribution as an explicit [RT:💬handle] prefix, and
-    takes its body from the retweeted status: the stored title is Twitter's
-    own rendering, which truncates a full-length retweet.
+    A retweet keeps its attribution as an explicit [RT:💬handle] prefix. Both
+    that and the body are preferably read from the retweeted status, the title
+    being Twitter's own rendering and truncated for a full-length retweet - but
+    rows imported before fulldata was stored have nothing except that title, so
+    fall back to reading the handle straight out of its "RT @handle: " prefix.
     """
     retweeted = data.get("retweeted_status") or {}
     handle = (retweeted.get("user") or {}).get("screen_name")
+    body = retweeted.get("full_text")
+
+    rendered = RT_PREFIX_RE.match(title)
+    if rendered:
+        handle = handle or rendered.group(1)
+        body = body or title[rendered.end() :]
+
     if not handle:
         return _defang(title)
 
-    body = retweeted.get("full_text") or RT_PREFIX_RE.sub("", title)
-    return f"[RT:💬{handle}] {_defang(body)}"
+    return f"[RT:💬{handle}] {_defang(body or title)}"
 
 
 SELECT_SQL = (

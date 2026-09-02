@@ -429,3 +429,31 @@ class TestHistoricTweetReplay:
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="Hello from 2016")
+
+    def test_a_retweet_with_no_fulldata_is_attributed_from_its_title(self):
+        """Older rows have no fulldata, so the RT prefix is all there is."""
+        row = list(tweet_row("RT @someone: what they said"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] what they said")
+
+    def test_a_fulldata_less_retweet_body_is_defanged(self):
+        row = list(tweet_row("RT @someone: hi @thirdparty"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] hi 💬thirdparty")
+
+    def test_a_fulldata_less_ordinary_tweet_is_untouched(self):
+        """Only a leading RT prefix counts - an @ mid-sentence is not one."""
+        row = list(tweet_row("talking about @someone: they are great"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(
+            text="talking about 💬someone: they are great"
+        )
