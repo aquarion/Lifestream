@@ -18,7 +18,7 @@ survives and only part of what it did is gone.
 
 | Importer | Feature | Retired at |
 |----------|---------|------------|
-| `historic.py` | Replayed ten-year-old tweets alongside the Tumblr reblogs | `15539f2` |
+| `historic.py` | Replayed ten-year-old tweets by replying to the original tweet | `15539f2` |
 
 The historic importer was tumblr-only until `f736698` (2015-06-20), which
 added the Twitter half and renamed `histumblr.py` to `historic.py` for it. The
@@ -32,6 +32,8 @@ matched `type = 'twitter'` as well as `source = 'tumblr'`.
 dance, the `[twitter] accounts` check, and narrowed the query back to
 `source = 'tumblr'`.
 
-One fossil is still in `historic.py`: the `@` to 💬 substitution, added by
-`47c4a67` to stop a replayed tweet re-notifying everyone mentioned in it ten
-years earlier. It now only affects a log line.
+The replay itself has since come back: the archived tweets are now posted to a
+dedicated Bluesky account instead, there being no original tweet left to reply
+to. What stayed dead is the destination, not the idea. The `@` to 💬
+substitution `47c4a67` added, to stop a replayed tweet re-notifying everyone
+mentioned in it ten years earlier, came back with it.
