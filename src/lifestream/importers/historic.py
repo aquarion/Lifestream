@@ -15,7 +15,11 @@ from urllib.parse import urlparse
 from atproto import Client as AtClient
 from dateutil.relativedelta import relativedelta
 
-from lifestream.core import check_and_set_backoff, get_config_value
+from lifestream.core import (
+    check_and_set_backoff,
+    get_config_value,
+    get_redis_connection,
+)
 from lifestream.importers.base import OAuthImporter
 from lifestream.importers.tumblr import authenticate
 
@@ -31,6 +35,7 @@ MAX_POST_LENGTH = 300
 # How long a replayed tweet is remembered for. Only has to outlive the
 # scheduler's misfire grace time.
 REPLAY_MEMORY_HOURS = 24
+REPLAY_KEY = "historic:replayed:{}"
 
 # Twitter's own rendering of a retweet, which we replace with our own. Covers
 # both the "RT @handle:" the retweet button produced and the "RT: @handle:" that
@@ -165,7 +170,7 @@ class HistoricImporter(OAuthImporter):
         """
         try:
             return not check_and_set_backoff(
-                f"historic:replayed:{systemid}", hours=REPLAY_MEMORY_HOURS
+                REPLAY_KEY.format(systemid), hours=REPLAY_MEMORY_HOURS
             )
         except Exception:
             self.logger.exception(
@@ -174,6 +179,23 @@ class HistoricImporter(OAuthImporter):
                 systemid,
             )
             return False
+
+    def _release_replay(self, systemid) -> None:
+        """
+        Give a claim back when the post it was for did not happen.
+
+        Claiming before posting is what stops a duplicate, but it would also
+        make a failed post look replayed to the rerun that the failure
+        prompts, quietly dropping it for good.
+        """
+        try:
+            get_redis_connection().delete(REPLAY_KEY.format(systemid))
+        except Exception:
+            self.logger.exception(
+                "Could not release the replay claim on tweet %s; it will be "
+                "skipped until the claim expires",
+                systemid,
+            )
 
     def _reblog_tumblr(self, text, date_created, url, fulldata_json, systemid) -> None:
         """Reblog one ten-year-old Tumblr post onto the history blog."""
@@ -229,7 +251,11 @@ class HistoricImporter(OAuthImporter):
 
         self.logger.info("Posting %r from %s", text, date_created)
 
-        client.send_post(text=text)
+        try:
+            client.send_post(text=text)
+        except Exception:
+            self._release_replay(systemid)
+            raise
 
     def run(self) -> None:
         """Replay posts from exactly ten years ago in this run's window."""

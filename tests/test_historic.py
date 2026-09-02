@@ -4,6 +4,8 @@ import json
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from lifestream.importers.historic import HistoricImporter
 
 WHEN = datetime(2016, 8, 3, 10, 0, 0)
@@ -496,11 +498,84 @@ class TestHistoricTweetReplay:
             text="RTs are not endorsements 💬someone"
         )
 
-    def test_unparseable_fulldata_falls_back_to_the_title(self):
-        """A row storing SQL NULL as the string "null" must not blow up."""
+    def test_non_object_fulldata_falls_back_to_the_title(self):
+        """Valid JSON that is not an object - "null" - must not blow up."""
         row = list(tweet_row("Hello from 2016"))
         row[3] = "null"
         imp = self._make_importer([tuple(row)])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="Hello from 2016")
+
+    def test_a_failed_post_gives_its_replay_claim_back(self):
+        """Otherwise the rerun the failure prompts would skip the tweet."""
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        mock_client = MagicMock()
+        mock_client.send_post.side_effect = OSError("bluesky is down")
+        mock_redis = MagicMock()
+
+        with (
+            patch("lifestream.importers.historic.AtClient", return_value=mock_client),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=False,
+            ),
+            patch(
+                "lifestream.importers.historic.get_redis_connection",
+                return_value=mock_redis,
+            ),
+        ):
+            with pytest.raises(OSError):
+                imp.run()
+
+        mock_redis.delete.assert_called_once_with("historic:replayed:tweet1")
+
+    def test_a_claim_release_failure_does_not_mask_the_post_failure(self):
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        mock_client = MagicMock()
+        mock_client.send_post.side_effect = OSError("bluesky is down")
+
+        with (
+            patch("lifestream.importers.historic.AtClient", return_value=mock_client),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=False,
+            ),
+            patch(
+                "lifestream.importers.historic.get_redis_connection",
+                side_effect=OSError("no redis either"),
+            ),
+        ):
+            with pytest.raises(OSError, match="bluesky is down"):
+                imp.run()
+
+    def test_a_successful_post_keeps_its_replay_claim(self):
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        mock_redis = MagicMock()
+
+        with (
+            patch("lifestream.importers.historic.AtClient"),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=False,
+            ),
+            patch(
+                "lifestream.importers.historic.get_redis_connection",
+                return_value=mock_redis,
+            ),
+        ):
+            imp.run()
+
+        mock_redis.delete.assert_not_called()
