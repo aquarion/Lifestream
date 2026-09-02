@@ -23,8 +23,9 @@ TEN_YEARS = relativedelta(years=10)
 WINDOW = timedelta(minutes=15)
 DEFAULT_TO_BLOG = "aquarions-of-history"
 
-# Bluesky rejects records longer than this. Tweets are shorter, but a retweet
-# prefix on top of a full-length one can just about get there.
+# Bluesky rejects records longer than this. Twitter was 140 characters for most
+# of its life, so this will not bite until the 280-character era comes round,
+# and then only for a retweet whose prefix pushes it over.
 MAX_POST_LENGTH = 300
 
 # How long a replayed tweet is remembered for. Only has to outlive the
@@ -202,12 +203,12 @@ class HistoricImporter(OAuthImporter):
 
         if len(text) > MAX_POST_LENGTH:
             self.logger.warning(
-                "Skipping tweet %s, %d characters is over the %d limit",
+                "Truncating tweet %s, %d characters is over the %d limit",
                 systemid,
                 len(text),
                 MAX_POST_LENGTH,
             )
-            return
+            text = text[: MAX_POST_LENGTH - 1] + "…"
 
         if not self._claim_replay(systemid):
             self.logger.info("Skipping tweet %s, already replayed", systemid)

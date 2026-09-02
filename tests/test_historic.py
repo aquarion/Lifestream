@@ -341,11 +341,19 @@ class TestHistoricTweetReplay:
 
         client.send_post.assert_not_called()
 
-    def test_an_over_length_tweet_is_skipped_not_truncated(self):
-        imp = self._make_importer([tweet_row("x" * 301)])
+    def test_an_over_length_tweet_is_truncated(self):
+        imp = self._make_importer([tweet_row("x" * 400)])
         client = self._run(imp)
 
-        client.send_post.assert_not_called()
+        _, kwargs = client.send_post.call_args
+        assert len(kwargs["text"]) == 300
+        assert kwargs["text"].endswith("…")
+
+    def test_a_tweet_at_the_limit_is_left_alone(self):
+        imp = self._make_importer([tweet_row("x" * 300)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="x" * 300)
 
     def test_a_tweet_is_skipped_if_the_replay_check_fails(self):
         """Redis being unreachable must not mean posting blind."""
