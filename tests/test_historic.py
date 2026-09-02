@@ -1,10 +1,42 @@
-"""Tests for the historic Tumblr reblog importer."""
+"""Tests for the historic replay importer."""
 
 import json
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
+from redis.exceptions import ConnectionError as RedisConnectionError
+
 from lifestream.importers.historic import HistoricImporter
+
+WHEN = datetime(2016, 8, 3, 10, 0, 0)
+
+
+def retweet_row(title, handle, full_text=None, systemid="tweet1"):
+    """A lifestream row for a retweet, as python-twitter's AsDict() shapes it."""
+    retweeted = {"user": {"screen_name": handle}}
+    if full_text is not None:
+        retweeted["full_text"] = full_text
+    row = list(tweet_row(title, systemid))
+    row[3] = json.dumps({"id_str": systemid, "retweeted_status": retweeted})
+    return tuple(row)
+
+
+def tweet_row(title, systemid="tweet1"):
+    """A lifestream row as imports/tweets.py stores one.
+
+    `source` is the client the tweet was sent from, not "twitter" - which is
+    why the importer matches tweets on `type` instead.
+    """
+    return (
+        title,
+        WHEN,
+        f"http://twitter.com/aquarion/status/{systemid}",
+        json.dumps({"id_str": systemid}),
+        systemid,
+        "Twitter for Android",
+        "twitter",
+    )
 
 
 class TestHistoricImporter:
@@ -175,3 +207,616 @@ class TestHistoricImporter:
         mock_tumblr.reblog.assert_called_once()
         _, kwargs = mock_tumblr.reblog.call_args
         assert kwargs["id"] == "id2"
+
+
+class TestHistoricTumblrConfig:
+    def _make_importer(self):
+        imp = HistoricImporter()
+        imp._args = imp.parse_args([])
+        imp._entry_store = MagicMock()
+        imp._entry_store.no_db = False
+        return imp
+
+    def test_to_blog_defaults_when_unconfigured(self):
+        imp = self._make_importer()
+        assert imp.to_blog == "aquarions-of-history"
+
+    def test_to_blog_reads_historic_section(self):
+        """The exact section and key are asserted; a typo would ship green."""
+        imp = self._make_importer()
+        with patch("lifestream.importers.historic.get_config_value") as mock_get:
+            mock_get.side_effect = lambda section, key, default=None: (
+                "somewhere-else"
+                if (section, key) == ("historic", "tumblr_blog")
+                else default
+            )
+            assert imp.to_blog == "somewhere-else"
+            mock_get.assert_called_once_with("historic", "tumblr_blog")
+
+    def test_to_blog_falls_back_when_configured_blank(self):
+        imp = self._make_importer()
+        with patch("lifestream.importers.historic.get_config_value", return_value=""):
+            assert imp.to_blog == "aquarions-of-history"
+
+    def test_reblog_targets_the_configured_blog(self):
+        imp = self._make_importer()
+        row = (
+            "A title",
+            WHEN,
+            "https://example.tumblr.com/post/1",
+            json.dumps({"reblog_key": "rbkey123"}),
+            "systemid1",
+            "tumblr",
+            "text",
+        )
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = [row]
+        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+
+        mock_tumblr = MagicMock()
+        with (
+            patch(
+                "lifestream.importers.historic.authenticate", return_value=mock_tumblr
+            ),
+            patch("lifestream.importers.historic.get_config_value") as mock_get,
+        ):
+            mock_get.side_effect = lambda section, key, default=None: (
+                "somewhere-else"
+                if (section, key) == ("historic", "tumblr_blog")
+                else default
+            )
+            imp.run()
+
+        args, _ = mock_tumblr.reblog.call_args
+        assert args[0] == "somewhere-else"
+
+    def test_own_post_check_follows_the_configured_blog(self):
+        """A post on the old default is fair game once the blog is changed."""
+        imp = self._make_importer()
+        with patch(
+            "lifestream.importers.historic.get_config_value",
+            return_value="somewhere-else",
+        ):
+            assert imp._is_own_post({"blog_name": "somewhere-else"}, "") is True
+            assert imp._is_own_post({"blog_name": "aquarions-of-history"}, "") is False
+
+
+class TestHistoricTweetReplay:
+    def _make_importer(self, rows, configured=True, server_base=None):
+        imp = HistoricImporter()
+        imp._args = imp.parse_args([])
+        imp._entry_store = MagicMock()
+        imp._entry_store.no_db = False
+
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = rows
+        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+
+        config = {
+            ("historic", "atproto_username"): (
+                "history.example.com" if configured else None
+            ),
+            ("historic", "atproto_password"): "app-password" if configured else None,
+            ("historic", "atproto_server_base"): server_base,
+            ("historic", "tumblr_blog"): "aquarions-of-history",
+        }
+        # Keyed on the section as well as the key, so a lookup naming either
+        # of them wrongly reads as unset instead of quietly passing.
+        self._config = lambda section, key, default=None: config.get(
+            (section, key), default
+        )
+        return imp
+
+    def _run(self, imp, already_replayed=False):
+        mock_client = MagicMock()
+        with (
+            patch("lifestream.importers.historic.AtClient", return_value=mock_client),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=3600 if already_replayed else False,
+            ),
+            patch("lifestream.importers.historic.authenticate"),
+        ):
+            imp.run()
+        return mock_client
+
+    def test_replays_a_tweet_to_bluesky(self):
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        client = self._run(imp)
+
+        client.login.assert_called_once_with("history.example.com", "app-password")
+        client.send_post.assert_called_once_with(text="Hello from 2016")
+
+    def test_mentions_are_defanged_before_posting(self):
+        """The @ substitution predates Bluesky but the intent still holds."""
+        imp = self._make_importer([tweet_row("morning @someone")])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="morning 💬someone")
+
+    def test_tweets_are_skipped_when_no_account_is_configured(self):
+        imp = self._make_importer([tweet_row("Hello from 2016")], configured=False)
+        client = self._run(imp)
+
+        client.login.assert_not_called()
+        client.send_post.assert_not_called()
+
+    def test_a_tweet_already_replayed_is_not_posted_twice(self):
+        """A coalesced catch-up run must not repost the same tweet."""
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        client = self._run(imp, already_replayed=True)
+
+        client.send_post.assert_not_called()
+
+    def test_an_over_length_tweet_is_truncated(self):
+        imp = self._make_importer([tweet_row("x" * 400)])
+        client = self._run(imp)
+
+        _, kwargs = client.send_post.call_args
+        assert len(kwargs["text"]) == 300
+        assert kwargs["text"].endswith("…")
+
+    def test_a_tweet_at_the_limit_is_left_alone(self):
+        imp = self._make_importer([tweet_row("x" * 300)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="x" * 300)
+
+    def test_a_tweet_is_skipped_if_the_replay_check_fails(self):
+        """Redis being unreachable must not mean posting blind."""
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        mock_client = MagicMock()
+        with (
+            patch("lifestream.importers.historic.AtClient", return_value=mock_client),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                side_effect=RedisConnectionError("no redis"),
+            ),
+        ):
+            imp.run()
+
+        mock_client.send_post.assert_not_called()
+
+    def test_tumblr_is_not_authenticated_for_a_tweet_only_window(self):
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        with (
+            patch("lifestream.importers.historic.AtClient"),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=False,
+            ),
+            patch("lifestream.importers.historic.authenticate") as mock_auth,
+        ):
+            imp.run()
+
+        mock_auth.assert_not_called()
+
+    def test_a_retweet_is_posted_with_an_attribution_prefix(self):
+        imp = self._make_importer(
+            [retweet_row("RT @someone: truncated ver…", "someone", "the full thing")]
+        )
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] the full thing")
+
+    def test_a_retweet_without_stored_body_strips_twitters_own_prefix(self):
+        imp = self._make_importer(
+            [retweet_row("RT @someone: what they said", "someone")]
+        )
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] what they said")
+
+    def test_a_retweet_body_still_has_its_mentions_defanged(self):
+        imp = self._make_importer(
+            [retweet_row("RT @someone: hi", "someone", "hi @thirdparty")]
+        )
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] hi 💬thirdparty")
+
+    def test_an_ordinary_tweet_gets_no_prefix(self):
+        imp = self._make_importer([tweet_row("just me talking")])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="just me talking")
+
+    def test_a_tweet_with_no_fulldata_still_replays(self):
+        row = list(tweet_row("Hello from 2016"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="Hello from 2016")
+
+    def test_a_retweet_with_no_fulldata_is_attributed_from_its_title(self):
+        """Older rows have no fulldata, so the RT prefix is all there is."""
+        row = list(tweet_row("RT @someone: what they said"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] what they said")
+
+    def test_a_fulldata_less_retweet_body_is_defanged(self):
+        row = list(tweet_row("RT @someone: hi @thirdparty"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] hi 💬thirdparty")
+
+    def test_a_fulldata_less_ordinary_tweet_is_untouched(self):
+        """Only a leading RT prefix counts - an @ mid-sentence is not one."""
+        row = list(tweet_row("talking about @someone: they are great"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(
+            text="talking about 💬someone: they are great"
+        )
+
+    def test_the_old_rt_colon_convention_is_attributed(self):
+        """Pre-retweet-button clients typed "RT: @handle:" by hand."""
+        row = list(
+            tweet_row(
+                "RT: @bigcalm: http://www.todaysbigthing.com/2009/08/20 "
+                "(via @Xalior)",
+                systemid="3448309763",
+            )
+        )
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(
+            text=(
+                "[RT:💬bigcalm] http://www.todaysbigthing.com/2009/08/20 "
+                "(via 💬Xalior)"
+            )
+        )
+
+    def test_a_handle_only_retweet_prefix_needs_no_colon(self):
+        row = list(tweet_row("RT @someone what they said"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] what they said")
+
+    def test_a_tweet_merely_starting_with_rt_is_not_a_retweet(self):
+        row = list(tweet_row("RTs are not endorsements @someone"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(
+            text="RTs are not endorsements 💬someone"
+        )
+
+    def test_non_object_fulldata_falls_back_to_the_title(self):
+        """Valid JSON that is not an object - "null" - must not blow up."""
+        row = list(tweet_row("Hello from 2016"))
+        row[3] = "null"
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="Hello from 2016")
+
+    def test_a_failed_post_gives_its_replay_claim_back(self):
+        """Otherwise the rerun the failure prompts would skip the tweet."""
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        mock_client = MagicMock()
+        mock_client.send_post.side_effect = OSError("bluesky is down")
+        mock_redis = MagicMock()
+
+        with (
+            patch("lifestream.importers.historic.AtClient", return_value=mock_client),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=False,
+            ),
+            patch(
+                "lifestream.importers.historic.get_redis_connection",
+                return_value=mock_redis,
+            ),
+        ):
+            with pytest.raises(OSError):
+                imp._replay_tweet("Hello from 2016", WHEN, None, "tweet1")
+
+        mock_redis.delete.assert_called_once_with("historic:replayed:tweet1")
+
+    def test_a_claim_release_failure_does_not_mask_the_post_failure(self):
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        mock_client = MagicMock()
+        mock_client.send_post.side_effect = OSError("bluesky is down")
+
+        with (
+            patch("lifestream.importers.historic.AtClient", return_value=mock_client),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=False,
+            ),
+            patch(
+                "lifestream.importers.historic.get_redis_connection",
+                side_effect=RedisConnectionError("no redis either"),
+            ),
+        ):
+            with pytest.raises(OSError, match="bluesky is down"):
+                imp._replay_tweet("Hello from 2016", WHEN, None, "tweet1")
+
+    def test_a_successful_post_keeps_its_replay_claim(self):
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        mock_redis = MagicMock()
+
+        with (
+            patch("lifestream.importers.historic.AtClient"),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=False,
+            ),
+            patch(
+                "lifestream.importers.historic.get_redis_connection",
+                return_value=mock_redis,
+            ),
+        ):
+            imp.run()
+
+        mock_redis.delete.assert_not_called()
+
+    def test_a_login_failure_skips_tweets_without_killing_the_run(self):
+        """A stale app password must not take the Tumblr half down with it."""
+        imp = self._make_importer([tweet_row("Hello from 2016")])
+        mock_client = MagicMock()
+        mock_client.login.side_effect = OSError("bad app password")
+
+        with (
+            patch("lifestream.importers.historic.AtClient", return_value=mock_client),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch("lifestream.importers.historic.check_and_set_backoff"),
+        ):
+            imp.run()  # must not raise
+
+        mock_client.send_post.assert_not_called()
+
+    def test_a_login_is_only_attempted_once_per_run(self):
+        imp = self._make_importer(
+            [tweet_row("one", systemid="a"), tweet_row("two", systemid="b")]
+        )
+        mock_client = MagicMock()
+        mock_client.login.side_effect = OSError("bad app password")
+
+        with (
+            patch("lifestream.importers.historic.AtClient", return_value=mock_client),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch("lifestream.importers.historic.check_and_set_backoff"),
+        ):
+            imp.run()
+
+        assert mock_client.login.call_count == 1
+
+    def test_an_unconfigured_account_is_reported_once_per_run(self):
+        imp = self._make_importer(
+            [tweet_row("one", systemid="a"), tweet_row("two", systemid="b")],
+            configured=False,
+        )
+        imp.logger = MagicMock()
+        self._run(imp)
+
+        assert imp.logger.warning.call_count == 1
+
+    def test_a_configured_server_base_reaches_the_client(self):
+        imp = self._make_importer(
+            [tweet_row("Hello")], server_base="https://pds.example.com"
+        )
+        with (
+            patch("lifestream.importers.historic.AtClient") as mock_class,
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=False,
+            ),
+        ):
+            imp.run()
+
+        mock_class.assert_called_once_with("https://pds.example.com")
+
+    def test_html_entities_are_unescaped_before_posting(self):
+        """Twitter's API escapes what it returns and the importer stored it raw."""
+        imp = self._make_importer([tweet_row("Fish &amp; chips &lt;3")])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="Fish & chips <3")
+
+    def test_an_escaped_mention_is_still_defanged(self):
+        imp = self._make_importer([tweet_row("hi &#64;someone")])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="hi 💬someone")
+
+    def test_a_retweet_without_full_text_uses_the_text_key(self):
+        imp = self._make_importer(
+            [retweet_row("RT @someone: trunc…", "someone", full_text=None)]
+        )
+        # retweet_row omits full_text entirely; add the older "text" key.
+        row = list(imp._entry_store.dbcxn.cursor.return_value.fetchall.return_value[0])
+        row[3] = json.dumps(
+            {
+                "retweeted_status": {
+                    "user": {"screen_name": "someone"},
+                    "text": "the older key",
+                }
+            }
+        )
+        imp._entry_store.dbcxn.cursor.return_value.fetchall.return_value = [tuple(row)]
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] the older key")
+
+    def test_a_retweet_body_never_repeats_its_own_attribution(self):
+        """Handle from fulldata, no body anywhere: the title must be stripped."""
+        row = list(tweet_row("RT @someone: what they said"))
+        row[3] = json.dumps({"retweeted_status": {"user": {"screen_name": "someone"}}})
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] what they said")
+
+    def test_a_handle_longer_than_twitter_allows_is_not_a_retweet(self):
+        """16 characters must fail to match, not silently attribute to 15."""
+        row = list(tweet_row("RT @abcdefghijklmnopq: hello"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="RT 💬abcdefghijklmnopq: hello")
+
+    def test_a_fifteen_character_handle_is_still_a_retweet(self):
+        row = list(tweet_row("RT @abcdefghijklmno: hello"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬abcdefghijklmno] hello")
+
+    def test_a_tweet_one_over_the_limit_is_truncated(self):
+        imp = self._make_importer([tweet_row("x" * 301)])
+        client = self._run(imp)
+
+        _, kwargs = client.send_post.call_args
+        assert len(kwargs["text"]) == 300
+        assert kwargs["text"].endswith("…")
+
+    def test_an_already_replayed_tweet_is_not_warned_about_truncation(self):
+        """The claim is checked first, so a catch-up run stays quiet."""
+        imp = self._make_importer([tweet_row("x" * 400)])
+        imp.logger = MagicMock()
+        self._run(imp, already_replayed=True)
+
+        imp.logger.warning.assert_not_called()
+
+
+class TestHistoricMixedBatch:
+    """A window holding both kinds of row - what the PR is actually for."""
+
+    def _make_importer(self, rows):
+        imp = HistoricImporter()
+        imp._args = imp.parse_args([])
+        imp._entry_store = MagicMock()
+        imp._entry_store.no_db = False
+
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = rows
+        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+
+        config = {
+            ("historic", "atproto_username"): "history.example.com",
+            ("historic", "atproto_password"): "app-password",
+        }
+        self._config = lambda section, key, default=None: config.get(
+            (section, key), default
+        )
+        return imp
+
+    def _run(self, imp, tumblr, atproto):
+        with (
+            patch("lifestream.importers.historic.AtClient", return_value=atproto),
+            patch("lifestream.importers.historic.authenticate", return_value=tumblr),
+            patch(
+                "lifestream.importers.historic.get_config_value",
+                side_effect=self._config,
+            ),
+            patch(
+                "lifestream.importers.historic.check_and_set_backoff",
+                return_value=False,
+            ),
+        ):
+            imp.run()
+
+    def test_both_halves_of_a_window_are_replayed(self):
+        tumblr_row = (
+            "A tumblr post",
+            WHEN,
+            "https://example.tumblr.com/post/1",
+            json.dumps({"reblog_key": "rbkey123"}),
+            "tumblr1",
+            "tumblr",
+            "text",
+        )
+        imp = self._make_importer([tumblr_row, tweet_row("A tweet")])
+        tumblr, atproto = MagicMock(), MagicMock()
+        self._run(imp, tumblr, atproto)
+
+        tumblr.reblog.assert_called_once()
+        atproto.send_post.assert_called_once_with(text="A tweet")
+
+    def test_a_failing_row_does_not_take_out_the_rest_of_the_batch(self):
+        """Each window is the only run its rows will ever get."""
+        broken = (
+            "No reblog key here",
+            WHEN,
+            "https://example.tumblr.com/post/1",
+            json.dumps({}),
+            "tumblr-broken",
+            "tumblr",
+            "text",
+        )
+        imp = self._make_importer([broken, tweet_row("A tweet")])
+        tumblr, atproto = MagicMock(), MagicMock()
+
+        with pytest.raises(RuntimeError, match="tumblr-broken"):
+            self._run(imp, tumblr, atproto)
+
+        atproto.send_post.assert_called_once_with(text="A tweet")
+
+    def test_every_failure_is_named_in_the_error(self):
+        imp = self._make_importer(
+            [tweet_row("one", systemid="a"), tweet_row("two", systemid="b")]
+        )
+        atproto = MagicMock()
+        atproto.send_post.side_effect = OSError("bluesky is down")
+
+        with pytest.raises(RuntimeError, match="Failed to replay 2 of 2"):
+            self._run(imp, MagicMock(), atproto)
+
+        assert atproto.send_post.call_count == 2
