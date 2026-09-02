@@ -457,3 +457,50 @@ class TestHistoricTweetReplay:
         client.send_post.assert_called_once_with(
             text="talking about 💬someone: they are great"
         )
+
+    def test_the_old_rt_colon_convention_is_attributed(self):
+        """Pre-retweet-button clients typed "RT: @handle:" by hand."""
+        row = list(
+            tweet_row(
+                "RT: @bigcalm: http://www.todaysbigthing.com/2009/08/20 "
+                "(via @Xalior)",
+                systemid="3448309763",
+            )
+        )
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(
+            text=(
+                "[RT:💬bigcalm] http://www.todaysbigthing.com/2009/08/20 "
+                "(via 💬Xalior)"
+            )
+        )
+
+    def test_a_handle_only_retweet_prefix_needs_no_colon(self):
+        row = list(tweet_row("RT @someone what they said"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="[RT:💬someone] what they said")
+
+    def test_a_tweet_merely_starting_with_rt_is_not_a_retweet(self):
+        row = list(tweet_row("RTs are not endorsements @someone"))
+        row[3] = None
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(
+            text="RTs are not endorsements 💬someone"
+        )
+
+    def test_unparseable_fulldata_falls_back_to_the_title(self):
+        """A row storing SQL NULL as the string "null" must not blow up."""
+        row = list(tweet_row("Hello from 2016"))
+        row[3] = "null"
+        imp = self._make_importer([tuple(row)])
+        client = self._run(imp)
+
+        client.send_post.assert_called_once_with(text="Hello from 2016")

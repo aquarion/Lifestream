@@ -32,8 +32,11 @@ MAX_POST_LENGTH = 300
 # scheduler's misfire grace time.
 REPLAY_MEMORY_HOURS = 24
 
-# Twitter's own rendering of a retweet, which we replace with our own.
-RT_PREFIX_RE = re.compile(r"^RT @([A-Za-z0-9_]+): ")
+# Twitter's own rendering of a retweet, which we replace with our own. Covers
+# both the "RT @handle:" the retweet button produced and the "RT: @handle:" that
+# clients typed by hand before it existed. A handle is at most 15 characters,
+# which keeps this off text that merely opens with something @-shaped.
+RT_PREFIX_RE = re.compile(r"^RT:?\s+@([A-Za-z0-9_]{1,15}):?\s*")
 
 
 def _defang(text: str) -> str:
@@ -207,7 +210,9 @@ class HistoricImporter(OAuthImporter):
                 self._warned_no_atproto = True
             return
 
-        text = _tweet_text(title, json.loads(fulldata_json) if fulldata_json else {})
+        # Rows imported before fulldata was stored have NULL here.
+        data = json.loads(fulldata_json) if fulldata_json else None
+        text = _tweet_text(title, data if isinstance(data, dict) else {})
 
         if len(text) > MAX_POST_LENGTH:
             self.logger.warning(
