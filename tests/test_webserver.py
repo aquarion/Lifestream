@@ -117,6 +117,20 @@ class TestKeyback:
         assert "Sorry" in response.text
         mock_cxn.publish.assert_not_called()
 
+    def test_failure_page_html_escapes_attacker_controlled_params(self):
+        """Regression: params come straight from the query string, so the
+        failure page must not reflect them into the HTML unescaped (XSS)."""
+        client = TestClient(self._app())
+        mock_cxn = MagicMock()
+        mock_cxn.get.return_value = b"access_token"
+
+        with patch.object(webserver, "get_redis_connection", return_value=mock_cxn):
+            response = client.get("/keyback/?%3Cscript%3Ealert(1)%3C/script%3E=x")
+
+        assert response.status_code == 200
+        assert "<script>alert(1)</script>" not in response.text
+        assert "&lt;script&gt;" in response.text
+
 
 class TestTestSuccessRoute:
     def test_serves_success_page_unconditionally(self):

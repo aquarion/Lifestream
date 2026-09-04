@@ -7,6 +7,7 @@ API routes. Run by supervisor.py via uvicorn, behind a reverse proxy that
 terminates TLS.
 """
 
+import html
 import json
 import logging
 
@@ -75,8 +76,8 @@ def create_app(lifespan=None) -> FastAPI:
             return FileResponse(_template_path("success.html"), media_type="text/html")
 
         body = _template_path("failure.html").read_text(encoding="utf-8")
-        body = body.replace("[[params]]", str(params)).replace(
-            "[[key_wanted]]", str(key_wanted)
+        body = body.replace("[[params]]", html.escape(str(params))).replace(
+            "[[key_wanted]]", html.escape(str(key_wanted))
         )
         return HTMLResponse(body)
 
