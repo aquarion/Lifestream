@@ -125,3 +125,42 @@ class TestGetCode:
                 code_fetcher.get_code("access_token", timeout=5)
 
         mock_cxn.set.assert_not_called()
+
+    def test_subscribes_and_confirms_before_setting_key_wanted(self):
+        """Regression: subscribe (and its confirmation) must happen before
+        the key is advertised in Redis, or a callback could be published
+        with nobody listening yet and be lost."""
+        mock_cxn = MagicMock()
+        mock_cxn.get.return_value = None
+        mock_pubsub = MagicMock()
+        mock_cxn.pubsub.return_value = mock_pubsub
+        mock_pubsub.get_message.side_effect = [
+            {"type": "subscribe", "data": 1},
+            {"type": "message", "data": json.dumps({"access_token": ["abc123"]})},
+        ]
+
+        manager = MagicMock()
+        manager.attach_mock(mock_pubsub.subscribe, "subscribe")
+        manager.attach_mock(mock_pubsub.get_message, "get_message")
+        manager.attach_mock(mock_cxn.set, "set")
+
+        with patch.object(code_fetcher, "get_redis_connection", return_value=mock_cxn):
+            code_fetcher.get_code("access_token", timeout=5)
+
+        call_names = [c[0] for c in manager.mock_calls]
+        assert call_names.index("subscribe") < call_names.index("set")
+        assert call_names.index("get_message") < call_names.index("set")
+
+    def test_raises_timeout_error_when_subscribe_confirmation_never_arrives(self):
+        mock_cxn = MagicMock()
+        mock_cxn.get.return_value = None
+        mock_pubsub = MagicMock()
+        mock_cxn.pubsub.return_value = mock_pubsub
+        mock_pubsub.get_message.return_value = None
+
+        with patch.object(code_fetcher, "get_redis_connection", return_value=mock_cxn):
+            with pytest.raises(TimeoutError):
+                code_fetcher.get_code("access_token", timeout=5)
+
+        mock_cxn.set.assert_not_called()
+        mock_pubsub.close.assert_called_once()

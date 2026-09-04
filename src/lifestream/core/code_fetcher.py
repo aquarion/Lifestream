@@ -22,6 +22,7 @@ OAUTH_KEY_WANTED_REDIS_KEY = "lifestream:oauth:key_wanted"
 OAUTH_CALLBACK_CHANNEL = "lifestream:oauth:callback"
 
 DEFAULT_TIMEOUT_SECONDS = 300
+SUBSCRIBE_CONFIRMATION_TIMEOUT_SECONDS = 5
 
 
 class WeSayNotToday(Exception):
@@ -61,38 +62,49 @@ def get_code(key_wanted_arg: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> d
     {key: [values]} shape urllib.parse.parse_qs produces) once a matching
     message arrives.
 
-    Raises TimeoutError if nothing arrives within `timeout` seconds.
+    Raises TimeoutError if nothing arrives within `timeout` seconds total
+    (this includes the brief wait for the subscribe confirmation, which is
+    bounded separately and does not extend the overall budget).
     """
     cxn = get_redis_connection()
 
     if cxn.get(OAUTH_KEY_WANTED_REDIS_KEY) is not None:
+        logger.warning(
+            "Refusing to start OAuth flow (key=%s): another flow is already "
+            "in progress. If this is stale, it clears automatically once the "
+            "previous flow's timeout expires.",
+            key_wanted_arg,
+        )
         raise RuntimeError(
-            "Another OAuth callback flow is already in progress — "
-            "only one at a time is supported."
+            "Another OAuth callback flow is already in progress — only one "
+            "at a time is supported. If this is stale, it clears "
+            "automatically once the previous flow's timeout expires."
         )
-
-    pubsub = cxn.pubsub()
-    pubsub.subscribe(OAUTH_CALLBACK_CHANNEL)
-
-    # Wait for the subscribe confirmation so we know the subscription is
-    # actually active before we set key_wanted below — otherwise a callback
-    # arriving in that gap would be published with nobody listening yet,
-    # and lost for good (Redis pub/sub does not buffer for late subscribers).
-    confirmation = pubsub.get_message(timeout=timeout)
-    if confirmation is None or confirmation.get("type") != "subscribe":
-        pubsub.close()
-        raise TimeoutError(
-            "Timed out waiting to subscribe to the OAuth callback channel"
-        )
-
-    cxn.set(OAUTH_KEY_WANTED_REDIS_KEY, key_wanted_arg, ex=timeout)
-
-    logger.info(
-        "Waiting for OAuth callback (key=%s, timeout=%ss)", key_wanted_arg, timeout
-    )
 
     deadline = time.monotonic() + timeout
+
+    pubsub = cxn.pubsub()
     try:
+        pubsub.subscribe(OAUTH_CALLBACK_CHANNEL)
+
+        # Bound the wait for the subscribe confirmation independently of the
+        # overall timeout — Redis normally acks a SUBSCRIBE almost instantly,
+        # so a short fixed cap keeps a slow/stuck ack from silently doubling
+        # get_code()'s documented timeout.
+        confirmation = pubsub.get_message(
+            timeout=min(SUBSCRIBE_CONFIRMATION_TIMEOUT_SECONDS, timeout)
+        )
+        if confirmation is None or confirmation.get("type") != "subscribe":
+            raise TimeoutError(
+                "Timed out waiting to subscribe to the OAuth callback channel"
+            )
+
+        cxn.set(OAUTH_KEY_WANTED_REDIS_KEY, key_wanted_arg, ex=timeout)
+
+        logger.info(
+            "Waiting for OAuth callback (key=%s, timeout=%ss)", key_wanted_arg, timeout
+        )
+
         while time.monotonic() < deadline:
             message = pubsub.get_message(timeout=1.0)
             if message is None or message.get("type") != "message":
