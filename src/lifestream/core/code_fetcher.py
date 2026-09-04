@@ -1,63 +1,33 @@
-"""CodeFetcher9000 - OAuth callback server for capturing authorization codes."""
+"""CodeFetcher9000 - the importer-CLI-process side of the OAuth callback
+handoff with the Lifestream webserver.
+
+The actual HTTP listener is the persistent webserver (see
+lifestream.core.webserver, served by supervisor.py) — this module publishes
+which callback key an importer is waiting for, then blocks on Redis pub/sub
+until the webserver's /keyback/ route delivers the matching params.
+"""
 
 import configparser
-import http.server
+import json
 import logging
-import ssl
-import urllib.parse
+import time
 
-from lifestream.core.config import config, get_project_root
+from lifestream.core.cache import get_redis_connection
+from lifestream.core.config import config
 
 logger = logging.getLogger("CodeFetcher")
 
-code = False
-key_wanted = False
+# Shared with lifestream.core.webserver — must match exactly.
+OAUTH_KEY_WANTED_REDIS_KEY = "lifestream:oauth:key_wanted"
+OAUTH_CALLBACK_CHANNEL = "lifestream:oauth:callback"
+
+DEFAULT_TIMEOUT_SECONDS = 300
 
 
 class WeSayNotToday(Exception):
-    """Raised when CodeFetcher9000 isn't configured/available; callers should fall back."""
+    """Raised when the webserver isn't configured/available; callers should fall back."""
 
     pass
-
-
-class MyHandler(http.server.BaseHTTPRequestHandler):
-    """Handles the OAuth provider's redirect back to us."""
-
-    def success(self, params) -> None:
-        path = get_project_root() / "templates" / "success.html"
-        with open(path, "rb") as f:
-            data = f.read()
-
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.wfile.write(data)
-
-    def failure(self, params) -> None:
-        path = get_project_root() / "templates" / "failure.html"
-        with open(path) as f:
-            file_data = f.read()
-
-        file_data = file_data.replace("[[params]]", str(params))
-        file_data = file_data.replace("[[key_wanted]]", str(key_wanted))
-
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.wfile.write(file_data.encode("utf8"))
-
-    def do_GET(self) -> None:
-        global code
-        parsed = urllib.parse.urlparse(self.path)
-        params = urllib.parse.parse_qs(parsed.query)
-
-        if key_wanted in params:
-            self.success(params)
-            code = params
-        elif self.path == "/test/success":
-            self.success(params)
-        else:
-            self.failure(params)
 
 
 def get_url() -> str:
@@ -76,27 +46,41 @@ def are_we_working() -> bool:
     return True
 
 
-def get_code(key_wanted_arg: str):
-    """Run a short-lived HTTPS server and block until the OAuth redirect arrives."""
-    global code, key_wanted
-    key_wanted = key_wanted_arg
-    code = False
+def get_code(key_wanted_arg: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> dict:
+    """
+    Block until the webserver's /keyback/ route delivers a callback matching
+    `key_wanted_arg`.
 
-    certfile = config.get("CodeFetcher9000", "certfile")
-    keyfile = config.get("CodeFetcher9000", "keyfile")
-    port = int(config.get("CodeFetcher9000", "port"))
+    Sets `key_wanted_arg` in Redis so the webserver (a different process)
+    knows what it's waiting for, subscribes to the shared callback channel,
+    and returns the published params dict (same {key: [values]} shape
+    urllib.parse.parse_qs produces) once a matching message arrives.
 
-    httpd = http.server.HTTPServer(("0.0.0.0", port), MyHandler)
+    Raises TimeoutError if nothing arrives within `timeout` seconds.
+    """
+    cxn = get_redis_connection()
+    cxn.set(OAUTH_KEY_WANTED_REDIS_KEY, key_wanted_arg, ex=timeout)
 
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.minimum_version = ssl.TLSVersion.TLSv1_2
-    context.load_cert_chain(certfile=certfile, keyfile=keyfile)
-    httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+    pubsub = cxn.pubsub()
+    pubsub.subscribe(OAUTH_CALLBACK_CHANNEL)
 
-    sa = httpd.socket.getsockname()
-    logger.info("Waiting on %s:%s", sa[0], sa[1])
+    logger.info(
+        "Waiting for OAuth callback (key=%s, timeout=%ss)", key_wanted_arg, timeout
+    )
 
-    while not code:
-        httpd.handle_request()
-
-    return code
+    deadline = time.monotonic() + timeout
+    try:
+        while time.monotonic() < deadline:
+            message = pubsub.get_message(timeout=1.0)
+            if message is None or message.get("type") != "message":
+                continue
+            params = json.loads(message["data"])
+            if key_wanted_arg in params:
+                return params
+        raise TimeoutError(
+            f"Timed out after {timeout}s waiting for OAuth callback "
+            f"(key={key_wanted_arg})"
+        )
+    finally:
+        cxn.delete(OAUTH_KEY_WANTED_REDIS_KEY)
+        pubsub.close()
