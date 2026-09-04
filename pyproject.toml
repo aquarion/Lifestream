@@ -71,7 +71,7 @@ python-wordpress-xmlrpc = { git = "https://git@github.com/emsi/python-wordpress-
 
 pytumblr = "^0.1.2"
 pytz = "^2026.3"
-requests = "^2.32.4"
+requests = "^2.34.2"
 requests-oauthlib = "^2.0.0"
 requests-toolbelt = "^1.0.0"
 selenium = "^4.44.0"
