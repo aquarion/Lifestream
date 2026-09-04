@@ -7,20 +7,31 @@ API routes. Run by supervisor.py via uvicorn, behind a reverse proxy that
 terminates TLS.
 """
 
+import json
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
 
-from lifestream.core.config import config
+from lifestream.core.cache import get_redis_connection
+from lifestream.core.config import config, get_project_root
 
 logger = logging.getLogger("Webserver")
+
+# Shared with lifestream.core.code_fetcher.get_code() — must match exactly.
+OAUTH_KEY_WANTED_REDIS_KEY = "lifestream:oauth:key_wanted"
+OAUTH_CALLBACK_CHANNEL = "lifestream:oauth:callback"
 
 
 def _allowed_origins() -> list[str]:
     """Parse the comma-separated [webserver] allowed_origins config value."""
     raw = config.get("webserver", "allowed_origins", fallback="")
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
+def _template_path(name: str):
+    return get_project_root() / "templates" / name
 
 
 def create_app(lifespan=None) -> FastAPI:
@@ -40,5 +51,33 @@ def create_app(lifespan=None) -> FastAPI:
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
+
+    @app.get("/test/success")
+    def test_success() -> FileResponse:
+        return FileResponse(_template_path("success.html"), media_type="text/html")
+
+    @app.get("/keyback/")
+    def keyback(request: Request):
+        params: dict[str, list[str]] = {}
+        for key, value in request.query_params.multi_items():
+            params.setdefault(key, []).append(value)
+
+        cxn = get_redis_connection()
+        raw_key_wanted = cxn.get(OAUTH_KEY_WANTED_REDIS_KEY)
+        key_wanted = (
+            raw_key_wanted.decode("utf-8")
+            if isinstance(raw_key_wanted, bytes)
+            else raw_key_wanted
+        )
+
+        if key_wanted and key_wanted in params:
+            cxn.publish(OAUTH_CALLBACK_CHANNEL, json.dumps(params))
+            return FileResponse(_template_path("success.html"), media_type="text/html")
+
+        body = _template_path("failure.html").read_text(encoding="utf-8")
+        body = body.replace("[[params]]", str(params)).replace(
+            "[[key_wanted]]", str(key_wanted)
+        )
+        return HTMLResponse(body)
 
     return app

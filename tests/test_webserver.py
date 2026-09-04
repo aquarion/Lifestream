@@ -2,7 +2,8 @@
 the OAuth catcher route that replaces CodeFetcher9000's dedicated listener)."""
 
 import configparser
-from unittest.mock import patch
+import json
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -68,3 +69,62 @@ class TestHealth:
         response = client.get("/health", headers={"Origin": "https://evil.example.com"})
 
         assert "access-control-allow-origin" not in response.headers
+
+
+class TestKeyback:
+    def _app(self):
+        with patch.object(webserver, "config", _cfg()):
+            return webserver.create_app()
+
+    def test_matching_key_publishes_and_serves_success_page(self):
+        client = TestClient(self._app())
+        mock_cxn = MagicMock()
+        mock_cxn.get.return_value = b"access_token"
+
+        with patch.object(webserver, "get_redis_connection", return_value=mock_cxn):
+            response = client.get("/keyback/?access_token=abc123")
+
+        assert response.status_code == 200
+        assert "Sorry" not in response.text
+        mock_cxn.publish.assert_called_once()
+        channel, payload = mock_cxn.publish.call_args.args
+        assert channel == webserver.OAUTH_CALLBACK_CHANNEL
+        assert json.loads(payload) == {"access_token": ["abc123"]}
+
+    def test_non_matching_key_serves_failure_page_with_substitution(self):
+        client = TestClient(self._app())
+        mock_cxn = MagicMock()
+        mock_cxn.get.return_value = b"access_token"
+
+        with patch.object(webserver, "get_redis_connection", return_value=mock_cxn):
+            response = client.get("/keyback/?error=access_denied")
+
+        assert response.status_code == 200
+        assert "Sorry" in response.text
+        assert "error" in response.text
+        assert "access_token" in response.text
+        mock_cxn.publish.assert_not_called()
+
+    def test_no_key_wanted_in_redis_serves_failure_page(self):
+        client = TestClient(self._app())
+        mock_cxn = MagicMock()
+        mock_cxn.get.return_value = None
+
+        with patch.object(webserver, "get_redis_connection", return_value=mock_cxn):
+            response = client.get("/keyback/?access_token=abc123")
+
+        assert response.status_code == 200
+        assert "Sorry" in response.text
+        mock_cxn.publish.assert_not_called()
+
+
+class TestTestSuccessRoute:
+    def test_serves_success_page_unconditionally(self):
+        with patch.object(webserver, "config", _cfg()):
+            app = webserver.create_app()
+        client = TestClient(app)
+
+        response = client.get("/test/success")
+
+        assert response.status_code == 200
+        assert "Sorry" not in response.text
