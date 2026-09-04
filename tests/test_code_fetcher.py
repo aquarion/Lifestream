@@ -152,6 +152,10 @@ class TestGetCode:
         assert call_names.index("get_message") < call_names.index("set")
 
     def test_raises_timeout_error_when_subscribe_confirmation_never_arrives(self):
+        """Regression: the confirmation wait must be bounded independently of
+        the overall timeout (not reuse the full budget), and since set() is
+        never reached on this path, the key must NOT be deleted — it could
+        belong to a different flow that got set in the meantime."""
         mock_cxn = MagicMock()
         mock_cxn.get.return_value = None
         mock_pubsub = MagicMock()
@@ -160,7 +164,11 @@ class TestGetCode:
 
         with patch.object(code_fetcher, "get_redis_connection", return_value=mock_cxn):
             with pytest.raises(TimeoutError):
-                code_fetcher.get_code("access_token", timeout=5)
+                code_fetcher.get_code("access_token", timeout=60)
 
+        mock_pubsub.get_message.assert_called_once_with(
+            timeout=code_fetcher.SUBSCRIBE_CONFIRMATION_TIMEOUT_SECONDS
+        )
         mock_cxn.set.assert_not_called()
+        mock_cxn.delete.assert_not_called()
         mock_pubsub.close.assert_called_once()

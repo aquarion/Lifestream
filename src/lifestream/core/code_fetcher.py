@@ -68,6 +68,11 @@ def get_code(key_wanted_arg: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> d
     """
     cxn = get_redis_connection()
 
+    # NOTE: this check-then-act guard has a narrow TOCTOU race — two calls
+    # started within the same instant could both pass this check before
+    # either calls set() below. Accepted for a personal single-user CLI
+    # tool where OAuth flows are triggered manually, one at a time in
+    # practice — not something concurrent/automated callers should rely on.
     if cxn.get(OAUTH_KEY_WANTED_REDIS_KEY) is not None:
         logger.warning(
             "Refusing to start OAuth flow (key=%s): another flow is already "
@@ -84,6 +89,7 @@ def get_code(key_wanted_arg: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> d
     deadline = time.monotonic() + timeout
 
     pubsub = cxn.pubsub()
+    key_set = False
     try:
         pubsub.subscribe(OAUTH_CALLBACK_CHANNEL)
 
@@ -100,6 +106,7 @@ def get_code(key_wanted_arg: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> d
             )
 
         cxn.set(OAUTH_KEY_WANTED_REDIS_KEY, key_wanted_arg, ex=timeout)
+        key_set = True
 
         logger.info(
             "Waiting for OAuth callback (key=%s, timeout=%ss)", key_wanted_arg, timeout
@@ -125,5 +132,10 @@ def get_code(key_wanted_arg: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> d
             f"(key={key_wanted_arg})"
         )
     finally:
-        cxn.delete(OAUTH_KEY_WANTED_REDIS_KEY)
+        # Only clear the key if this call is the one that set it — otherwise,
+        # if our own subscribe/confirmation step timed out before we ever
+        # called set(), we could delete a DIFFERENT flow's key_wanted that
+        # got set in the meantime (a different importer process's flow).
+        if key_set:
+            cxn.delete(OAUTH_KEY_WANTED_REDIS_KEY)
         pubsub.close()
