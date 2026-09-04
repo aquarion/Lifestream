@@ -62,28 +62,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
 def get_url() -> str:
     """URL the OAuth provider should redirect the user's browser back to."""
-    domain = config.get("CodeFetcher9000", "domain")
-    port = int(config.get("CodeFetcher9000", "port"))
-    return f"https://{domain}:{port}/keyback/"
+    domain = config.get("webserver", "domain")
+    return f"https://{domain}/keyback/"
 
 
 def are_we_working() -> bool:
-    """Check that CodeFetcher9000's TLS cert/key are configured and readable."""
+    """Check that the webserver is configured to build OAuth redirect URLs."""
     try:
-        certfile = config.get("CodeFetcher9000", "certfile")
-        keyfile = config.get("CodeFetcher9000", "keyfile")
+        config.get("webserver", "domain")
     except configparser.Error as e:
-        logger.error("CodeFetcher9000 not configured: %s", e)
+        logger.error("Webserver not configured: %s", e)
         raise WeSayNotToday() from e
-
-    for path in (certfile, keyfile):
-        try:
-            with open(path, "rb"):
-                pass
-        except OSError as e:
-            logger.error("Could not read CodeFetcher9000 file %s: %s", path, e)
-            raise WeSayNotToday() from e
-
     return True
 
 
