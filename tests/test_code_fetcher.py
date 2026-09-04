@@ -5,6 +5,7 @@ this module publishes what key it's waiting for and blocks on Redis pub/sub
 until the webserver's route delivers the matching callback."""
 
 import configparser
+import itertools
 import json
 from unittest.mock import MagicMock, patch
 
@@ -42,12 +43,13 @@ class TestAreWeWorking:
 class TestGetCode:
     def test_sets_key_wanted_and_returns_matching_message(self):
         mock_cxn = MagicMock()
+        mock_cxn.get.return_value = None
         mock_pubsub = MagicMock()
         mock_cxn.pubsub.return_value = mock_pubsub
-        mock_pubsub.get_message.return_value = {
-            "type": "message",
-            "data": json.dumps({"access_token": ["abc123"]}),
-        }
+        mock_pubsub.get_message.side_effect = [
+            {"type": "subscribe", "data": 1},
+            {"type": "message", "data": json.dumps({"access_token": ["abc123"]})},
+        ]
 
         with patch.object(code_fetcher, "get_redis_connection", return_value=mock_cxn):
             result = code_fetcher.get_code("access_token", timeout=5)
@@ -64,9 +66,11 @@ class TestGetCode:
 
     def test_ignores_non_message_events_and_mismatched_keys(self):
         mock_cxn = MagicMock()
+        mock_cxn.get.return_value = None
         mock_pubsub = MagicMock()
         mock_cxn.pubsub.return_value = mock_pubsub
         mock_pubsub.get_message.side_effect = [
+            {"type": "subscribe", "data": 1},
             {"type": "subscribe", "data": 1},
             {"type": "message", "data": json.dumps({"code": ["other"]})},
             {"type": "message", "data": json.dumps({"access_token": ["right"]})},
@@ -77,14 +81,47 @@ class TestGetCode:
 
         assert result == {"access_token": ["right"]}
 
-    def test_raises_timeout_error_when_no_message_arrives(self):
+    def test_ignores_malformed_json_messages(self):
+        """Regression: a stray non-JSON publish on the shared channel must not
+        crash the wait loop — it should be logged and skipped."""
         mock_cxn = MagicMock()
+        mock_cxn.get.return_value = None
         mock_pubsub = MagicMock()
         mock_cxn.pubsub.return_value = mock_pubsub
-        mock_pubsub.get_message.return_value = None
+        mock_pubsub.get_message.side_effect = [
+            {"type": "subscribe", "data": 1},
+            {"type": "message", "data": "not valid json{{{"},
+            {"type": "message", "data": json.dumps({"access_token": ["right"]})},
+        ]
+
+        with patch.object(code_fetcher, "get_redis_connection", return_value=mock_cxn):
+            result = code_fetcher.get_code("access_token", timeout=5)
+
+        assert result == {"access_token": ["right"]}
+
+    def test_raises_timeout_error_when_no_message_arrives(self):
+        mock_cxn = MagicMock()
+        mock_cxn.get.return_value = None
+        mock_pubsub = MagicMock()
+        mock_cxn.pubsub.return_value = mock_pubsub
+        mock_pubsub.get_message.side_effect = itertools.chain(
+            [{"type": "subscribe", "data": 1}], itertools.repeat(None)
+        )
 
         with patch.object(code_fetcher, "get_redis_connection", return_value=mock_cxn):
             with pytest.raises(TimeoutError):
                 code_fetcher.get_code("access_token", timeout=0.05)
 
         mock_cxn.delete.assert_called_once_with(code_fetcher.OAUTH_KEY_WANTED_REDIS_KEY)
+
+    def test_raises_runtime_error_when_another_flow_already_in_progress(self):
+        """Regression: a second concurrent get_code() call must not silently
+        clobber the first flow's key_wanted — it should refuse to start."""
+        mock_cxn = MagicMock()
+        mock_cxn.get.return_value = b"code"
+
+        with patch.object(code_fetcher, "get_redis_connection", return_value=mock_cxn):
+            with pytest.raises(RuntimeError):
+                code_fetcher.get_code("access_token", timeout=5)
+
+        mock_cxn.set.assert_not_called()
