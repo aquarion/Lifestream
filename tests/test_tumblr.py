@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from lifestream.importers.base import ConfigurationError
 from lifestream.importers.tumblr import TumblrImporter, authenticate
 
 
@@ -34,16 +35,20 @@ class TestAuthenticate:
             "secret_key": "csecret",
         }[k]
 
-        mock_oauth_client = MagicMock()
-        mock_oauth_client.request.side_effect = [
-            ({"status": "200"}, "oauth_token=reqtok&oauth_token_secret=reqsecret"),
-            ({"status": "200"}, "oauth_token=newtok&oauth_token_secret=newsecret"),
-        ]
+        mock_sessions = [MagicMock(), MagicMock()]
+        mock_sessions[0].fetch_request_token.return_value = {
+            "oauth_token": "reqtok",
+            "oauth_token_secret": "reqsecret",
+        }
+        mock_sessions[1].fetch_access_token.return_value = {
+            "oauth_token": "newtok",
+            "oauth_token_secret": "newsecret",
+        }
 
         with (
             patch(
-                "lifestream.importers.tumblr.oauth.Client",
-                return_value=mock_oauth_client,
+                "lifestream.importers.tumblr.OAuth1Session",
+                side_effect=mock_sessions,
             ),
             patch("lifestream.importers.tumblr.TumblrRestClient") as mock_client,
             patch("builtins.input", side_effect=["y", "1234"]),
@@ -56,6 +61,30 @@ class TestAuthenticate:
             {"oauth_token": "newtok", "oauth_token_secret": "newsecret"}
         )
         mock_client.assert_called_once_with("ckey", "csecret", "newtok", "newsecret")
+
+    def test_raises_configuration_error_when_request_token_fetch_fails(self):
+        from requests_oauthlib.oauth1_session import TokenRequestDenied
+
+        imp = MagicMock()
+        imp.args.reauth = True
+        imp.get_config.side_effect = lambda k: {
+            "consumer_key": "ckey",
+            "secret_key": "csecret",
+        }[k]
+
+        mock_session = MagicMock()
+        mock_session.fetch_request_token.side_effect = TokenRequestDenied(
+            "Token request failed with code 401, response was 'nope'.",
+            MagicMock(),
+        )
+
+        with patch(
+            "lifestream.importers.tumblr.OAuth1Session", return_value=mock_session
+        ):
+            with pytest.raises(ConfigurationError):
+                authenticate(imp)
+
+        imp.save_oauth_token.assert_not_called()
 
 
 class TestTumblrImporter:
