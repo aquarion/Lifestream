@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from fastapi.testclient import TestClient
 
 import supervisor
 
@@ -215,3 +216,16 @@ class TestCreateScheduler:
             sched = supervisor.create_scheduler()
 
         assert isinstance(sched, BackgroundScheduler)
+
+
+class TestBuildApp:
+    def test_lifespan_starts_and_stops_scheduler(self):
+        mock_scheduler = MagicMock()
+
+        app = supervisor.build_app(mock_scheduler)
+
+        with TestClient(app):
+            mock_scheduler.start.assert_called_once()
+            mock_scheduler.shutdown.assert_not_called()
+
+        mock_scheduler.shutdown.assert_called_once_with(wait=False)

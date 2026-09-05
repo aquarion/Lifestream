@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Lifestream Scheduler - APScheduler-based job runner with Redis persistence.
+Lifestream Supervisor - APScheduler-based job runner with Redis persistence.
 
 This replaces the crontab-based scheduling with a single daemon that:
 - Reads schedules from config.ini
@@ -9,18 +9,19 @@ This replaces the crontab-based scheduling with a single daemon that:
 - Handles locking per-job
 
 Usage:
-    python scheduler.py              # Run scheduler daemon
-    python scheduler.py --list       # List configured jobs
-    python scheduler.py --run JOB    # Run a specific job immediately
-    python scheduler.py --status     # Show job status and next run times
+    python supervisor.py              # Run supervisor daemon
+    python supervisor.py --list       # List configured jobs
+    python supervisor.py --run JOB    # Run a specific job immediately
+    python supervisor.py --status     # Show job status and next run times
 """
 
 import argparse
 import logging
-import signal
 import sys
+from contextlib import asynccontextmanager
 from datetime import datetime
 
+import uvicorn
 from apscheduler.executors.pool import ThreadPoolExecutor  # noqa: E402
 from apscheduler.jobstores.redis import RedisJobStore  # noqa: E402
 from apscheduler.schedulers.background import BackgroundScheduler  # noqa: E402
@@ -28,8 +29,9 @@ from apscheduler.triggers.cron import CronTrigger  # noqa: E402
 
 from lifestream.core.config import config  # noqa: E402
 from lifestream.core.jobs import run_import, run_shell_command  # noqa: E402
+from lifestream.core.webserver import create_app  # noqa: E402
 
-logger = logging.getLogger("Scheduler")
+logger = logging.getLogger("Supervisor")
 
 # Default misfire grace time (1 hour) - jobs missed within this window will run once
 DEFAULT_MISFIRE_GRACE_TIME = 3600
@@ -266,9 +268,28 @@ def run_job_now(job_name, extra_args=None):
     run_import(job_name, extra_args=extra_args)
 
 
+def build_app(scheduler):
+    """Build the FastAPI app, wired to start/stop `scheduler` via the app's
+    own lifespan — so uvicorn's signal handling drives both subsystems'
+    startup/shutdown through one coordinated path instead of two competing
+    signal handlers."""
+
+    @asynccontextmanager
+    async def lifespan(app):
+        logger.info("Starting scheduler...")
+        scheduler.start()
+        try:
+            yield
+        finally:
+            logger.info("Shutting down scheduler...")
+            scheduler.shutdown(wait=False)
+
+    return create_app(lifespan=lifespan)
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Lifestream Scheduler",
+        description="Lifestream Supervisor",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -277,7 +298,7 @@ def main():
     parser.add_argument("--run", metavar="JOB", help="Run a specific job immediately")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     # Unrecognized args are forwarded to the importer when used with --run,
-    # e.g. `scheduler.py --run facebook_posts --reauth`.
+    # e.g. `supervisor.py --run facebook_posts --reauth`.
     args, extra_args = parser.parse_known_args()
 
     from lifestream.core.logging import setup_logging
@@ -299,35 +320,27 @@ def main():
         run_job_now(args.run, extra_args=extra_args)
         return
 
-    # Default: run the scheduler daemon
-    logger.info("Starting Lifestream Scheduler...")
+    # Default: run the supervisor (scheduler + webserver)
+    logger.info("Starting Lifestream Supervisor...")
 
     scheduler = create_scheduler()
-
-    # Handle shutdown gracefully
-    def shutdown(signum, frame):
-        logger.info("Shutting down scheduler...")
-        scheduler.shutdown(wait=False)
-        sys.exit(0)
-
-    signal.signal(signal.SIGTERM, shutdown)
-    signal.signal(signal.SIGINT, shutdown)
-
-    # Add all jobs from config
     job_count = add_jobs(scheduler)
 
     if job_count == 0:
         logger.error("No jobs configured! Add jobs to [schedules] in config.ini")
         sys.exit(1)
 
-    logger.info(f"Scheduler started with {job_count} jobs")
+    logger.info(f"Supervisor configured with {job_count} jobs")
+
+    app = build_app(scheduler)
+    host = config.get("webserver", "host", fallback="0.0.0.0")
+    port = int(config.get("webserver", "port", fallback=8000))
 
     try:
-        scheduler.start()
-    except (KeyboardInterrupt, SystemExit):
-        logger.info("Scheduler stopped")
+        logger.info(f"Starting webserver on {host}:{port}")
+        uvicorn.run(app, host=host, port=port)
     except Exception as e:
-        logger.error(f"Scheduler failed to start: {e}")
+        logger.error(f"Supervisor failed to start: {e}")
         logger.error(
             "Check that Redis is running and reachable (see [redis] in config.ini)"
         )
