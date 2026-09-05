@@ -1,12 +1,12 @@
 """Tumblr importer for Lifestream."""
 
 import argparse
-import urllib.parse
 
 import dateutil.parser
-import oauth2 as oauth
 import pytz
 from pytumblr import TumblrRestClient
+from requests_oauthlib import OAuth1Session
+from requests_oauthlib.oauth1_session import TokenRequestDenied
 
 from lifestream.importers.base import ConfigurationError, OAuthImporter
 
@@ -28,13 +28,12 @@ def authenticate(importer: OAuthImporter) -> TumblrRestClient:
     oauth_token = None if importer.args.reauth else importer.load_oauth_token()
 
     if not oauth_token:
-        consumer = oauth.Consumer(consumer_key, consumer_secret)
-        client = oauth.Client(consumer)
-        resp, content = client.request(REQUEST_TOKEN_URL, "GET")
-        if resp["status"] != "200":
-            raise ConfigurationError(f"Invalid response {resp['status']}.")
+        session = OAuth1Session(consumer_key, client_secret=consumer_secret)
+        try:
+            request_token = session.fetch_request_token(REQUEST_TOKEN_URL)
+        except TokenRequestDenied as e:
+            raise ConfigurationError(f"Invalid response: {e}.") from e
 
-        request_token = dict(urllib.parse.parse_qsl(content))
         # intentional: user must visit this URL to complete OAuth flow
         authorize_link = f"{AUTHORIZE_URL}?oauth_token={request_token['oauth_token']}"  # codeql[py/clear-text-logging-sensitive-data]
         print("Go to the following link in your browser:")
@@ -46,14 +45,17 @@ def authenticate(importer: OAuthImporter) -> TumblrRestClient:
             accepted = input("Have you authorized me? (y/n) ")
         oauth_verifier = input("What is the PIN? ")
 
-        token = oauth.Token(
-            request_token["oauth_token"], request_token["oauth_token_secret"]
+        session = OAuth1Session(
+            consumer_key,
+            client_secret=consumer_secret,
+            resource_owner_key=request_token["oauth_token"],
+            resource_owner_secret=request_token["oauth_token_secret"],
+            verifier=oauth_verifier,
         )
-        token.set_verifier(oauth_verifier)
-        client = oauth.Client(consumer, token)
-
-        resp, content = client.request(ACCESS_TOKEN_URL, "POST")
-        oauth_token = dict(urllib.parse.parse_qsl(content))
+        try:
+            oauth_token = session.fetch_access_token(ACCESS_TOKEN_URL)
+        except TokenRequestDenied as e:
+            raise ConfigurationError(f"Invalid response: {e}.") from e
         importer.save_oauth_token(oauth_token)
 
     return TumblrRestClient(
