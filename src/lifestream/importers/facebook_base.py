@@ -79,7 +79,7 @@ class FacebookBaseImporter(OAuthImporter):
             except configparser.Error as e:
                 raise ConfigurationError(
                     "To catch an OAuth request, configure either "
-                    "[CodeFetcher9000] or [dayze] in config.ini"
+                    "[webserver] or [dayze] in config.ini"
                 ) from e
 
     def authenticate(self) -> dict:
