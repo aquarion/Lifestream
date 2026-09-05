@@ -138,8 +138,21 @@ class Destiny2Importer(OAuthImporter):
 
         if oauth_token:
             now = datetime.now(timezone.utc)
-            if now > oauth_token["expire_dt"]:
-                if now > oauth_token["refresh_expire_dt"]:
+            try:
+                expired = now > oauth_token["expire_dt"]
+                refresh_expired = now > oauth_token["refresh_expire_dt"]
+            except TypeError as e:
+                # The saved token predates this importer (e.g. still-present
+                # imports/destiny2.py, which shares the same bungie.oauth
+                # file and stores naive datetimes) and can't be compared
+                # against a timezone-aware "now" — treat it as unusable
+                # rather than crashing.
+                raise ConfigurationError(
+                    "Destiny 2 token file is in an old/incompatible format — "
+                    "run with --reauth"
+                ) from e
+            if expired:
+                if refresh_expired:
                     raise ConfigurationError(
                         "Destiny 2 refresh token has expired — run with --reauth"
                     )
@@ -241,9 +254,13 @@ class Destiny2Importer(OAuthImporter):
             f"Destiny2/{member_data['membershipType']}/Account/"
             f"{member_data['membershipId']}/Character/{character_id}/Stats/Activities/"
         )
-        activities = self.destiny_call(
-            credentials, path, {"count": 100, "mode": "None", "page": 0}
-        )
+        try:
+            activities = self.destiny_call(
+                credentials, path, {"count": 100, "mode": "None", "page": 0}
+            )
+        except DestinyThrottledByGameServer:
+            set_backoff(THROTTLE_BACKOFF_KEY)
+            raise
 
         for instance in activities.get("activities", []):
             try:
@@ -260,10 +277,53 @@ class Destiny2Importer(OAuthImporter):
                     continue
 
                 self.log_activity(instance, activity, character_id, character_data)
+            except DestinyThrottledByGameServer:
+                set_backoff(THROTTLE_BACKOFF_KEY)
+                raise
             except Exception as e:
                 # One malformed/unexpected activity instance shouldn't stop
                 # the rest of this character's activities from being logged.
                 self.logger.error("Failed to process an activity instance: %s", e)
+
+    def process_membership(self, credentials: dict, member_data: dict) -> bool:
+        """Process every character under one membership. Returns True if a
+        throttle error was hit and the caller should stop the whole run."""
+        membership_type_name = MEMBERSHIP_TYPES.get(
+            member_data["membershipType"], member_data["membershipType"]
+        )
+        self.logger.info("Looking at membership for %s", membership_type_name)
+
+        try:
+            profile = self.destiny_call(
+                credentials,
+                f"Destiny2/{member_data['membershipType']}/Profile/"
+                f"{member_data['membershipId']}/",
+                {"components": "Characters"},
+            )
+        except DestinyAccountNotFound:
+            self.logger.info(
+                "Membership for %s doesn't have Destiny 2", membership_type_name
+            )
+            return False
+        except DestinyThrottledByGameServer:
+            set_backoff(THROTTLE_BACKOFF_KEY)
+            self.logger.warning("Throttled by Bungie's API, stopping this run")
+            return True
+
+        characters = profile["characters"]["data"]
+        for character_id, character_data in characters.items():
+            try:
+                self.process_character(
+                    credentials, member_data, character_id, character_data
+                )
+            except DestinyThrottledByGameServer:
+                # set_backoff was already called wherever this was raised
+                # (process_character/destiny_call) — just stop.
+                self.logger.warning("Throttled by Bungie's API, stopping this run")
+                return True
+            except Exception as e:
+                self.logger.error("Failed to process character %s: %s", character_id, e)
+        return False
 
     def run(self) -> None:
         """Import completed activities for every character on the account."""
@@ -282,34 +342,8 @@ class Destiny2Importer(OAuthImporter):
             raise
 
         for member_data in memberships.get("destinyMemberships", []):
-            membership_type_name = MEMBERSHIP_TYPES.get(
-                member_data["membershipType"], member_data["membershipType"]
-            )
-            self.logger.info("Looking at membership for %s", membership_type_name)
-
-            try:
-                profile = self.destiny_call(
-                    credentials,
-                    f"Destiny2/{member_data['membershipType']}/Profile/"
-                    f"{member_data['membershipId']}/",
-                    {"components": "Characters"},
-                )
-            except DestinyAccountNotFound:
-                self.logger.info(
-                    "Membership for %s doesn't have Destiny 2", membership_type_name
-                )
-                continue
-
-            characters = profile["characters"]["data"]
-            for character_id, character_data in characters.items():
-                try:
-                    self.process_character(
-                        credentials, member_data, character_id, character_data
-                    )
-                except Exception as e:
-                    self.logger.error(
-                        "Failed to process character %s: %s", character_id, e
-                    )
+            if self.process_membership(credentials, member_data):
+                return
 
 
 def main():

@@ -11,6 +11,7 @@ from lifestream.importers.destiny2 import (
     Destiny2Importer,
     DestinyAccountNotFound,
     DestinyException,
+    DestinyThrottledByGameServer,
 )
 
 
@@ -86,6 +87,19 @@ class TestDestiny2Importer:
         imp = self._make_importer()
         past = datetime.now(timezone.utc) - timedelta(days=1)
         token = {"expire_dt": past, "refresh_expire_dt": past}
+        imp.load_oauth_token = MagicMock(return_value=token)
+
+        with pytest.raises(ConfigurationError, match="reauth"):
+            imp.authenticate()
+
+    def test_authenticate_raises_configuration_error_for_naive_datetime_token(self):
+        """Regression: a token pickled by the old naive-datetime script
+        (imports/destiny2.py, which shares the same bungie.oauth file) must
+        raise a clear ConfigurationError, not an uncaught TypeError, when
+        compared against this importer's timezone-aware "now"."""
+        imp = self._make_importer()
+        naive_past = datetime.now() - timedelta(hours=1)  # no tzinfo
+        token = {"expire_dt": naive_past, "refresh_expire_dt": naive_past}
         imp.load_oauth_token = MagicMock(return_value=token)
 
         with pytest.raises(ConfigurationError, match="reauth"):
@@ -337,6 +351,124 @@ class TestDestiny2Importer:
             )
 
         mock_log.assert_called_once()
+
+    def test_process_character_sets_backoff_and_reraises_on_throttled_activities_call(
+        self,
+    ):
+        """Regression: a throttle error fetching the activities list must
+        call set_backoff, not just get swallowed as a generic error."""
+        imp = self._make_importer()
+
+        with (
+            patch.object(
+                imp,
+                "destiny_call",
+                side_effect=DestinyThrottledByGameServer("throttled"),
+            ),
+            patch("lifestream.importers.destiny2.set_backoff") as mock_set_backoff,
+        ):
+            with pytest.raises(DestinyThrottledByGameServer):
+                imp.process_character(
+                    {"membershipType": 1, "membershipId": "m1"},
+                    {"membershipType": 1, "membershipId": "m1"},
+                    "char1",
+                    {},
+                )
+
+        mock_set_backoff.assert_called_once_with("destiny2:api_error:throttled")
+
+    def test_process_character_sets_backoff_and_reraises_on_throttled_entity_call(self):
+        """Regression: a throttle error deep inside the per-instance loop
+        (e.g. a Manifest lookup) must also call set_backoff, not be
+        swallowed by the generic per-instance error handler."""
+        imp = self._make_importer()
+        activities_response = {
+            "activities": [
+                {
+                    "activityDetails": {"referenceId": 1},
+                    "values": {"completed": {"basic": {"value": 1}}},
+                    "period": "2020-01-01T12:00:00Z",
+                }
+            ]
+        }
+
+        with (
+            patch.object(imp, "destiny_call", return_value=activities_response),
+            patch.object(
+                imp,
+                "destiny_entity",
+                side_effect=DestinyThrottledByGameServer("throttled"),
+            ),
+            patch("lifestream.importers.destiny2.set_backoff") as mock_set_backoff,
+        ):
+            with pytest.raises(DestinyThrottledByGameServer):
+                imp.process_character(
+                    {"membershipType": 1, "membershipId": "m1"},
+                    {"membershipType": 1, "membershipId": "m1"},
+                    "char1",
+                    {},
+                )
+
+        mock_set_backoff.assert_called_once_with("destiny2:api_error:throttled")
+
+    def test_run_stops_without_raising_when_a_character_is_throttled(self):
+        """Regression: a throttle raised from process_character() must stop
+        the run (not just be logged as a generic per-character failure) so
+        it doesn't hammer the remaining characters too."""
+        imp = self._make_importer()
+        imp.authenticate = MagicMock(
+            return_value={"token_type": "Bearer", "access_token": "t"}
+        )
+
+        memberships_response = {
+            "destinyMemberships": [{"membershipType": 1, "membershipId": "m1"}]
+        }
+        profile_response = {
+            "characters": {"data": {"c1": {"level": 1}, "c2": {"level": 2}}}
+        }
+
+        with (
+            patch.object(
+                imp,
+                "destiny_call",
+                side_effect=[memberships_response, profile_response],
+            ),
+            patch.object(
+                imp,
+                "process_character",
+                side_effect=DestinyThrottledByGameServer("throttled"),
+            ) as mock_process,
+        ):
+            imp.run()  # should not raise
+
+        # Only the first (throttled) character is attempted; the run stops
+        # rather than moving on to the second.
+        mock_process.assert_called_once()
+
+    def test_run_sets_backoff_and_stops_when_profile_call_is_throttled(self):
+        imp = self._make_importer()
+        imp.authenticate = MagicMock(
+            return_value={"token_type": "Bearer", "access_token": "t"}
+        )
+
+        memberships_response = {
+            "destinyMemberships": [{"membershipType": 1, "membershipId": "m1"}]
+        }
+
+        with (
+            patch.object(
+                imp,
+                "destiny_call",
+                side_effect=[
+                    memberships_response,
+                    DestinyThrottledByGameServer("throttled"),
+                ],
+            ),
+            patch("lifestream.importers.destiny2.set_backoff") as mock_set_backoff,
+        ):
+            imp.run()  # should not raise
+
+        mock_set_backoff.assert_called_once_with("destiny2:api_error:throttled")
 
     def test_run_skips_members_without_destiny_account(self):
         imp = self._make_importer()
