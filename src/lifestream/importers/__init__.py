@@ -8,10 +8,12 @@ Each importer is a class that inherits from BaseImporter.
 from lifestream.importers.atom import AtomImporter
 from lifestream.importers.atproto_posts import AtprotoImporter
 from lifestream.importers.base import BaseImporter, FeedImporter, OAuthImporter
+from lifestream.importers.destiny2 import Destiny2Importer
 from lifestream.importers.facebook_page import FacebookPageImporter
 from lifestream.importers.facebook_posts import FacebookPostsImporter
 from lifestream.importers.ffxiv import FFXIVImporter
 from lifestream.importers.flickr import FlickrImporter
+from lifestream.importers.foursquare import FoursquareImporter
 from lifestream.importers.github_commits import GithubCommitsImporter
 from lifestream.importers.gw2 import GW2Importer
 from lifestream.importers.historic import HistoricImporter
@@ -24,6 +26,7 @@ from lifestream.importers.steam import SteamImporter
 from lifestream.importers.switchbot import SwitchbotImporter
 from lifestream.importers.tumblr import TumblrImporter
 from lifestream.importers.wordpress import WordpressImporter
+from lifestream.importers.wow import WowImporter
 
 __all__ = [
     # Base classes
@@ -33,10 +36,12 @@ __all__ = [
     # Importers
     "AtomImporter",
     "AtprotoImporter",
+    "Destiny2Importer",
     "FacebookPageImporter",
     "FacebookPostsImporter",
     "FFXIVImporter",
     "FlickrImporter",
+    "FoursquareImporter",
     "GithubCommitsImporter",
     "GW2Importer",
     "HistoricImporter",
@@ -49,16 +54,19 @@ __all__ = [
     "SwitchbotImporter",
     "TumblrImporter",
     "WordpressImporter",
+    "WowImporter",
 ]
 
 # Registry of all importers by name
 IMPORTERS = {
     "atom": AtomImporter,
     "atproto_posts": AtprotoImporter,
+    "destiny2": Destiny2Importer,
     "facebook_page": FacebookPageImporter,
     "facebook_posts": FacebookPostsImporter,
     "ffxiv": FFXIVImporter,
     "flickr": FlickrImporter,
+    "foursquare": FoursquareImporter,
     "github": GithubCommitsImporter,
     "github_commits": GithubCommitsImporter,  # legacy schedule name
     "gw2": GW2Importer,
@@ -73,4 +81,5 @@ IMPORTERS = {
     "switchbot": SwitchbotImporter,
     "tumblr": TumblrImporter,
     "wordpress": WordpressImporter,
+    "wow": WowImporter,
 }

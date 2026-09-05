@@ -114,6 +114,7 @@ lifestream-lastfm = "lifestream.importers.lastfm:main"
 lifestream-atom = "lifestream.importers.atom:main"
 lifestream-github = "lifestream.importers.github_commits:main"
 lifestream-flickr = "lifestream.importers.flickr:main"
+lifestream-foursquare = "lifestream.importers.foursquare:main"
 lifestream-mastodon = "lifestream.importers.mastodon_toots:main"
 lifestream-steam = "lifestream.importers.steam:main"
 lifestream-switchbot = "lifestream.importers.switchbot:main"
@@ -128,6 +129,8 @@ lifestream-oyster = "lifestream.importers.oyster:main"
 lifestream-oyster-csv = "lifestream.importers.oyster_csv:main"
 lifestream-facebook-posts = "lifestream.importers.facebook_posts:main"
 lifestream-facebook-page = "lifestream.importers.facebook_page:main"
+lifestream-wow = "lifestream.importers.wow:main"
+lifestream-destiny2 = "lifestream.importers.destiny2:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
