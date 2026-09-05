@@ -25,6 +25,7 @@ from lifestream.importers.steam import SteamImporter
 from lifestream.importers.switchbot import SwitchbotImporter
 from lifestream.importers.tumblr import TumblrImporter
 from lifestream.importers.wordpress import WordpressImporter
+from lifestream.importers.wow import WowImporter
 
 __all__ = [
     # Base classes
@@ -51,6 +52,7 @@ __all__ = [
     "SwitchbotImporter",
     "TumblrImporter",
     "WordpressImporter",
+    "WowImporter",
 ]
 
 # Registry of all importers by name
@@ -76,4 +78,5 @@ IMPORTERS = {
     "switchbot": SwitchbotImporter,
     "tumblr": TumblrImporter,
     "wordpress": WordpressImporter,
+    "wow": WowImporter,
 }
