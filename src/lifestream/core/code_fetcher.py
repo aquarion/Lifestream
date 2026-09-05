@@ -68,9 +68,11 @@ def get_code(key_wanted_arg: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> d
     """
     cxn = get_redis_connection()
 
-    # NOTE: this check-then-act guard has a narrow TOCTOU race — two calls
-    # started within the same instant could both pass this check before
-    # either calls set() below. Accepted for a personal single-user CLI
+    # NOTE: this check-then-act guard has a TOCTOU race — two calls started
+    # close together could both pass this check before either reaches set()
+    # below, since set() isn't reached until after the subscribe-confirmation
+    # wait (up to SUBSCRIBE_CONFIRMATION_TIMEOUT_SECONDS later), not
+    # immediately after this check. Accepted for a personal single-user CLI
     # tool where OAuth flows are triggered manually, one at a time in
     # practice — not something concurrent/automated callers should rely on.
     if cxn.get(OAUTH_KEY_WANTED_REDIS_KEY) is not None:

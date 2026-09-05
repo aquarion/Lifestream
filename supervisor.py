@@ -327,8 +327,10 @@ def main():
     job_count = add_jobs(scheduler)
 
     if job_count == 0:
-        logger.error("No jobs configured! Add jobs to [schedules] in config.ini")
-        sys.exit(1)
+        logger.warning(
+            "No jobs configured in [schedules] — starting the webserver anyway "
+            "so the OAuth catcher is available for initial setup."
+        )
 
     logger.info(f"Supervisor configured with {job_count} jobs")
 
