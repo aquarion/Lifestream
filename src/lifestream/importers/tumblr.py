@@ -10,9 +10,9 @@ from requests_oauthlib.oauth1_session import TokenRequestDenied
 
 from lifestream.importers.base import ConfigurationError, OAuthImporter
 
-REQUEST_TOKEN_URL = "http://www.tumblr.com/oauth/request_token"
-ACCESS_TOKEN_URL = "http://www.tumblr.com/oauth/access_token"
-AUTHORIZE_URL = "http://www.tumblr.com/oauth/authorize"
+REQUEST_TOKEN_URL = "https://www.tumblr.com/oauth/request_token"
+ACCESS_TOKEN_URL = "https://www.tumblr.com/oauth/access_token"
+AUTHORIZE_URL = "https://www.tumblr.com/oauth/authorize"
 
 
 def authenticate(importer: OAuthImporter) -> TumblrRestClient:
@@ -32,7 +32,7 @@ def authenticate(importer: OAuthImporter) -> TumblrRestClient:
         try:
             request_token = session.fetch_request_token(REQUEST_TOKEN_URL)
         except TokenRequestDenied as e:
-            raise ConfigurationError(f"Invalid response: {e}.") from e
+            raise ConfigurationError(f"Invalid response: {e}") from e
 
         # intentional: user must visit this URL to complete OAuth flow
         authorize_link = f"{AUTHORIZE_URL}?oauth_token={request_token['oauth_token']}"  # codeql[py/clear-text-logging-sensitive-data]
@@ -55,7 +55,7 @@ def authenticate(importer: OAuthImporter) -> TumblrRestClient:
         try:
             oauth_token = session.fetch_access_token(ACCESS_TOKEN_URL)
         except TokenRequestDenied as e:
-            raise ConfigurationError(f"Invalid response: {e}.") from e
+            raise ConfigurationError(f"Invalid response: {e}") from e
         importer.save_oauth_token(oauth_token)
 
     return TumblrRestClient(
