@@ -23,7 +23,7 @@ from datetime import datetime
 
 from apscheduler.executors.pool import ThreadPoolExecutor  # noqa: E402
 from apscheduler.jobstores.redis import RedisJobStore  # noqa: E402
-from apscheduler.schedulers.blocking import BlockingScheduler  # noqa: E402
+from apscheduler.schedulers.background import BackgroundScheduler  # noqa: E402
 from apscheduler.triggers.cron import CronTrigger  # noqa: E402
 
 from lifestream.core.config import config  # noqa: E402
@@ -125,7 +125,7 @@ def create_scheduler():
         "misfire_grace_time": DEFAULT_MISFIRE_GRACE_TIME,
     }
 
-    scheduler = BlockingScheduler(
+    scheduler = BackgroundScheduler(
         jobstores=jobstores,
         executors=executors,
         job_defaults=job_defaults,
