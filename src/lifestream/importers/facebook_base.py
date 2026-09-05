@@ -84,8 +84,9 @@ class FacebookBaseImporter(OAuthImporter):
 
     def authenticate(self) -> dict:
         """
-        Run Facebook's OAuth flow (via CodeFetcher9000 or a manual PIN) and
-        return the token dict, refreshing/persisting it as needed.
+        Run Facebook's OAuth flow (via the webserver's OAuth catcher or a
+        manual PIN) and return the token dict, refreshing/persisting it as
+        needed.
         """
         appid = self.get_config("appid")
         secret = self.get_config("secret")
@@ -107,7 +108,7 @@ class FacebookBaseImporter(OAuthImporter):
             oauth_redirect = code_fetcher.get_code("access_token")
             access_key = oauth_redirect["access_token"][0]
         else:
-            print("If you configure CodeFetcher9000, this is a lot easier.")
+            print("If you configure [webserver], this is a lot easier.")
             access_key = input("What is the PIN? ")
 
         # POST, not GET: a GET would put client_secret in the request URL,
