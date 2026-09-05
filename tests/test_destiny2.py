@@ -428,6 +428,7 @@ class TestDestiny2Importer:
         }
 
         with (
+            patch("lifestream.importers.destiny2.should_backoff", return_value=False),
             patch.object(
                 imp,
                 "destiny_call",
@@ -456,6 +457,7 @@ class TestDestiny2Importer:
         }
 
         with (
+            patch("lifestream.importers.destiny2.should_backoff", return_value=False),
             patch.object(
                 imp,
                 "destiny_call",
@@ -476,13 +478,20 @@ class TestDestiny2Importer:
             return_value={"token_type": "Bearer", "access_token": "t"}
         )
 
-        with patch.object(
-            imp,
-            "destiny_call",
-            side_effect=[
-                {"destinyMemberships": [{"membershipType": 1, "membershipId": "m1"}]},
-                DestinyAccountNotFound("no account"),
-            ],
+        with (
+            patch("lifestream.importers.destiny2.should_backoff", return_value=False),
+            patch.object(
+                imp,
+                "destiny_call",
+                side_effect=[
+                    {
+                        "destinyMemberships": [
+                            {"membershipType": 1, "membershipId": "m1"}
+                        ]
+                    },
+                    DestinyAccountNotFound("no account"),
+                ],
+            ),
         ):
             imp.run()  # should not raise
 
@@ -500,6 +509,7 @@ class TestDestiny2Importer:
         }
 
         with (
+            patch("lifestream.importers.destiny2.should_backoff", return_value=False),
             patch.object(
                 imp,
                 "destiny_call",
