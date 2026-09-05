@@ -60,11 +60,10 @@ class WowImporter(OAuthImporter):
     def _api_base(self) -> str:
         return f"https://{self.get_config('region')}.api.blizzard.com"
 
-    def _redirect_uri(self) -> tuple[str, bool]:
-        """Return (redirect_uri, use_code_fetcher)."""
+    def _redirect_uri(self) -> str:
         try:
             code_fetcher.are_we_working()
-            return code_fetcher.get_url(), True
+            return code_fetcher.get_url()
         except code_fetcher.WeSayNotToday as e:
             raise ConfigurationError(
                 "To catch a WoW OAuth redirect, configure [webserver] in config.ini"
@@ -83,10 +82,10 @@ class WowImporter(OAuthImporter):
         if oauth_token:
             return oauth_token
 
-        redirect_uri, use_code_fetcher = self._redirect_uri()
+        redirect_uri = self._redirect_uri()
 
         oauth = OAuth2Session(key, redirect_uri=redirect_uri, scope=SCOPE)
-        authorization_url, _ = oauth.authorization_url(
+        authorization_url, state = oauth.authorization_url(
             f"{self._oauth_base()}/oauth/authorize"
         )
 
@@ -96,12 +95,12 @@ class WowImporter(OAuthImporter):
         print(authorization_url)  # codeql[py/clear-text-logging-sensitive-data]
         print()
 
-        if use_code_fetcher:
-            params = code_fetcher.get_code("code")
-            auth_code = params["code"][0]
-        else:
-            print("If you configure [webserver], this is a lot easier.")
-            auth_code = input("What is the PIN? ")
+        params = code_fetcher.get_code("code")
+        if params.get("state", [None])[0] != state:
+            raise ConfigurationError(
+                "OAuth state mismatch on WoW callback — possible CSRF, aborting"
+            )
+        auth_code = params["code"][0]
 
         response = requests.post(
             f"{self._oauth_base()}/oauth/token",

@@ -1,11 +1,12 @@
 """Foursquare importer for Lifestream."""
 
+import secrets
 from datetime import datetime, timezone
 
 import requests
 
 from lifestream.core import code_fetcher
-from lifestream.importers.base import OAuthImporter
+from lifestream.importers.base import ConfigurationError, OAuthImporter
 
 AUTHORIZE_URL = "https://foursquare.com/oauth2/authenticate"
 ACCESS_TOKEN_URL = "https://foursquare.com/oauth2/access_token"
@@ -57,12 +58,13 @@ class FoursquareImporter(OAuthImporter):
             return access_token
 
         redirect_uri, use_code_fetcher = self._redirect_uri()
+        state = secrets.token_urlsafe(24)
 
         # intentional: user must visit this URL to complete OAuth; contains no
         # secret, only the public client_id and redirect_uri
         auth_url = (
             f"{AUTHORIZE_URL}?client_id={client_id}&response_type=code"
-            f"&redirect_uri={redirect_uri}"
+            f"&redirect_uri={redirect_uri}&state={state}"
         )
         print("Go to the following link in your browser:")
         print(auth_url)  # codeql[py/clear-text-logging-sensitive-data]
@@ -70,6 +72,11 @@ class FoursquareImporter(OAuthImporter):
 
         if use_code_fetcher:
             oauth_redirect = code_fetcher.get_code("code")
+            if oauth_redirect.get("state", [None])[0] != state:
+                raise ConfigurationError(
+                    "OAuth state mismatch on Foursquare callback — possible "
+                    "CSRF, aborting"
+                )
             auth_code = oauth_redirect["code"][0]
         else:
             print("If you configure [webserver], this is a lot easier.")
@@ -118,7 +125,7 @@ class FoursquareImporter(OAuthImporter):
         utctime = datetime.fromtimestamp(checkin["createdAt"], tz=timezone.utc)
         utcdate = utctime.strftime("%Y-%m-%d %H:%M")
         checkin_id = checkin["id"]
-        url = f"http://www.foursquare.com/{username}/checkin/{checkin_id}"
+        url = f"https://www.foursquare.com/{username}/checkin/{checkin_id}"
 
         self.logger.info("Checkin %s@%s", utcdate, message)
         self.entry_store.add_entry(

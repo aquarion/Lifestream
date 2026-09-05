@@ -143,19 +143,53 @@ class TestDestiny2Importer:
         with (
             patch("lifestream.importers.destiny2.code_fetcher") as mock_cf,
             patch(
+                "lifestream.importers.destiny2.secrets.token_urlsafe",
+                return_value="expected-state",
+            ),
+            patch(
                 "lifestream.importers.destiny2.requests.post",
                 return_value=token_response,
             ),
             patch("builtins.print"),
         ):
             mock_cf.are_we_working.return_value = True
-            mock_cf.get_code.return_value = {"code": ["abc123"]}
+            mock_cf.get_code.return_value = {
+                "code": ["abc123"],
+                "state": ["expected-state"],
+            }
 
             result = imp.authenticate()
 
         assert result["access_token"] == "newtoken"
         assert "expire_dt" in result
         imp.save_oauth_token.assert_called_once_with(result)
+
+    def test_authenticate_raises_on_oauth_state_mismatch(self):
+        """Regression: a callback with a mismatched (or missing) state must
+        be rejected, since state is what protects this flow from CSRF/token
+        injection."""
+        imp = self._make_importer()
+        imp.load_oauth_token = MagicMock(return_value=None)
+        imp.save_oauth_token = MagicMock()
+
+        with (
+            patch("lifestream.importers.destiny2.code_fetcher") as mock_cf,
+            patch(
+                "lifestream.importers.destiny2.secrets.token_urlsafe",
+                return_value="expected-state",
+            ),
+            patch("builtins.print"),
+        ):
+            mock_cf.are_we_working.return_value = True
+            mock_cf.get_code.return_value = {
+                "code": ["abc123"],
+                "state": ["attacker-supplied-state"],
+            }
+
+            with pytest.raises(ConfigurationError, match="state mismatch"):
+                imp.authenticate()
+
+        imp.save_oauth_token.assert_not_called()
 
     def test_authenticate_raises_when_code_fetcher_unavailable(self):
         imp = self._make_importer()
@@ -465,6 +499,28 @@ class TestDestiny2Importer:
                     memberships_response,
                     DestinyThrottledByGameServer("throttled"),
                 ],
+            ),
+            patch("lifestream.importers.destiny2.set_backoff") as mock_set_backoff,
+        ):
+            imp.run()  # should not raise
+
+        mock_set_backoff.assert_called_once_with("destiny2:api_error:throttled")
+
+    def test_run_sets_backoff_and_stops_when_memberships_call_is_throttled(self):
+        """Regression: a throttle on the very first call (fetching
+        memberships) must be treated the same as every other throttle path —
+        set backoff and stop cleanly — not re-raise and fail the job noisily."""
+        imp = self._make_importer()
+        imp.authenticate = MagicMock(
+            return_value={"token_type": "Bearer", "access_token": "t"}
+        )
+
+        with (
+            patch("lifestream.importers.destiny2.should_backoff", return_value=False),
+            patch.object(
+                imp,
+                "destiny_call",
+                side_effect=DestinyThrottledByGameServer("throttled"),
             ),
             patch("lifestream.importers.destiny2.set_backoff") as mock_set_backoff,
         ):

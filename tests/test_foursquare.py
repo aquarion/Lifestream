@@ -2,7 +2,10 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from lifestream.core import code_fetcher as real_code_fetcher
+from lifestream.importers.base import ConfigurationError
 from lifestream.importers.foursquare import FoursquareImporter
 
 
@@ -48,6 +51,10 @@ class TestFoursquareImporter:
         with (
             patch("lifestream.importers.foursquare.code_fetcher") as mock_cf,
             patch(
+                "lifestream.importers.foursquare.secrets.token_urlsafe",
+                return_value="expected-state",
+            ),
+            patch(
                 "lifestream.importers.foursquare.requests.get",
                 return_value=token_response,
             ) as mock_get,
@@ -55,7 +62,10 @@ class TestFoursquareImporter:
         ):
             mock_cf.are_we_working.return_value = True
             mock_cf.get_url.return_value = "https://example.com/keyback/"
-            mock_cf.get_code.return_value = {"code": ["abc123"]}
+            mock_cf.get_code.return_value = {
+                "code": ["abc123"],
+                "state": ["expected-state"],
+            }
 
             result = imp.authenticate()
 
@@ -72,6 +82,40 @@ class TestFoursquareImporter:
             },
             timeout=30,
         )
+
+    def test_authenticate_raises_on_oauth_state_mismatch(self):
+        """Regression: a callback with a mismatched (or missing) state must
+        be rejected, since state is what protects this flow from CSRF/token
+        injection."""
+        imp = self._make_importer()
+        imp.get_config = MagicMock(
+            side_effect=lambda k, fallback=None: {
+                "client_id": "cid",
+                "secret": "csecret",
+            }.get(k, fallback)
+        )
+        imp.load_oauth_token = MagicMock(return_value=None)
+        imp.save_oauth_token = MagicMock()
+
+        with (
+            patch("lifestream.importers.foursquare.code_fetcher") as mock_cf,
+            patch(
+                "lifestream.importers.foursquare.secrets.token_urlsafe",
+                return_value="expected-state",
+            ),
+            patch("builtins.print"),
+        ):
+            mock_cf.are_we_working.return_value = True
+            mock_cf.get_url.return_value = "https://example.com/keyback/"
+            mock_cf.get_code.return_value = {
+                "code": ["abc123"],
+                "state": ["attacker-supplied-state"],
+            }
+
+            with pytest.raises(ConfigurationError, match="state mismatch"):
+                imp.authenticate()
+
+        imp.save_oauth_token.assert_not_called()
 
     def test_authenticate_falls_back_to_manual_code_paste_when_code_fetcher_unavailable(
         self,
@@ -153,7 +197,7 @@ class TestFoursquareImporter:
         assert args[1] == "chk1"
         assert args[2] == "The Pub"
         assert args[3] == "Foursquare"
-        assert kwargs["url"] == "http://www.foursquare.com/someuser/checkin/chk1"
+        assert kwargs["url"] == "https://www.foursquare.com/someuser/checkin/chk1"
 
         imp._entry_store.add_location.assert_called_once()
         loc_args = imp._entry_store.add_location.call_args.args

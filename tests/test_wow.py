@@ -53,8 +53,18 @@ class TestWowImporter:
         token_response = MagicMock()
         token_response.json.return_value = {"access_token": "newtoken"}
 
+        mock_oauth_session = MagicMock()
+        mock_oauth_session.authorization_url.return_value = (
+            "https://eu.battle.net/oauth/authorize?...",
+            "expected-state",
+        )
+
         with (
             patch("lifestream.importers.wow.code_fetcher") as mock_cf,
+            patch(
+                "lifestream.importers.wow.OAuth2Session",
+                return_value=mock_oauth_session,
+            ),
             patch(
                 "lifestream.importers.wow.requests.post",
                 return_value=token_response,
@@ -63,7 +73,10 @@ class TestWowImporter:
         ):
             mock_cf.are_we_working.return_value = True
             mock_cf.get_url.return_value = "https://example.com/keyback/"
-            mock_cf.get_code.return_value = {"code": ["abc123"]}
+            mock_cf.get_code.return_value = {
+                "code": ["abc123"],
+                "state": ["expected-state"],
+            }
 
             result = imp.authenticate_user()
 
@@ -74,6 +87,40 @@ class TestWowImporter:
         _, kwargs = mock_post.call_args
         assert kwargs["data"]["redirect_uri"] == "https://example.com/keyback/"
         assert kwargs["data"]["code"] == "abc123"
+
+    def test_authenticate_user_raises_on_oauth_state_mismatch(self):
+        """Regression: a callback with a mismatched (or missing) state must
+        be rejected, since state is what protects this flow from CSRF/token
+        injection."""
+        imp = self._make_importer()
+        imp.load_oauth_token = MagicMock(return_value=None)
+        imp.save_oauth_token = MagicMock()
+
+        mock_oauth_session = MagicMock()
+        mock_oauth_session.authorization_url.return_value = (
+            "https://eu.battle.net/oauth/authorize?...",
+            "expected-state",
+        )
+
+        with (
+            patch("lifestream.importers.wow.code_fetcher") as mock_cf,
+            patch(
+                "lifestream.importers.wow.OAuth2Session",
+                return_value=mock_oauth_session,
+            ),
+            patch("builtins.print"),
+        ):
+            mock_cf.are_we_working.return_value = True
+            mock_cf.get_url.return_value = "https://example.com/keyback/"
+            mock_cf.get_code.return_value = {
+                "code": ["abc123"],
+                "state": ["attacker-supplied-state"],
+            }
+
+            with pytest.raises(ConfigurationError, match="state mismatch"):
+                imp.authenticate_user()
+
+        imp.save_oauth_token.assert_not_called()
 
     def test_authenticate_user_raises_when_code_fetcher_unavailable(self):
         imp = self._make_importer()

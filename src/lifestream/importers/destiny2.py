@@ -7,6 +7,7 @@ still current and unchanged from the old script.
 """
 
 import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import dateutil.parser
@@ -70,7 +71,6 @@ class Destiny2Importer(OAuthImporter):
         the resulting authorization code."""
         try:
             code_fetcher.are_we_working()
-            use_code_fetcher = True
         except code_fetcher.WeSayNotToday as e:
             raise ConfigurationError(
                 "To catch a Destiny 2 OAuth redirect, configure [webserver] in config.ini"
@@ -79,18 +79,20 @@ class Destiny2Importer(OAuthImporter):
         client_id = self.get_config("client_id")
         # Bungie's app config carries a single fixed redirect URI set in its
         # developer portal — there's no redirect_uri param on this URL.
+        state = secrets.token_urlsafe(24)
         authorize_url = (
-            f"{AUTHORIZE_URL}?client_id={client_id}&response_type=code"
-            "&state=6i0mkLx79Hp91nzWVceHrzHG4"
+            f"{AUTHORIZE_URL}?client_id={client_id}&response_type=code&state={state}"
         )
         print("Go to the following link in your browser:")
         print(authorize_url)
         print()
 
-        if use_code_fetcher:
-            return code_fetcher.get_code("code")["code"][0]
-        print("If you configure [webserver], this is a lot easier.")
-        return input("What is the PIN? ")
+        params = code_fetcher.get_code("code")
+        if params.get("state", [None])[0] != state:
+            raise ConfigurationError(
+                "OAuth state mismatch on Destiny 2 callback — possible CSRF, aborting"
+            )
+        return params["code"][0]
 
     @staticmethod
     def _with_expiry(token: dict) -> dict:
@@ -339,7 +341,8 @@ class Destiny2Importer(OAuthImporter):
             )
         except DestinyThrottledByGameServer:
             set_backoff(THROTTLE_BACKOFF_KEY)
-            raise
+            self.logger.warning("Throttled by Bungie's API, stopping this run")
+            return
 
         for member_data in memberships.get("destinyMemberships", []):
             if self.process_membership(credentials, member_data):
