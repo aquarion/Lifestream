@@ -298,6 +298,46 @@ class TestWowImporter:
 
         assert mock_log.call_count == 2
 
+    def test_process_character_continues_past_unexpected_achievement_error(self):
+        """Regression: a schema surprise (e.g. KeyError from an achievement
+        missing an expected field) on one achievement must not stop the rest
+        of that character's achievements from being processed."""
+        imp = self._make_importer()
+        character = {"realm": {"slug": "silvermoon"}, "name": "Alice", "level": 60}
+        imp._entry_store.get_by_id.return_value = None
+
+        with (
+            patch.object(
+                imp,
+                "get_character_achievements",
+                return_value=[
+                    {"achievement": {}, "completed_timestamp": 1577880000000},
+                    {"achievement": {"id": 2}, "completed_timestamp": 1577880000000},
+                ],
+            ),
+            patch.object(imp, "log_achievement") as mock_log,
+        ):
+            imp.process_character(character, "usertok", "apptok")  # should not raise
+
+        # The first entry has no "id" key (KeyError), so log_achievement is
+        # only reached for the second, well-formed entry.
+        mock_log.assert_called_once_with(2, 1577880000000, character, "apptok")
+
+    def test_run_continues_past_unexpected_character_error(self):
+        """Regression: an unhandled failure processing one character must
+        not stop the rest of the account's characters from being processed."""
+        imp = self._make_importer()
+        imp.authenticate_user = MagicMock(return_value={"access_token": "usertok"})
+        imp.fetch_app_token = MagicMock(return_value="apptok")
+        imp.get_account_characters = MagicMock(
+            return_value=[{"name": "Alice"}, {"name": "Bob"}]
+        )
+        imp.process_character = MagicMock(side_effect=[RuntimeError("boom"), None])
+
+        imp.run()  # should not raise
+
+        assert imp.process_character.call_count == 2
+
     def test_run_authenticates_and_processes_each_character(self):
         imp = self._make_importer()
         imp.authenticate_user = MagicMock(return_value={"access_token": "usertok"})

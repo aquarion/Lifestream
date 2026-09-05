@@ -255,19 +255,37 @@ class WowImporter(OAuthImporter):
             return
 
         for entry in achievements:
-            achievement_id = entry["achievement"]["id"]
-            completed_ms = entry.get("completed_timestamp")
-            if completed_ms is None:
-                continue
-
-            entry_id = self._achievement_entry_id(achievement_id)
-            if self.entry_store.get_by_id("gaming", entry_id):
-                continue
-
             try:
-                self.log_achievement(achievement_id, completed_ms, character, app_token)
-            except WowAchievementNotFound:
-                self.logger.warning("Achievement %s not found", achievement_id)
+                self._process_achievement_entry(entry, character, app_token)
+            except WowAchievementNotFound as e:
+                self.logger.warning(str(e))
+            except Exception as e:
+                # One achievement with an unexpected shape (e.g. a schema
+                # surprise from an API this importer can't fully verify
+                # without live credentials) shouldn't stop the rest of this
+                # character's achievements — or the account's other
+                # characters — from being processed.
+                self.logger.error(
+                    "Failed to process an achievement for %s on %s: %s",
+                    name,
+                    realm_slug,
+                    e,
+                )
+
+    def _process_achievement_entry(
+        self, entry: dict, character: dict, app_token: str
+    ) -> None:
+        """Log a single achievements-summary entry, if new and completed."""
+        achievement_id = entry["achievement"]["id"]
+        completed_ms = entry.get("completed_timestamp")
+        if completed_ms is None:
+            return
+
+        entry_id = self._achievement_entry_id(achievement_id)
+        if self.entry_store.get_by_id("gaming", entry_id):
+            return
+
+        self.log_achievement(achievement_id, completed_ms, character, app_token)
 
     def run(self) -> None:
         """Import completed achievements for every character on the account."""
@@ -276,7 +294,18 @@ class WowImporter(OAuthImporter):
 
         characters = self.get_account_characters(user_token)
         for character in characters:
-            self.process_character(character, user_token, app_token)
+            try:
+                self.process_character(character, user_token, app_token)
+            except Exception as e:
+                # A transient API failure (or an unexpected response shape
+                # this importer can't fully verify without live credentials)
+                # for one character shouldn't stop the rest of the account's
+                # characters from being processed.
+                self.logger.error(
+                    "Failed to process character %s: %s",
+                    character.get("name", "<unknown>"),
+                    e,
+                )
 
 
 def main():
