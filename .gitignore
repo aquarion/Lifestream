@@ -21,3 +21,4 @@ datafiles/ffxiv_achievements.*
 super-linter-output/
 poetry.lock
 .claude/settings.local.json
+graphify-out/

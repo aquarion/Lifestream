@@ -1,19 +1,19 @@
-# DEPRECATED: This crontab approach has been replaced by scheduler.py
+# DEPRECATED: This crontab approach has been replaced by supervisor.py
 #
-# The new scheduler uses APScheduler with Redis persistence, which:
+# The new supervisor uses APScheduler with Redis persistence, which:
 # - Catches up missed runs when the server was offline
 # - Coalesces multiple missed runs into one execution
 # - Provides better logging and job management
 #
-# To use the new scheduler:
+# To use the new supervisor:
 #   1. Configure jobs in config.ini [schedules] section
-#   2. Install the systemd service: docs/lifestream-scheduler.service
-#   3. Or run directly: python scheduler.py
+#   2. Install the systemd service: docs/lifestream-supervisor.service
+#   3. Or run directly: python supervisor.py
 #
 # Commands:
-#   python scheduler.py --list    # List configured jobs
-#   python scheduler.py --status  # Show next run times
-#   python scheduler.py --run JOB # Run a job immediately
+#   python supervisor.py --list    # List configured jobs
+#   python supervisor.py --status  # Show next run times
+#   python supervisor.py --run JOB # Run a job immediately
 #
 # ============================================================================
 # Legacy crontab entries (for reference):

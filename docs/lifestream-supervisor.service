@@ -1,19 +1,19 @@
-# Lifestream Scheduler systemd service
+# Lifestream Supervisor systemd service
 #
 # Installation:
-#   1. Copy this file to /etc/systemd/system/lifestream-scheduler.service
+#   1. Copy this file to /etc/systemd/system/lifestream-supervisor.service
 #   2. Edit the paths and user as needed
 #   3. Run: sudo systemctl daemon-reload
-#   4. Run: sudo systemctl enable lifestream-scheduler
-#   5. Run: sudo systemctl start lifestream-scheduler
+#   4. Run: sudo systemctl enable lifestream-supervisor
+#   5. Run: sudo systemctl start lifestream-supervisor
 #
 # Management:
-#   sudo systemctl status lifestream-scheduler  # Check status
-#   sudo systemctl restart lifestream-scheduler # Restart
-#   journalctl -u lifestream-scheduler -f       # View logs
+#   sudo systemctl status lifestream-supervisor  # Check status
+#   sudo systemctl restart lifestream-supervisor # Restart
+#   journalctl -u lifestream-supervisor -f       # View logs
 
 [Unit]
-Description=Lifestream Import Scheduler
+Description=Lifestream Supervisor (scheduler + webserver)
 After=network.target redis.service mysql.service
 Wants=redis.service
 
@@ -24,7 +24,7 @@ Group=aquarion
 WorkingDirectory=/home/aquarion/code/lifestream
 
 # Use poetry to run in the virtual environment
-ExecStart=/usr/bin/poetry run python scheduler.py
+ExecStart=/usr/bin/poetry run python supervisor.py
 
 Restart=on-failure
 RestartSec=30
@@ -32,7 +32,7 @@ RestartSec=30
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=lifestream-scheduler
+SyslogIdentifier=lifestream-supervisor
 
 # Security hardening (optional but recommended)
 NoNewPrivileges=true
