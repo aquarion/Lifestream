@@ -16,13 +16,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 
 from lifestream.core.cache import get_redis_connection
+from lifestream.core.code_fetcher import (
+    OAUTH_CALLBACK_CHANNEL,
+    OAUTH_KEY_WANTED_REDIS_KEY,
+)
 from lifestream.core.config import config, get_project_root
 
 logger = logging.getLogger("Webserver")
-
-# Shared with lifestream.core.code_fetcher.get_code() — must match exactly.
-OAUTH_KEY_WANTED_REDIS_KEY = "lifestream:oauth:key_wanted"
-OAUTH_CALLBACK_CHANNEL = "lifestream:oauth:callback"
 
 
 def _allowed_origins() -> list[str]:

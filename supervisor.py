@@ -344,7 +344,8 @@ def main():
     except Exception as e:
         logger.error(f"Supervisor failed to start: {e}")
         logger.error(
-            "Check that Redis is running and reachable (see [redis] in config.ini)"
+            "Check that the [webserver] host/port are valid and free, and that "
+            "Redis is running and reachable (see [redis] in config.ini)"
         )
         sys.exit(1)
 

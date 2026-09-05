@@ -7,7 +7,7 @@ until the webserver's route delivers the matching callback."""
 import configparser
 import itertools
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -172,3 +172,27 @@ class TestGetCode:
         mock_cxn.set.assert_not_called()
         mock_cxn.delete.assert_not_called()
         mock_pubsub.close.assert_called_once()
+
+    def test_wait_loop_bounds_get_message_timeout_by_remaining_time(self):
+        """Regression: each get_message() call in the wait loop must be capped
+        by whatever time is actually left before the deadline, not always
+        wait a full 1.0s — otherwise a small remaining budget gets rounded up
+        to a full second, overshooting the documented overall timeout."""
+        mock_cxn = MagicMock()
+        mock_cxn.get.return_value = None
+        mock_pubsub = MagicMock()
+        mock_cxn.pubsub.return_value = mock_pubsub
+        mock_pubsub.get_message.side_effect = [
+            {"type": "subscribe", "data": 1},
+            None,
+        ]
+
+        with patch.object(code_fetcher, "get_redis_connection", return_value=mock_cxn):
+            with patch.object(
+                code_fetcher.time, "monotonic", side_effect=[100.0, 104.5, 106.0]
+            ):
+                with pytest.raises(TimeoutError):
+                    code_fetcher.get_code("access_token", timeout=5)
+
+        wait_loop_call = mock_pubsub.get_message.call_args_list[1]
+        assert wait_loop_call == call(timeout=0.5)

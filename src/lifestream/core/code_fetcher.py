@@ -47,6 +47,19 @@ def are_we_working() -> bool:
     return True
 
 
+def _parse_callback_message(message) -> dict | None:
+    """Extract the params dict from a pubsub message, or None if it's not a
+    usable callback (wrong event type, malformed JSON, or not a dict)."""
+    if message is None or message.get("type") != "message":
+        return None
+    try:
+        params = json.loads(message["data"])
+    except (json.JSONDecodeError, TypeError):
+        logger.warning("Ignoring malformed OAuth callback message: %r", message["data"])
+        return None
+    return params if isinstance(params, dict) else None
+
+
 def get_code(key_wanted_arg: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> dict:
     """
     Block until the webserver's /keyback/ route delivers a callback matching
@@ -114,20 +127,13 @@ def get_code(key_wanted_arg: str, timeout: float = DEFAULT_TIMEOUT_SECONDS) -> d
             "Waiting for OAuth callback (key=%s, timeout=%ss)", key_wanted_arg, timeout
         )
 
-        while time.monotonic() < deadline:
-            message = pubsub.get_message(timeout=1.0)
-            if message is None or message.get("type") != "message":
-                continue
-            try:
-                params = json.loads(message["data"])
-            except (json.JSONDecodeError, TypeError):
-                logger.warning(
-                    "Ignoring malformed OAuth callback message: %r", message["data"]
-                )
-                continue
-            if not isinstance(params, dict):
-                continue
-            if key_wanted_arg in params:
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            message = pubsub.get_message(timeout=min(1.0, remaining))
+            params = _parse_callback_message(message)
+            if params is not None and key_wanted_arg in params:
                 return params
         raise TimeoutError(
             f"Timed out after {timeout}s waiting for OAuth callback "
