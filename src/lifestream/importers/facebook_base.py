@@ -222,7 +222,11 @@ class FacebookBaseImporter(OAuthImporter):
             return
         self.logger.info("... KEEP %s", url)
 
-        image = post.get("picture", False)
+        # full_picture is the full-resolution image; picture is a ~130px-wide
+        # thumbnail Graph API scales down — prefer the former, falling back
+        # to the latter for posts that only have a thumbnail (e.g. some link
+        # previews).
+        image = post.get("full_picture") or post.get("picture", False)
         post.setdefault("message", "")
         dt = dtparser.parse(post["created_time"])
 

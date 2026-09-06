@@ -199,6 +199,37 @@ class TestFacebookBaseImporter:
         assert args[1] == "1_2"
         assert args[3] == "facebook"
 
+    def test_process_post_prefers_full_picture_over_picture(self):
+        imp = self._make_importer()
+        post = {
+            "id": "1_2",
+            "type": "photo",
+            "message": "hello",
+            "privacy": {"value": "EVERYONE"},
+            "created_time": "2024-01-01T12:00:00+0000",
+            "picture": "https://example.com/thumb.jpg",
+            "full_picture": "https://example.com/full.jpg",
+        }
+        imp.process_post(post, {"id": "1"})
+
+        kwargs = imp._entry_store.add_entry.call_args.kwargs
+        assert kwargs["image"] == "https://example.com/full.jpg"
+
+    def test_process_post_falls_back_to_picture_without_full_picture(self):
+        imp = self._make_importer()
+        post = {
+            "id": "1_2",
+            "type": "link",
+            "message": "hello",
+            "privacy": {"value": "EVERYONE"},
+            "created_time": "2024-01-01T12:00:00+0000",
+            "picture": "https://example.com/thumb.jpg",
+        }
+        imp.process_post(post, {"id": "1"})
+
+        kwargs = imp._entry_store.add_entry.call_args.kwargs
+        assert kwargs["image"] == "https://example.com/thumb.jpg"
+
     def test_process_post_swallows_mysql_truncation_error(self):
         """A 1366 (bad string value, e.g. malformed emoji) error is logged, not raised."""
         imp = self._make_importer()
