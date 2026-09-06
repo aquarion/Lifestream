@@ -27,7 +27,7 @@ class TestAuthenticate:
         mock_client.assert_called_once_with("ckey", "csecret", "tok", "toksecret")
         imp.save_oauth_token.assert_not_called()
 
-    def test_reauth_flag_skips_saved_token_and_runs_oauth_flow(self):
+    def test_reauth_flag_falls_back_to_pin_entry_when_code_fetcher_unavailable(self):
         imp = MagicMock()
         imp.args.reauth = True
         imp.get_config.side_effect = lambda k: {
@@ -51,12 +51,64 @@ class TestAuthenticate:
                 side_effect=mock_sessions,
             ),
             patch("lifestream.importers.tumblr.TumblrRestClient") as mock_client,
+            patch("lifestream.importers.tumblr.code_fetcher") as mock_cf,
             patch("builtins.input", side_effect=["y", "1234"]),
             patch("builtins.print"),
         ):
+            from lifestream.core import code_fetcher as real_code_fetcher
+
+            mock_cf.WeSayNotToday = real_code_fetcher.WeSayNotToday
+            mock_cf.are_we_working.side_effect = real_code_fetcher.WeSayNotToday()
+
             authenticate(imp)
 
         imp.load_oauth_token.assert_not_called()
+        imp.save_oauth_token.assert_called_once_with(
+            {"oauth_token": "newtok", "oauth_token_secret": "newsecret"}
+        )
+        mock_client.assert_called_once_with("ckey", "csecret", "newtok", "newsecret")
+
+    def test_reauth_flag_runs_code_fetcher_flow_when_available(self):
+        imp = MagicMock()
+        imp.args.reauth = True
+        imp.get_config.side_effect = lambda k: {
+            "consumer_key": "ckey",
+            "secret_key": "csecret",
+        }[k]
+
+        mock_sessions = [MagicMock(), MagicMock()]
+        mock_sessions[0].fetch_request_token.return_value = {
+            "oauth_token": "reqtok",
+            "oauth_token_secret": "reqsecret",
+        }
+        mock_sessions[1].fetch_access_token.return_value = {
+            "oauth_token": "newtok",
+            "oauth_token_secret": "newsecret",
+        }
+
+        with (
+            patch(
+                "lifestream.importers.tumblr.OAuth1Session",
+                side_effect=mock_sessions,
+            ) as mock_session_cls,
+            patch("lifestream.importers.tumblr.TumblrRestClient") as mock_client,
+            patch("lifestream.importers.tumblr.code_fetcher") as mock_cf,
+            patch("builtins.input") as mock_input,
+            patch("builtins.print"),
+        ):
+            mock_cf.are_we_working.return_value = True
+            mock_cf.get_url.return_value = "https://example.com/keyback/"
+            mock_cf.get_code.return_value = {"oauth_verifier": ["verifier123"]}
+
+            authenticate(imp)
+
+        mock_input.assert_not_called()
+        mock_cf.get_code.assert_called_once_with("oauth_verifier")
+        mock_session_cls.assert_any_call(
+            "ckey", client_secret="csecret", callback_uri="https://example.com/keyback/"
+        )
+        mock_sessions[1].fetch_access_token.assert_called_once()
+        assert mock_sessions[1].fetch_access_token.call_args.kwargs == {}
         imp.save_oauth_token.assert_called_once_with(
             {"oauth_token": "newtok", "oauth_token_secret": "newsecret"}
         )
@@ -78,9 +130,17 @@ class TestAuthenticate:
             MagicMock(),
         )
 
-        with patch(
-            "lifestream.importers.tumblr.OAuth1Session", return_value=mock_session
+        with (
+            patch(
+                "lifestream.importers.tumblr.OAuth1Session", return_value=mock_session
+            ),
+            patch("lifestream.importers.tumblr.code_fetcher") as mock_cf,
         ):
+            from lifestream.core import code_fetcher as real_code_fetcher
+
+            mock_cf.WeSayNotToday = real_code_fetcher.WeSayNotToday
+            mock_cf.are_we_working.side_effect = real_code_fetcher.WeSayNotToday()
+
             with pytest.raises(ConfigurationError):
                 authenticate(imp)
 

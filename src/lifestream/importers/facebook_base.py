@@ -30,9 +30,9 @@ EXTEND_TOKEN_URL = "https://graph.facebook.com/oauth/access_token"
 # Both importers persist to and read from the same facebook.oauth token file
 # (see oauth_filename below), so a single OAuth grant has to cover whatever
 # either importer needs — there's no way to hold two differently-scoped
-# tokens under one file. user_posts,user_status is the union of what the
-# two legacy scripts requested individually.
-OAUTH_SCOPE = "user_posts,user_status"
+# tokens under one file. user_status was deprecated in Graph API v2.4 and
+# folded into user_posts, which covers everything both importers use.
+OAUTH_SCOPE = "user_posts"
 
 
 class FacebookBaseImporter(OAuthImporter):
