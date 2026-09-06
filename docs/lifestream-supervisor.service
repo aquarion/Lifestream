@@ -23,7 +23,10 @@ User=aquarion
 Group=aquarion
 WorkingDirectory=/home/aquarion/code/lifestream
 
-# Use poetry to run in the virtual environment
+# Use poetry to run in the virtual environment. Requires Poetry 2.x
+# (pyproject.toml's [project] metadata table is not read by Poetry 1.x,
+# which will fail with "The Poetry configuration is invalid"). If
+# /usr/bin/poetry is older than 2.x, point this at a newer poetry instead.
 ExecStart=/usr/bin/poetry run python supervisor.py
 
 Restart=on-failure
