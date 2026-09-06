@@ -20,7 +20,7 @@ class FacebookPostsImporter(FacebookBaseImporter):
             access_token,
             "me/posts",
             fields="application,message,type,privacy,status_type,source,"
-            "properties,link,picture,created_time",
+            "properties,link,picture,full_picture,created_time",
         )
 
         self.run_pagination(profile, posts)
