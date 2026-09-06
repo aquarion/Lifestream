@@ -23,6 +23,7 @@ from lifestream.importers.mastodon_toots import MastodonImporter
 from lifestream.importers.oyster import OysterImporter
 from lifestream.importers.oyster_csv import OysterCsvImporter
 from lifestream.importers.steam import SteamImporter
+from lifestream.importers.steam_badges import SteamBadgesImporter
 from lifestream.importers.switchbot import SwitchbotImporter
 from lifestream.importers.tumblr import TumblrImporter
 from lifestream.importers.wordpress import WordpressImporter
@@ -51,6 +52,7 @@ __all__ = [
     "OysterImporter",
     "OysterCsvImporter",
     "SteamImporter",
+    "SteamBadgesImporter",
     "SwitchbotImporter",
     "TumblrImporter",
     "WordpressImporter",
@@ -78,6 +80,7 @@ IMPORTERS = {
     "oyster": OysterImporter,
     "oyster_csv": OysterCsvImporter,
     "steam": SteamImporter,
+    "steambadges": SteamBadgesImporter,
     "switchbot": SwitchbotImporter,
     "tumblr": TumblrImporter,
     "wordpress": WordpressImporter,
