@@ -57,6 +57,11 @@ class SteamBadgesImporter(BaseImporter):
         try:
             parsed = datetime.strptime(text, "%b %d, %Y @ %I:%M%p")
         except ValueError:
+            # datetime.now().year is the system clock's year, not Pacific
+            # time's (STEAM_TIMEZONE) — right at the new year boundary this
+            # could misattribute a Dec 31 badge to the wrong year. Narrow
+            # window, low consequence (only affects display; the entry id
+            # is keyed on the raw unlocked_text, not this parsed year).
             parsed = datetime.strptime(text, "%b %d @ %I:%M%p").replace(
                 year=datetime.now().year
             )

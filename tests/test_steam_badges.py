@@ -58,6 +58,25 @@ BADGE_ROW_IN_PROGRESS = """
 </div>
 """
 
+BADGE_ROW_NO_ICON = """
+<div id="badge_badge_7" class="badge_row is_link">
+  <a class="badge_row_overlay" href="https://steamcommunity.com/id/gaben/badges/7"></a>
+  <div class="badge_row_inner">
+    <div class="badge_info">
+      <div class="badge_info_image">
+        <img src="trans.gif" class="badge_icon">
+      </div>
+      <div class="badge_info_description">
+        <div class="badge_info_title">No Icon Badge</div>
+        <div class="badge_info_unlocked">
+          Unlocked Jan 1 @ 12:00am
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+"""
+
 BADGE_ROW_NO_LINK = """
 <div id="badge_badge_5" class="badge_row">
   <div class="badge_row_inner">
@@ -143,6 +162,16 @@ class TestSteamBadgesImporter:
         )
 
         assert badges == []
+
+    def test_parse_badges_defaults_image_to_empty_string_when_no_icon(self):
+        imp = self._make_importer()
+
+        badges = imp.parse_badges(
+            BADGE_ROW_NO_ICON, fallback_url="https://fallback.example/badges"
+        )
+
+        assert len(badges) == 1
+        assert badges[0]["image"] == ""
 
     def test_parse_badges_falls_back_to_list_url_when_no_link(self):
         imp = self._make_importer()
