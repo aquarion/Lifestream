@@ -70,7 +70,10 @@ def authenticate(importer: OAuthImporter) -> TumblrRestClient:
             accepted = "n"
             while accepted.lower() == "n":
                 accepted = input("Have you authorized me? (y/n) ")
-            oauth_verifier = input("What is the PIN? ")
+            oauth_verifier = input(
+                "Paste the oauth_verifier value from the redirected URL's query "
+                "string: "
+            )
 
         session = OAuth1Session(
             consumer_key,
