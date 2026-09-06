@@ -3,6 +3,8 @@
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from lifestream.importers.steam_badges import SteamBadgesImporter
 
 BADGE_ROW_WITH_YEAR = """
@@ -140,6 +142,25 @@ class TestSteamBadgesImporter:
     def test_parse_unlocked_date_without_year_uses_current_year(self):
         dt = SteamBadgesImporter._parse_unlocked_date("Aug 8 @ 5:18pm")
         assert dt.year == datetime.now().year
+
+    def test_parse_unlocked_date_with_year_day_first(self):
+        """Some accounts' locale renders "D Mon, Year" instead of "Mon D, Year"."""
+        month_first = SteamBadgesImporter._parse_unlocked_date(
+            "Unlocked Jan 2, 2019 @ 6:40pm"
+        )
+        day_first = SteamBadgesImporter._parse_unlocked_date(
+            "Unlocked 2 Jan, 2019 @ 6:40pm"
+        )
+        assert day_first == month_first
+
+    def test_parse_unlocked_date_without_year_day_first(self):
+        month_first = SteamBadgesImporter._parse_unlocked_date("Aug 8 @ 5:18pm")
+        day_first = SteamBadgesImporter._parse_unlocked_date("8 Aug @ 5:18pm")
+        assert day_first == month_first
+
+    def test_parse_unlocked_date_raises_on_unrecognized_format(self):
+        with pytest.raises(ValueError):
+            SteamBadgesImporter._parse_unlocked_date("not a date")
 
     def test_parse_badges_extracts_title_image_url_and_date_text(self):
         imp = self._make_importer()

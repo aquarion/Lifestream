@@ -46,6 +46,12 @@ class SteamBadgesImporter(BaseImporter):
         response.raise_for_status()
         return response.text
 
+    # Steam renders badge unlock dates in either month-first ("Jan 2, 2019")
+    # or day-first ("2 Jan, 2019") order depending on the account's language/
+    # region setting, so both orders have to be tried.
+    _DATE_FORMATS_WITH_YEAR = ("%b %d, %Y @ %I:%M%p", "%d %b, %Y @ %I:%M%p")
+    _DATE_FORMATS_WITHOUT_YEAR = ("%b %d @ %I:%M%p", "%d %b @ %I:%M%p")
+
     @staticmethod
     def _parse_unlocked_date(text: str) -> datetime:
         """Parse a badge's "Unlocked ..." timestamp (the "Unlocked " prefix,
@@ -54,18 +60,32 @@ class SteamBadgesImporter(BaseImporter):
         text = text.strip()
         if text.startswith(UNLOCKED_PREFIX):
             text = text[len(UNLOCKED_PREFIX) :]
-        try:
-            parsed = datetime.strptime(text, "%b %d, %Y @ %I:%M%p")
-        except ValueError:
+
+        parsed = None
+        for fmt in SteamBadgesImporter._DATE_FORMATS_WITH_YEAR:
+            try:
+                parsed = datetime.strptime(text, fmt)
+                break
+            except ValueError:
+                continue
+
+        if parsed is None:
             # Use STEAM_TIMEZONE's current year, not the system clock's —
             # these year-less timestamps are Steam's own (Pacific-time)
             # "this year" judgement, so the fallback year must agree with
             # it, or a badge unlocked right at the year boundary could be
             # assigned the wrong year.
             current_year = datetime.now(STEAM_TIMEZONE).year
-            parsed = datetime.strptime(text, "%b %d @ %I:%M%p").replace(
-                year=current_year
-            )
+            for fmt in SteamBadgesImporter._DATE_FORMATS_WITHOUT_YEAR:
+                try:
+                    parsed = datetime.strptime(text, fmt).replace(year=current_year)
+                    break
+                except ValueError:
+                    continue
+
+        if parsed is None:
+            raise ValueError(f"Unrecognized unlock date format: {text!r}")
+
         localized = STEAM_TIMEZONE.localize(parsed)
         return localized.astimezone(pytz.utc)
 
