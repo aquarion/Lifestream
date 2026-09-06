@@ -48,22 +48,23 @@ class SteamBadgesImporter(BaseImporter):
 
     @staticmethod
     def _parse_unlocked_date(text: str) -> datetime:
-        """Parse a badge's "Unlocked ..." timestamp (prefix already
-        stripped) into a UTC datetime. Steam omits the year for badges
-        unlocked in the current year."""
+        """Parse a badge's "Unlocked ..." timestamp (the "Unlocked " prefix,
+        if present, is stripped here) into a UTC datetime. Steam omits the
+        year for badges unlocked in the current year (Pacific time)."""
         text = text.strip()
         if text.startswith(UNLOCKED_PREFIX):
             text = text[len(UNLOCKED_PREFIX) :]
         try:
             parsed = datetime.strptime(text, "%b %d, %Y @ %I:%M%p")
         except ValueError:
-            # datetime.now().year is the system clock's year, not Pacific
-            # time's (STEAM_TIMEZONE) — right at the new year boundary this
-            # could misattribute a Dec 31 badge to the wrong year. Narrow
-            # window, low consequence (only affects display; the entry id
-            # is keyed on the raw unlocked_text, not this parsed year).
+            # Use STEAM_TIMEZONE's current year, not the system clock's —
+            # these year-less timestamps are Steam's own (Pacific-time)
+            # "this year" judgement, so the fallback year must agree with
+            # it, or a badge unlocked right at the year boundary could be
+            # assigned the wrong year.
+            current_year = datetime.now(STEAM_TIMEZONE).year
             parsed = datetime.strptime(text, "%b %d @ %I:%M%p").replace(
-                year=datetime.now().year
+                year=current_year
             )
         localized = STEAM_TIMEZONE.localize(parsed)
         return localized.astimezone(pytz.utc)

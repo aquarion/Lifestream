@@ -129,6 +129,7 @@ class TestSteamBadgesImporter:
             headers={"User-Agent": "Mozilla/5.0"},
             timeout=30,
         )
+        response.raise_for_status.assert_called_once()
 
     def test_parse_unlocked_date_with_year(self):
         imp = SteamBadgesImporter
