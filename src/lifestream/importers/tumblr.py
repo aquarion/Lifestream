@@ -8,11 +8,25 @@ from pytumblr import TumblrRestClient
 from requests_oauthlib import OAuth1Session
 from requests_oauthlib.oauth1_session import TokenRequestDenied
 
+from lifestream.core import code_fetcher
 from lifestream.importers.base import ConfigurationError, OAuthImporter
 
 REQUEST_TOKEN_URL = "https://www.tumblr.com/oauth/request_token"
 ACCESS_TOKEN_URL = "https://www.tumblr.com/oauth/access_token"
 AUTHORIZE_URL = "https://www.tumblr.com/oauth/authorize"
+
+# Tumblr's app registration requires a fixed callback URL; used only when the
+# webserver's OAuth catcher (code_fetcher) isn't configured/available.
+FALLBACK_REDIRECT_URI = "https://github.com/aquarion/lifestream"
+
+
+def _redirect_uri() -> tuple[str, bool]:
+    """Return (redirect_uri, use_code_fetcher)."""
+    try:
+        code_fetcher.are_we_working()
+        return code_fetcher.get_url(), True
+    except code_fetcher.WeSayNotToday:
+        return FALLBACK_REDIRECT_URI, False
 
 
 def authenticate(importer: OAuthImporter) -> TumblrRestClient:
@@ -28,7 +42,15 @@ def authenticate(importer: OAuthImporter) -> TumblrRestClient:
     oauth_token = None if importer.args.reauth else importer.load_oauth_token()
 
     if not oauth_token:
-        session = OAuth1Session(consumer_key, client_secret=consumer_secret)
+        redirect_uri, use_code_fetcher = _redirect_uri()
+
+        # An explicit oauth_callback overrides the app's registered default
+        # callback for this request, so this redirects to our own catcher
+        # (or the fallback below) instead of wherever the app was registered
+        # to send it.
+        session = OAuth1Session(
+            consumer_key, client_secret=consumer_secret, callback_uri=redirect_uri
+        )
         try:
             request_token = session.fetch_request_token(REQUEST_TOKEN_URL)
         except TokenRequestDenied as e:
@@ -40,10 +62,15 @@ def authenticate(importer: OAuthImporter) -> TumblrRestClient:
         print(authorize_link)
         print()
 
-        accepted = "n"
-        while accepted.lower() == "n":
-            accepted = input("Have you authorized me? (y/n) ")
-        oauth_verifier = input("What is the PIN? ")
+        if use_code_fetcher:
+            oauth_redirect = code_fetcher.get_code("oauth_verifier")
+            oauth_verifier = oauth_redirect["oauth_verifier"][0]
+        else:
+            print("If you configure [webserver], this is a lot easier.")
+            accepted = "n"
+            while accepted.lower() == "n":
+                accepted = input("Have you authorized me? (y/n) ")
+            oauth_verifier = input("What is the PIN? ")
 
         session = OAuth1Session(
             consumer_key,
