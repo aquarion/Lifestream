@@ -21,8 +21,6 @@ ACHIEVEMENT_SELECTORS = "datafiles/lodestone-css-selectors/profile/achievements.
 class Lodestone:
     """Scrapes character achievements from the FFXIV Lodestone."""
 
-    base_url = "https://xivapi.com"
-
     def __init__(
         self, achievement_db_path: str, max_pages: int, all_achievements: bool
     ) -> None:
@@ -174,10 +172,10 @@ class FFXIVImporter(BaseImporter):
         )
 
     def validate_config(self) -> bool:
-        """Ensure xivapi credentials are configured."""
+        """Ensure the FFXIV Lodestone import config is present."""
         missing = [
             k
-            for k in ("apikey", "characters", "icon_base", "achievement_db")
+            for k in ("characters", "icon_base", "achievement_db")
             if not self.get_config(k)
         ]
         if missing:

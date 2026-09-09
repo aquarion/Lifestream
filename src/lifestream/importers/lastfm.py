@@ -1,16 +1,19 @@
 """Last.fm scrobble importer for Lifestream."""
 
+import argparse
 import hashlib
+from datetime import datetime, timezone
 
-import dateutil.parser
-import feedparser
-import pytz
+import requests
 
-from lifestream.importers.base import FeedImporter
+from lifestream.importers.base import BaseImporter, ConfigurationError
+
+API_URL = "https://ws.audioscrobbler.com/2.0/"
+DEFAULT_LIMIT = 50
 
 
-class LastfmImporter(FeedImporter):
-    """Import recent Last.fm scrobbles."""
+class LastfmImporter(BaseImporter):
+    """Import recent Last.fm scrobbles via the official Last.fm Web API."""
 
     name = "lastfm"
     description = "Import recent Last.fm scrobbles"
@@ -18,67 +21,99 @@ class LastfmImporter(FeedImporter):
     entry_type = "lastfm"
     source_name = "lastfm"
 
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Add Last.fm-specific arguments."""
+        parser.add_argument(
+            "--limit",
+            type=int,
+            default=DEFAULT_LIMIT,
+            help="Number of recent scrobbles to fetch",
+        )
+
     def validate_config(self) -> bool:
-        """Ensure username is configured."""
-        username = self.get_config("username")
-        if not username:
-            self.logger.error("No Last.fm user found in config file")
+        """Ensure Last.fm credentials are configured."""
+        missing = [k for k in ("username", "api_key") if not self.get_config(k)]
+        if missing:
+            self.logger.error(f"Missing Last.fm config keys: {', '.join(missing)}")
             return False
         return True
 
-    def get_feed_url(self) -> str:
-        """Get the Last.fm RSS feed URL."""
-        username = self.get_config("username")
-        return f"https://xiffy.nl/lastfmrss.php?user={username}"
+    @staticmethod
+    def _track_id(track: dict) -> str:
+        # Last.fm doesn't hand out a per-scrobble id, so hash the fields that
+        # tell one scrobble apart from a repeat play of the same track.
+        artist = track["artist"]["#text"]
+        name = track["name"]
+        uts = track["date"]["uts"]
+        return hashlib.md5(f"{artist}-{name}-{uts}".encode()).hexdigest()
+
+    @staticmethod
+    def _track_image(track: dict) -> str:
+        images = {
+            image.get("size"): image.get("#text", "")
+            for image in track.get("image", [])
+        }
+        for size in ("extralarge", "large", "medium", "small"):
+            if images.get(size):
+                return images[size]
+        return ""
+
+    def _process_track(self, track: dict) -> None:
+        if "date" not in track:
+            # The currently-playing track carries no timestamp — nothing to
+            # log until it's actually finished scrobbling.
+            return
+
+        artist = track["artist"]["#text"]
+        name = track["name"]
+        title = f"{artist} – {name}"
+        utcdate = datetime.fromtimestamp(int(track["date"]["uts"]), tz=timezone.utc)
+
+        self.logger.info(title)
+        self.entry_store.add_entry(
+            self.entry_type,
+            self._track_id(track),
+            title,
+            self.source_name,
+            utcdate,
+            url=track.get("url", ""),
+            image=self._track_image(track),
+            fulldata_json=track,
+        )
 
     def run(self) -> None:
         """Import recent Last.fm scrobbles."""
-        url = self.get_feed_url()
-        self.logger.info("Grabbing %s", url)
+        username = self.get_config("username")
+        api_key = self.get_config("api_key")
 
-        fp = feedparser.parse(url)
+        response = requests.get(
+            API_URL,
+            params={
+                "method": "user.getrecenttracks",
+                "user": username,
+                "api_key": api_key,
+                "format": "json",
+                "limit": self.args.limit,
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        data = response.json()
 
-        status = getattr(fp, "status", None)
-        if status is not None and not 200 <= status < 300:
-            raise RuntimeError(f"Failed to fetch feed at {url}: HTTP {status}")
-
-        if fp.bozo:
-            import urllib.error
-
-            if isinstance(fp.bozo_exception, urllib.error.URLError):
-                raise RuntimeError(
-                    f"Failed to fetch feed at {url}: {fp.bozo_exception}"
-                )
-            self.logger.warning(
-                "Feed at %s is not well-formed: %s", url, fp.bozo_exception
+        if "error" in data:
+            raise ConfigurationError(
+                f"Last.fm API error {data['error']}: "
+                f"{data.get('message', 'unknown error')}"
             )
 
-        for o_item in fp["entries"]:
+        tracks = data.get("recenttracks", {}).get("track", [])
+        # A single-result response comes back as a bare dict, not a
+        # one-element list.
+        if isinstance(tracks, dict):
+            tracks = [tracks]
 
-            item_id = hashlib.md5()
-            item_id.update(o_item["guid"].encode("utf-8"))
-
-            title = o_item.title
-            localdate = dateutil.parser.parse(o_item.updated)
-            updated = localdate.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M")
-
-            # Remove unpicklable parsed date
-            o_item_data = dict(o_item)
-            if "published_parsed" in o_item_data:
-                del o_item_data["published_parsed"]
-            if "updated_parsed" in o_item_data:
-                del o_item_data["updated_parsed"]
-
-            self.logger.info(title)
-            self.entry_store.add_entry(
-                self.entry_type,
-                item_id.hexdigest(),
-                title,
-                self.source_name,
-                updated,
-                url=o_item["link"],
-                fulldata_json=o_item_data,
-            )
+        for track in tracks:
+            self._process_track(track)
 
 
 def main():

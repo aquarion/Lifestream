@@ -1,6 +1,10 @@
 """SwitchBot temperature/humidity sensor importer for Lifestream."""
 
-from datetime import datetime
+import base64
+import hashlib
+import hmac
+import uuid
+from datetime import datetime, timezone
 
 import requests
 
@@ -9,18 +13,40 @@ from lifestream.importers.base import BaseImporter
 
 
 class SwitchBotAPI:
-    """Client for the SwitchBot API."""
+    """Client for the SwitchBot API.
+
+    Uses v1.1's signed-request auth (v1.0's token-only auth is frozen —
+    SwitchBot recommends all users migrate): each request is signed with
+    HMAC-SHA256 over token+timestamp+nonce, using the account's secret key.
+    """
 
     base_url = "https://api.switch-bot.com"
     token: str = ""
-    version = "v1.0"
+    secret: str = ""
+    version = "v1.1"
 
-    def __init__(self, token: str | None = None) -> None:
-        """Initialize with token from config or parameter."""
-        if token:
-            self.token = token
-        else:
-            self.token = config.get("switchbot", "token")
+    def __init__(self, token: str | None = None, secret: str | None = None) -> None:
+        """Initialize with token/secret from config or parameters."""
+        self.token = token or config.get("switchbot", "token")
+        self.secret = secret or config.get("switchbot", "secret")
+
+    def _signed_headers(self) -> dict[str, str]:
+        t = str(int(datetime.now(timezone.utc).timestamp() * 1000))
+        nonce = str(uuid.uuid4())
+        string_to_sign = f"{self.token}{t}{nonce}".encode()
+        sign = (
+            base64.b64encode(
+                hmac.new(self.secret.encode(), string_to_sign, hashlib.sha256).digest()
+            )
+            .decode()
+            .upper()
+        )
+        return {
+            "Authorization": self.token,
+            "sign": sign,
+            "t": t,
+            "nonce": nonce,
+        }
 
     def call(self, method: str, callname: str, data: dict | None = None) -> dict:
         """Make an API call."""
@@ -28,10 +54,10 @@ class SwitchBotAPI:
             data = {}
         url = f"{self.base_url}/{self.version}/{callname}"
 
-        headers: dict[str, str] = {"authorization": self.token}
+        headers = self._signed_headers()
 
         if method == "post":
-            headers["content-type"] = "application/json; charset=utf8"
+            headers["Content-Type"] = "application/json; charset=utf-8"
             r = requests.post(url, json=data, headers=headers, timeout=30)
         elif method == "get":
             r = requests.get(url, params=data, headers=headers, timeout=30)
@@ -50,9 +76,10 @@ class SwitchbotImporter(BaseImporter):
     config_section = "switchbot"
 
     def validate_config(self) -> bool:
-        """Ensure SwitchBot token is configured."""
-        if not self.get_config("token"):
-            self.logger.error("No SwitchBot token in config")
+        """Ensure SwitchBot credentials are configured."""
+        missing = [k for k in ("token", "secret") if not self.get_config(k)]
+        if missing:
+            self.logger.error(f"Missing SwitchBot config keys: {', '.join(missing)}")
             return False
         return True
 

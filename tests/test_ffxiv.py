@@ -28,6 +28,13 @@ class TestFFXIVImporter:
         imp.get_config = MagicMock(return_value=None)
         assert imp.validate_config() is False
 
+    def test_validate_config_passes_without_apikey(self):
+        """apikey isn't required: nothing in this importer reads it (it's a
+        leftover from an old xivapi.com integration; requests go straight to
+        finalfantasyxiv.com Lodestone pages instead)."""
+        imp = self._make_importer()
+        assert imp.validate_config() is True
+
     def test_run_updates_achievements_for_each_character(self, monkeypatch):
         """One character's worth of achievements is fetched and stored per configured character."""
         imp = self._make_importer()

@@ -31,7 +31,7 @@ class GithubCommitsImporter(BaseImporter):
         """Make an authenticated GitHub API call."""
         token = self.get_config("auth_token")
         gh_url = f"https://api.github.com/{path}?page={page}&per_page={per_page}"
-        headers = {"Authorization": f"token {token}"}
+        headers = {"Authorization": f"Bearer {token}"}
 
         self.logger.debug("Calling %s page %d", path, page)
         r = requests.get(gh_url, headers=headers, timeout=30)
