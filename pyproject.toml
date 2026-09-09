@@ -13,9 +13,7 @@ asttokens = "^3.0.2"
 attrs = "^26.1.0"
 autopep8 = "^2.3.2"
 beautifulsoup4 = "^4.14.3"
-blurhash = "^1.1.5"
 bs4 = "^0.0.2"
-cachetools = "^7.0.5"
 certifi = "^2026.4.22"
 chardet = "^7.0.1"
 charset-normalizer = "^3.5.1"
@@ -63,7 +61,6 @@ pyparsing = "^3.3.2"
 pysocks = "^1.7.1"
 python-dateutil = "^2.9.0.post0"
 python-gflags = "^3.1.2"
-python-magic = "^0.4.27"
 #python-wordpress-xmlrpc @ https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip
 # python-wordpress-xmlrpc = {url = "https://github.com/emsi/python-wordpress-xmlrpc/archive/796e18e700eaadd653863677e38c33b1db70955d.zip"}
 python-wordpress-xmlrpc = { git = "https://git@github.com/emsi/python-wordpress-xmlrpc.git", branch = "master" }
