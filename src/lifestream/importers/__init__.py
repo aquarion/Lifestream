@@ -17,7 +17,6 @@ from lifestream.importers.foursquare import FoursquareImporter
 from lifestream.importers.github_commits import GithubCommitsImporter
 from lifestream.importers.gw2 import GW2Importer
 from lifestream.importers.historic import HistoricImporter
-from lifestream.importers.instagram import InstagramImporter
 from lifestream.importers.lastfm import LastfmImporter
 from lifestream.importers.mastodon_toots import MastodonImporter
 from lifestream.importers.oyster import OysterImporter
@@ -46,7 +45,6 @@ __all__ = [
     "GithubCommitsImporter",
     "GW2Importer",
     "HistoricImporter",
-    "InstagramImporter",
     "LastfmImporter",
     "MastodonImporter",
     "OysterImporter",
@@ -73,7 +71,6 @@ IMPORTERS = {
     "github_commits": GithubCommitsImporter,  # legacy schedule name
     "gw2": GW2Importer,
     "historic": HistoricImporter,
-    "instagram": InstagramImporter,
     "lastfm": LastfmImporter,
     "mastodon": MastodonImporter,
     "mastodon_toots": MastodonImporter,  # legacy schedule name
