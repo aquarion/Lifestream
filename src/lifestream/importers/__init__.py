@@ -19,7 +19,6 @@ from lifestream.importers.gw2 import GW2Importer
 from lifestream.importers.historic import HistoricImporter
 from lifestream.importers.lastfm import LastfmImporter
 from lifestream.importers.mastodon_toots import MastodonImporter
-from lifestream.importers.oyster import OysterImporter
 from lifestream.importers.oyster_csv import OysterCsvImporter
 from lifestream.importers.steam import SteamImporter
 from lifestream.importers.steam_badges import SteamBadgesImporter
@@ -47,7 +46,6 @@ __all__ = [
     "HistoricImporter",
     "LastfmImporter",
     "MastodonImporter",
-    "OysterImporter",
     "OysterCsvImporter",
     "SteamImporter",
     "SteamBadgesImporter",
@@ -74,7 +72,6 @@ IMPORTERS = {
     "lastfm": LastfmImporter,
     "mastodon": MastodonImporter,
     "mastodon_toots": MastodonImporter,  # legacy schedule name
-    "oyster": OysterImporter,
     "oyster_csv": OysterCsvImporter,
     "steam": SteamImporter,
     "steambadges": SteamBadgesImporter,
