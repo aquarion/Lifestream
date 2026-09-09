@@ -82,7 +82,7 @@ poetry run lifestream-import lastfm
 ```
 
 Remaining legacy scripts under `imports/` (not yet migrated to the new-style
-importer classes) are still run directly, e.g. `poetry run python imports/wow.py`.
+importer classes) are still run directly, e.g. `poetry run python imports/planetside.py`.
 See `docs/crontab.example` for cron-based scheduling of either style using
 `bin/run_import.sh` (legacy; superseded by the supervisor above).
 
