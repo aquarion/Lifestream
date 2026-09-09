@@ -46,7 +46,7 @@ class TestSwitchBotAPI:
         )
 
         assert headers["sign"] == expected
-        assert headers["authorization"] == "tok"
+        assert headers["Authorization"] == "tok"
         assert headers["t"].isdigit()
 
     def test_signed_headers_timestamp_is_current_time_in_milliseconds(self):
@@ -72,7 +72,7 @@ class TestSwitchBotAPI:
         mock_get.assert_called_once()
         args, kwargs = mock_get.call_args
         assert args[0] == "https://api.switch-bot.com/v1.1/devices"
-        assert kwargs["headers"]["authorization"] == "tok"
+        assert kwargs["headers"]["Authorization"] == "tok"
         assert "sign" in kwargs["headers"]
         response.raise_for_status.assert_called_once()
 
@@ -89,7 +89,7 @@ class TestSwitchBotAPI:
         args, kwargs = mock_post.call_args
         assert args[0] == "https://api.switch-bot.com/v1.1/devices/1/commands"
         assert kwargs["json"] == {"command": "turnOn"}
-        assert kwargs["headers"]["content-type"] == "application/json; charset=utf8"
+        assert kwargs["headers"]["Content-Type"] == "application/json; charset=utf-8"
 
     def test_call_unknown_method_raises(self):
         api = SwitchBotAPI(token="tok", secret="sec")

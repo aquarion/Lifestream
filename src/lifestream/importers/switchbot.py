@@ -16,7 +16,7 @@ class SwitchBotAPI:
     """Client for the SwitchBot API.
 
     Uses v1.1's signed-request auth (v1.0's token-only auth is frozen —
-    SwitchBot recommend all users migrate): each request is signed with
+    SwitchBot recommends all users migrate): each request is signed with
     HMAC-SHA256 over token+timestamp+nonce, using the account's secret key.
     """
 
@@ -42,7 +42,7 @@ class SwitchBotAPI:
             .upper()
         )
         return {
-            "authorization": self.token,
+            "Authorization": self.token,
             "sign": sign,
             "t": t,
             "nonce": nonce,
@@ -57,7 +57,7 @@ class SwitchBotAPI:
         headers = self._signed_headers()
 
         if method == "post":
-            headers["content-type"] = "application/json; charset=utf8"
+            headers["Content-Type"] = "application/json; charset=utf-8"
             r = requests.post(url, json=data, headers=headers, timeout=30)
         elif method == "get":
             r = requests.get(url, params=data, headers=headers, timeout=30)

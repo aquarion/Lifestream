@@ -172,7 +172,7 @@ class FFXIVImporter(BaseImporter):
         )
 
     def validate_config(self) -> bool:
-        """Ensure xivapi credentials are configured."""
+        """Ensure the FFXIV Lodestone import config is present."""
         missing = [
             k
             for k in ("characters", "icon_base", "achievement_db")
