@@ -1,11 +1,11 @@
 """Database functionality for Lifestream."""
 
+import json
 import sys
 from datetime import datetime
 
 import pymysql as MySQLdb
 import pytz
-import simplejson
 
 from . import config, get_parsed_args
 
@@ -111,7 +111,7 @@ class EntryStore:
     ):
         """Add or update a lifestream entry."""
         if fulldata_json:
-            fulldata_json = simplejson.dumps(fulldata_json)
+            fulldata_json = json.dumps(fulldata_json)
 
         if self.no_db:
             print(

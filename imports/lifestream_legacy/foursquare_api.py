@@ -1,12 +1,12 @@
 """Foursquare API client library."""
 
 import hashlib
+import json
 import logging
 import os
 
 import redis
 import requests
-import simplejson as json
 
 from . import config
 from .cache import get_redis_connection

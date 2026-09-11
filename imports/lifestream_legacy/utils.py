@@ -1,8 +1,7 @@
 """Utility functions for Lifestream."""
 
+import json
 from datetime import timedelta
-
-import simplejson as json
 
 
 class AnAttributeError(Exception):
