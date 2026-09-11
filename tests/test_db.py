@@ -138,10 +138,11 @@ class TestEntryStore:
         with patch.object(db, "get_connection", return_value=mock_conn):
             with patch.object(db, "get_cursor", return_value=mock_cursor):
                 store = db.EntryStore(no_db=False)
-                store.add_entry(
+                result = store.add_entry(
                     type="test", id="abc", title="T", source="s", date="2024-01-01"
                 )
 
+        assert result is db.EntryResult.INSERTED
         executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
         assert any("INSERT INTO" in sql for sql in executed_sqls)
         mock_conn.commit.assert_called()
@@ -158,7 +159,7 @@ class TestEntryStore:
         with patch.object(db, "get_connection", return_value=mock_conn):
             with patch.object(db, "get_cursor", return_value=mock_cursor):
                 store = db.EntryStore(no_db=False)
-                store.add_entry(
+                result = store.add_entry(
                     type="test",
                     id="abc",
                     title="Updated",
@@ -167,12 +168,13 @@ class TestEntryStore:
                     update=True,
                 )
 
+        assert result is db.EntryResult.UPDATED
         executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
         assert any("UPDATE" in sql for sql in executed_sqls)
         mock_conn.commit.assert_called()
 
-    def test_add_entry_returns_false_for_existing_when_update_false(self):
-        """add_entry returns False and does not UPDATE when entry exists and update=False."""
+    def test_add_entry_returns_skipped_for_existing_when_update_false(self):
+        """add_entry returns SKIPPED and does not UPDATE when entry exists and update=False."""
         mock_cursor = MagicMock()
         mock_cursor.fetchone.return_value = {
             "date_created": "2024-01-01"
@@ -192,7 +194,7 @@ class TestEntryStore:
                     update=False,
                 )
 
-        assert result is False
+        assert result is db.EntryResult.SKIPPED
         executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
         assert not any("UPDATE" in sql for sql in executed_sqls)
         assert not any("INSERT" in sql for sql in executed_sqls)

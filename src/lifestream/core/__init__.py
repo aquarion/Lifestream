@@ -25,7 +25,14 @@ from .config import (
     get_project_root,
     resolve_path,
 )
-from .db import EntryStore, get_connection, get_cursor, get_no_db_mode, set_no_db_mode
+from .db import (
+    EntryResult,
+    EntryStore,
+    get_connection,
+    get_cursor,
+    get_no_db_mode,
+    set_no_db_mode,
+)
 from .logging import get_logger, is_logging_configured, setup_logging
 from .notifications import (
     send_failure_email,
@@ -57,6 +64,7 @@ __all__ = [
     "is_logging_configured",
     # Database
     "EntryStore",
+    "EntryResult",
     "get_connection",
     "get_cursor",
     "set_no_db_mode",

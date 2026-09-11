@@ -7,6 +7,7 @@ Handles running Python import modules and shell commands as scheduled jobs.
 import logging
 import subprocess
 import sys
+import threading
 from datetime import datetime
 
 from lifestream.core.config import get_project_root
@@ -16,6 +17,11 @@ logger = logging.getLogger(__name__)
 
 _IMPORTERS: dict = {}
 _IMPORTERS_IMPORT_ERROR: ImportError | None = None
+_IMPORTERS_IMPORT_ERROR_NOTIFIED = False
+# The supervisor runs jobs on a thread pool, so concurrent run_import() calls
+# can race on the check-and-set below; this makes the "notify once" guarantee
+# actually hold.
+_IMPORTERS_IMPORT_ERROR_LOCK = threading.Lock()
 try:
     from lifestream.importers import IMPORTERS as _IMPORTERS
 except ImportError as _import_err:
@@ -50,11 +56,20 @@ def run_import(job_name: str, extra_args: list[str] | None = None) -> None:
     Raises:
         Exception: Re-raises any exception from the job after logging and notifying
     """
+    global _IMPORTERS_IMPORT_ERROR_NOTIFIED
     if _IMPORTERS_IMPORT_ERROR is not None:
-        logger.warning(
-            "Failed to import lifestream.importers (legacy fallback only): %s",
+        logger.error(
+            "lifestream.importers failed to import — every job falls back to "
+            "legacy-only dispatch until this is fixed: %s",
             _IMPORTERS_IMPORT_ERROR,
         )
+        with _IMPORTERS_IMPORT_ERROR_LOCK:
+            already_notified = _IMPORTERS_IMPORT_ERROR_NOTIFIED
+            _IMPORTERS_IMPORT_ERROR_NOTIFIED = True
+        if not already_notified:
+            send_failure_notifications(
+                "lifestream.importers", _IMPORTERS_IMPORT_ERROR, 0.0
+            )
 
     logger.info(f"Starting job: {job_name}")
     start_time = datetime.now()
