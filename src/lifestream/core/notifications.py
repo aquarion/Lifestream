@@ -29,6 +29,42 @@ def _is_notifications_enabled() -> bool:
         return False
 
 
+def _load_email_config() -> dict | None:
+    """Read and validate [notifications] SMTP settings.
+
+    Returns None if the section/options are missing, malformed, or any
+    required value (smtp_host, from_address, to_address) is present but
+    empty — ConfigParser hands an empty option back as "" rather than
+    raising, so that has to be checked explicitly.
+    """
+    try:
+        cfg = {
+            "smtp_host": config.get("notifications", "smtp_host"),
+            "smtp_port": config.getint("notifications", "smtp_port", fallback=587),
+            "smtp_user": config.get("notifications", "smtp_user", fallback=None),
+            "smtp_password": config.get(
+                "notifications", "smtp_password", fallback=None
+            ),
+            "use_tls": config.getboolean(
+                "notifications", "smtp_use_tls", fallback=True
+            ),
+            "from_addr": config.get("notifications", "from_address"),
+            "to_addr": config.get("notifications", "to_address"),
+        }
+    except (configparser.NoSectionError, configparser.NoOptionError, ValueError) as e:
+        logger.warning(f"Email notification not configured properly: {e}")
+        return None
+
+    if not cfg["smtp_host"] or not cfg["from_addr"] or not cfg["to_addr"]:
+        logger.warning(
+            "Email notification not configured properly: smtp_host, "
+            "from_address, and to_address must all be non-empty"
+        )
+        return None
+
+    return cfg
+
+
 def send_failure_email(
     job_name: str, error: Exception | str, duration: float
 ) -> bool | None:
@@ -49,16 +85,8 @@ def send_failure_email(
     if not _is_notifications_enabled():
         return None
 
-    try:
-        smtp_host = config.get("notifications", "smtp_host")
-        smtp_port = config.getint("notifications", "smtp_port", fallback=587)
-        smtp_user = config.get("notifications", "smtp_user", fallback=None)
-        smtp_password = config.get("notifications", "smtp_password", fallback=None)
-        use_tls = config.getboolean("notifications", "smtp_use_tls", fallback=True)
-        from_addr = config.get("notifications", "from_address")
-        to_addr = config.get("notifications", "to_address")
-    except (configparser.NoSectionError, configparser.NoOptionError, ValueError) as e:
-        logger.warning(f"Email notification not configured properly: {e}")
+    cfg = _load_email_config()
+    if cfg is None:
         return None
 
     subject = f"[Lifestream] Job failed: {job_name}"
@@ -77,21 +105,23 @@ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
     msg = MIMEText(body)
     msg["Subject"] = subject
-    msg["From"] = from_addr
-    msg["To"] = to_addr
+    msg["From"] = cfg["from_addr"]
+    msg["To"] = cfg["to_addr"]
 
     try:
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            if use_tls:
+        with smtplib.SMTP(cfg["smtp_host"], cfg["smtp_port"]) as server:
+            if cfg["use_tls"]:
                 server.starttls()
-            if smtp_user and smtp_password:
-                server.login(smtp_user, smtp_password)
+            if cfg["smtp_user"] and cfg["smtp_password"]:
+                server.login(cfg["smtp_user"], cfg["smtp_password"])
             # sendmail() raises SMTPRecipientsRefused if *every* recipient
             # was refused; with more than one recipient, a *partial*
             # refusal instead comes back as a non-empty dict here. There's
             # only one recipient today, so this defensive check is a no-op
             # in practice, but it's cheap insurance if that ever changes.
-            refused = server.sendmail(from_addr, [to_addr], msg.as_string())
+            refused = server.sendmail(
+                cfg["from_addr"], [cfg["to_addr"]], msg.as_string()
+            )
         if refused:
             logger.error(
                 f"Notification email for job {job_name} was refused for "
@@ -138,6 +168,14 @@ def send_failure_slack(
         botname = config.get("slack", "slack_botname", fallback="Lifestream")
     except (configparser.NoSectionError, configparser.NoOptionError, ValueError) as e:
         logger.warning(f"Slack notification not configured properly: {e}")
+        return None
+
+    # webhook_url can be present but empty (e.g. "webhook_url = "), which
+    # ConfigParser hands back as "" rather than raising — that must count
+    # as unconfigured (None), not fall through into an attempted (and
+    # doomed) post that reports False.
+    if not webhook_url:
+        logger.warning("Slack notification not configured properly: empty webhook_url")
         return None
 
     message = {

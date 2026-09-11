@@ -80,6 +80,32 @@ class TestSendFailureEmail:
 
         assert result is None
 
+    def test_email_returns_none_when_smtp_host_present_but_empty(self):
+        """A required option can be present but empty ("smtp_host = ") —
+        ConfigParser returns "" rather than raising, so this must still be
+        treated as unconfigured (None), not fall through into an attempted
+        (and doomed) send that reports False."""
+        mock_config = MagicMock()
+        mock_config.get.side_effect = lambda s, k, **kw: {
+            ("notifications", "smtp_host"): "",
+            ("notifications", "from_address"): "from@test.com",
+            ("notifications", "to_address"): "to@test.com",
+        }.get((s, k), kw.get("fallback"))
+        mock_config.getint.return_value = 587
+        mock_config.getboolean.return_value = True
+
+        with patch.object(
+            notifications, "_is_notifications_enabled", return_value=True
+        ):
+            with patch.object(notifications, "config", mock_config):
+                with patch.object(notifications, "smtplib") as mock_smtp:
+                    result = notifications.send_failure_email(
+                        "test_job", Exception("test"), 1.5
+                    )
+
+        assert result is None
+        mock_smtp.SMTP.assert_not_called()
+
     def test_email_sent_with_correct_content(self):
         """Test email is sent with correct subject and body."""
         mock_config = MagicMock()
@@ -200,6 +226,30 @@ class TestSendFailureSlack:
                 )
 
         assert result is None
+
+    def test_slack_returns_none_when_webhook_url_present_but_empty(self):
+        """webhook_url can be present but empty ("webhook_url = ") —
+        ConfigParser returns "" rather than raising, so this must still be
+        treated as unconfigured (None), not fall through into an attempted
+        (and doomed) post that reports False."""
+        mock_config = MagicMock()
+        mock_config.get.side_effect = lambda s, k, **kw: {
+            ("notifications", "slack_channel"): "test-channel",
+            ("slack", "webhook_url"): "",
+        }.get((s, k), kw.get("fallback"))
+        mock_config.has_section.return_value = True
+
+        with patch.object(
+            notifications, "_is_notifications_enabled", return_value=True
+        ):
+            with patch.object(notifications, "config", mock_config):
+                with patch.object(notifications, "requests") as mock_requests:
+                    result = notifications.send_failure_slack(
+                        "test_job", Exception("test"), 1.5
+                    )
+
+        assert result is None
+        mock_requests.post.assert_not_called()
 
     def test_slack_message_sent_correctly(self):
         """Test Slack message is sent with correct payload."""
@@ -372,7 +422,7 @@ class TestSendFailureNotifications:
                     mock_logger.critical.assert_called_once()
                     message = mock_logger.critical.call_args[0][0]
                     assert "NOTIFICATION_PIPELINE_DOWN" in message
-                    assert "both email and Slack" not in message.lower()
+                    assert "both email and slack" not in message.lower()
 
     def test_no_critical_log_when_the_only_configured_channel_succeeds(self):
         """A single-channel setup that succeeds is not a pipeline-down
