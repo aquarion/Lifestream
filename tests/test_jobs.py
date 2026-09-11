@@ -248,6 +248,54 @@ class TestRunImportNewStyle:
         mock_cls.assert_called_once_with()
 
 
+class TestImportRegistryFailure:
+    """Tests for the _IMPORTERS_IMPORT_ERROR escalation path (issue #109).
+
+    If lifestream.importers itself fails to import, every job silently
+    degrades to the legacy-only fallback. That's a structural failure, not
+    routine — it should log at ERROR (not WARNING) and notify once, not on
+    every single job run.
+    """
+
+    def test_import_error_notifies_once_across_multiple_runs(self, tmp_path):
+        """Escalates to logger.error every run, but only notifies once."""
+        script = tmp_path / "imports" / "test_module.py"
+        script.parent.mkdir()
+        script.write_text("# stub legacy script")
+        mock_result = MagicMock(returncode=0, stdout="", stderr="")
+
+        with patch.object(jobs, "_IMPORTERS_IMPORT_ERROR", ImportError("boom")):
+            with patch.object(jobs, "_IMPORTERS_IMPORT_ERROR_NOTIFIED", False):
+                with patch.object(jobs, "get_project_root", return_value=tmp_path):
+                    with patch.object(jobs.subprocess, "run", return_value=mock_result):
+                        with patch.object(
+                            jobs, "send_failure_notifications"
+                        ) as mock_notify:
+                            with patch.object(jobs, "logger") as mock_logger:
+                                jobs.run_import("test_module")
+                                jobs.run_import("test_module")
+
+        assert mock_logger.error.call_count == 2
+        mock_notify.assert_called_once()
+        assert mock_notify.call_args[0][0] == "lifestream.importers"
+
+    def test_no_error_logged_when_registry_import_succeeded(self, tmp_path):
+        """No escalation when the importers registry loaded fine."""
+        script = tmp_path / "imports" / "test_module.py"
+        script.parent.mkdir()
+        script.write_text("# stub legacy script")
+        mock_result = MagicMock(returncode=0, stdout="", stderr="")
+
+        with patch.object(jobs, "_IMPORTERS_IMPORT_ERROR", None):
+            with patch.object(jobs, "get_project_root", return_value=tmp_path):
+                with patch.object(jobs.subprocess, "run", return_value=mock_result):
+                    with patch.object(jobs, "send_failure_notifications"):
+                        with patch.object(jobs, "logger") as mock_logger:
+                            jobs.run_import("test_module")
+
+        mock_logger.error.assert_not_called()
+
+
 class TestRunShellCommand:
     """Tests for run_shell_command function."""
 

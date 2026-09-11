@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 _IMPORTERS: dict = {}
 _IMPORTERS_IMPORT_ERROR: ImportError | None = None
+_IMPORTERS_IMPORT_ERROR_NOTIFIED = False
 try:
     from lifestream.importers import IMPORTERS as _IMPORTERS
 except ImportError as _import_err:
@@ -50,11 +51,18 @@ def run_import(job_name: str, extra_args: list[str] | None = None) -> None:
     Raises:
         Exception: Re-raises any exception from the job after logging and notifying
     """
+    global _IMPORTERS_IMPORT_ERROR_NOTIFIED
     if _IMPORTERS_IMPORT_ERROR is not None:
-        logger.warning(
-            "Failed to import lifestream.importers (legacy fallback only): %s",
+        logger.error(
+            "lifestream.importers failed to import — every job falls back to "
+            "legacy-only dispatch until this is fixed: %s",
             _IMPORTERS_IMPORT_ERROR,
         )
+        if not _IMPORTERS_IMPORT_ERROR_NOTIFIED:
+            send_failure_notifications(
+                "lifestream.importers", _IMPORTERS_IMPORT_ERROR, 0.0
+            )
+            _IMPORTERS_IMPORT_ERROR_NOTIFIED = True
 
     logger.info(f"Starting job: {job_name}")
     start_time = datetime.now()

@@ -25,7 +25,7 @@ def _is_notifications_enabled() -> bool:
     return config.getboolean("notifications", "enabled", fallback=False)
 
 
-def send_failure_email(job_name: str, error: Exception | str, duration: float) -> None:
+def send_failure_email(job_name: str, error: Exception | str, duration: float) -> bool:
     """
     Send an email notification when a job fails.
 
@@ -33,9 +33,13 @@ def send_failure_email(job_name: str, error: Exception | str, duration: float) -
         job_name: Name of the failed job
         error: The error/exception that occurred
         duration: How long the job ran before failing (seconds)
+
+    Returns:
+        True if the email was sent successfully, False otherwise (including
+        when notifications/email are disabled or not configured).
     """
     if not _is_notifications_enabled():
-        return
+        return False
 
     try:
         smtp_host = config.get("notifications", "smtp_host")
@@ -47,7 +51,7 @@ def send_failure_email(job_name: str, error: Exception | str, duration: float) -
         to_addr = config.get("notifications", "to_address")
     except (configparser.NoSectionError, configparser.NoOptionError) as e:
         logger.warning(f"Email notification not configured properly: {e}")
-        return
+        return False
 
     subject = f"[Lifestream] Job failed: {job_name}"
 
@@ -76,11 +80,13 @@ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 server.login(smtp_user, smtp_password)
             server.sendmail(from_addr, [to_addr], msg.as_string())
         logger.info(f"Sent failure notification email for job {job_name}")
+        return True
     except Exception as e:
         logger.error(f"Failed to send notification email: {e}")
+        return False
 
 
-def send_failure_slack(job_name: str, error: Exception | str, duration: float) -> None:
+def send_failure_slack(job_name: str, error: Exception | str, duration: float) -> bool:
     """
     Send a Slack notification when a job fails.
 
@@ -88,24 +94,28 @@ def send_failure_slack(job_name: str, error: Exception | str, duration: float) -
         job_name: Name of the failed job
         error: The error/exception that occurred
         duration: How long the job ran before failing (seconds)
+
+    Returns:
+        True if the Slack message was sent successfully, False otherwise
+        (including when notifications/Slack are disabled or not configured).
     """
     if not _is_notifications_enabled():
-        return
+        return False
 
     try:
         slack_channel = config.get("notifications", "slack_channel", fallback=None)
         if not slack_channel:
-            return
+            return False
 
         if not config.has_section("slack"):
             logger.warning("Slack channel configured but no [slack] section found")
-            return
+            return False
 
         webhook_url = config.get("slack", "webhook_url")
         botname = config.get("slack", "slack_botname", fallback="Lifestream")
     except (configparser.NoSectionError, configparser.NoOptionError) as e:
         logger.warning(f"Slack notification not configured properly: {e}")
-        return
+        return False
 
     message = {
         "channel": f"#{slack_channel}",
@@ -133,12 +143,14 @@ def send_failure_slack(job_name: str, error: Exception | str, duration: float) -
         response = requests.post(webhook_url, json=message, timeout=10)
         if response.status_code == 200:
             logger.info(f"Sent failure notification to Slack for job {job_name}")
-        else:
-            logger.error(
-                f"Slack notification failed: {response.status_code} {response.text}"
-            )
+            return True
+        logger.error(
+            f"Slack notification failed: {response.status_code} {response.text}"
+        )
+        return False
     except Exception as e:
         logger.error(f"Failed to send Slack notification: {e}")
+        return False
 
 
 def send_failure_notifications(
@@ -147,10 +159,23 @@ def send_failure_notifications(
     """
     Send all configured failure notifications (email and Slack).
 
+    If notifications are enabled but both channels fail to deliver, logs at
+    CRITICAL (distinct from the per-channel ERROR/WARNING logging above) so
+    a total alerting-pipeline outage — which by definition can't page anyone
+    — is at least visible to anyone/anything watching the log level.
+
     Args:
         job_name: Name of the failed job
         error: The error/exception that occurred
         duration: How long the job ran before failing (seconds)
     """
-    send_failure_email(job_name, error, duration)
-    send_failure_slack(job_name, error, duration)
+    email_sent = send_failure_email(job_name, error, duration)
+    slack_sent = send_failure_slack(job_name, error, duration)
+
+    if _is_notifications_enabled() and not email_sent and not slack_sent:
+        logger.critical(
+            "Both email and Slack failure notifications failed for job "
+            "'%s' — this failure was not delivered anywhere. Check the "
+            "[notifications]/[slack] config (SMTP creds, webhook URL).",
+            job_name,
+        )

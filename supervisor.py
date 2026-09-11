@@ -6,7 +6,11 @@ This replaces the crontab-based scheduling with a single daemon that:
 - Reads schedules from config.ini
 - Persists job state in Redis (survives restarts)
 - Coalesces missed runs (runs once on wake-up, not N times)
-- Handles locking per-job
+- Guards against concurrent runs of the same job within this process
+  (APScheduler's max_instances=1) — this is an in-process, in-memory guard
+  only. It does not provide cross-process or cross-host locking, so two
+  separate supervisor daemons sharing the same Redis job store could still
+  run the same job concurrently.
 
 Usage:
     python supervisor.py              # Run supervisor daemon

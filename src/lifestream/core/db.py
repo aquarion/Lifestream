@@ -1,5 +1,6 @@
 """Database functionality for Lifestream."""
 
+import enum
 import json
 import warnings
 from datetime import datetime
@@ -12,6 +13,15 @@ from .config import config
 
 # Suppress MySQL warnings
 warnings.filterwarnings("ignore", category=MySQLdb.Warning)
+
+
+class EntryResult(enum.Enum):
+    """Outcome of EntryStore.add_entry()."""
+
+    INSERTED = "inserted"
+    UPDATED = "updated"
+    SKIPPED = "skipped"
+
 
 # Module-level state for no-db mode
 _no_db_mode = False
@@ -129,8 +139,17 @@ class EntryStore:
         fulldata_json=None,
         update: bool = False,
         debug: bool = False,
-    ):
-        """Add or update a lifestream entry."""
+    ) -> EntryResult | None:
+        """
+        Add or update a lifestream entry.
+
+        Returns:
+            EntryResult.INSERTED if a new row was written, EntryResult.UPDATED
+            if an existing row was overwritten (only possible with
+            update=True), or EntryResult.SKIPPED if the entry already existed
+            and update=False. Returns None in no-db mode (no write is
+            performed).
+        """
         if fulldata_json:
             fulldata_json = json.dumps(fulldata_json)
 
@@ -139,7 +158,7 @@ class EntryStore:
                 f"[NO-DB] INSERT: type={type}, systemid={id}, title={title}, "
                 f"source={source}, date={date}, url={url}, image={image}"
             )
-            return
+            return None
 
         sql = (
             "select date_created from lifestream where type = %s and systemid = %s "
@@ -149,7 +168,7 @@ class EntryStore:
         self.cursor.execute(sql, (type, str(id)))
         if self.cursor.fetchone():
             if not update:
-                return False
+                return EntryResult.SKIPPED
             else:
                 s_sql = (
                     "UPDATE lifestream set `title`=%s, `url`=%s, `date_created`=%s, "
@@ -161,6 +180,8 @@ class EntryStore:
                 )
                 if debug:
                     print(self.cursor._executed)
+                self.dbcxn.commit()
+                return EntryResult.UPDATED
         else:
             s_sql = (
                 "INSERT INTO lifestream (`type`, `systemid`, `title`, `url`, "
@@ -172,8 +193,8 @@ class EntryStore:
             )
             if debug:
                 print(self.cursor._executed)
-
-        self.dbcxn.commit()
+            self.dbcxn.commit()
+            return EntryResult.INSERTED
 
     def add_location(
         self,

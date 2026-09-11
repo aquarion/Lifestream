@@ -132,10 +132,46 @@ class TestSendFailureNotifications:
 
     def test_sends_both_email_and_slack(self):
         """Test that send_failure_notifications calls both methods."""
-        with patch.object(notifications, "send_failure_email") as mock_email:
-            with patch.object(notifications, "send_failure_slack") as mock_slack:
+        with patch.object(
+            notifications, "send_failure_email", return_value=True
+        ) as mock_email:
+            with patch.object(
+                notifications, "send_failure_slack", return_value=True
+            ) as mock_slack:
                 error = Exception("error")
                 notifications.send_failure_notifications("test_job", error, 2.5)
 
                 mock_email.assert_called_once_with("test_job", error, 2.5)
                 mock_slack.assert_called_once_with("test_job", error, 2.5)
+
+    def test_logs_critical_when_both_channels_fail(self):
+        """A total alerting outage (both channels fail) is escalated to CRITICAL."""
+        with patch.object(
+            notifications, "_is_notifications_enabled", return_value=True
+        ):
+            with patch.object(notifications, "send_failure_email", return_value=False):
+                with patch.object(
+                    notifications, "send_failure_slack", return_value=False
+                ):
+                    with patch.object(notifications, "logger") as mock_logger:
+                        notifications.send_failure_notifications(
+                            "test_job", Exception("error"), 2.5
+                        )
+
+                        mock_logger.critical.assert_called_once()
+
+    def test_no_critical_log_when_one_channel_succeeds(self):
+        """No escalation needed as long as one channel got the alert through."""
+        with patch.object(
+            notifications, "_is_notifications_enabled", return_value=True
+        ):
+            with patch.object(notifications, "send_failure_email", return_value=True):
+                with patch.object(
+                    notifications, "send_failure_slack", return_value=False
+                ):
+                    with patch.object(notifications, "logger") as mock_logger:
+                        notifications.send_failure_notifications(
+                            "test_job", Exception("error"), 2.5
+                        )
+
+                        mock_logger.critical.assert_not_called()
