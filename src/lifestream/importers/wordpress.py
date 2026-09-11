@@ -9,6 +9,7 @@ Password (native since WordPress 5.6) sent as HTTP Basic auth.
 import argparse
 import configparser
 
+import bs4
 import dateutil.parser
 import requests
 
@@ -59,11 +60,18 @@ class WordpressImporter(BaseImporter):
         return sites
 
     @staticmethod
+    def _clean_html_text(html: str) -> str:
+        # title.rendered/excerpt.rendered are HTML (tags plus entities like
+        # &#8217;), not plain text — strip markup and decode entities so it
+        # doesn't end up stored verbatim as the entry title.
+        return bs4.BeautifulSoup(html, "html.parser").get_text().strip()
+
+    @staticmethod
     def _post_title(post: dict) -> str:
-        title = post["title"]["rendered"].strip()
+        title = WordpressImporter._clean_html_text(post["title"]["rendered"])
         if title:
             return title
-        excerpt = post["excerpt"]["rendered"].strip()
+        excerpt = WordpressImporter._clean_html_text(post["excerpt"]["rendered"])
         if excerpt:
             return excerpt
         return "[Untitled Post]"
@@ -126,8 +134,11 @@ class WordpressImporter(BaseImporter):
             # WordPress reports the total page count on every collection
             # response — a more reliable stop signal than waiting for an
             # empty page or the rest_post_invalid_page_number error a page
-            # past the end returns.
-            total_pages = int(response.headers.get("X-WP-TotalPages", "1") or "1")
+            # past the end returns. Treat a missing header as "unknown"
+            # rather than defaulting to 1, or a proxy/server that strips it
+            # would stop pagination after a single page even with --all.
+            total_pages_header = response.headers.get("X-WP-TotalPages")
+            total_pages = int(total_pages_header) if total_pages_header else None
 
             for post in posts:
                 title = self._post_title(post)
@@ -146,7 +157,7 @@ class WordpressImporter(BaseImporter):
 
                 self.logger.info(f"{utcdate.strftime('%Y-%m-%d')}: {title}")
 
-            if not posts or this_page >= total_pages:
+            if not posts or (total_pages is not None and this_page >= total_pages):
                 keep_going = False
 
             if this_page >= self.args.max_pages and not self.args.all_pages:

@@ -33,7 +33,9 @@ def _response(posts, total_pages=1, status_code=200, text=""):
     response = MagicMock()
     response.status_code = status_code
     response.json.return_value = posts
-    response.headers = {"X-WP-TotalPages": str(total_pages)}
+    response.headers = (
+        {} if total_pages is None else {"X-WP-TotalPages": str(total_pages)}
+    )
     response.text = text
     return response
 
@@ -175,6 +177,60 @@ class TestWordpressImporter:
             call.kwargs["image"] for call in imp._entry_store.add_entry.call_args_list
         ]
         assert images == ["http://img/1.jpg", "", ""]
+
+    def test_process_site_strips_html_from_title_and_excerpt(self):
+        """title.rendered/excerpt.rendered are HTML, not plain text — markup
+        and entities must not end up stored as the entry title."""
+        imp = self._make_importer()
+        mock_config = MagicMock()
+        mock_config.get.return_value = "http://example.com"
+
+        posts = [
+            _post(guid="g1", title="It&#8217;s <em>Great</em>"),
+            _post(guid="g2", title="", excerpt="<p>An excerpt</p>\n"),
+        ]
+
+        with (
+            patch("lifestream.importers.wordpress.config", mock_config),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                return_value=_response(posts),
+            ),
+        ):
+            imp.process_site("mysite")
+
+        titles = [
+            call.kwargs["title"] for call in imp._entry_store.add_entry.call_args_list
+        ]
+        assert titles == ["It’s Great", "An excerpt"]
+
+    def test_process_site_pagination_continues_via_empty_page_when_header_missing(
+        self,
+    ):
+        """A missing X-WP-TotalPages header must not be treated as total=1 —
+        that would stop --all after a single page even with more to fetch."""
+        imp = self._make_importer(["--all"])
+        mock_config = MagicMock()
+        mock_config.get.return_value = "http://example.com"
+
+        page1 = [_post(guid="g1", title="Page 1 post")]
+        page2 = [_post(guid="g2", title="Page 2 post")]
+
+        with (
+            patch("lifestream.importers.wordpress.config", mock_config),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                side_effect=[
+                    _response(page1, total_pages=None),
+                    _response(page2, total_pages=None),
+                    _response([], total_pages=None),
+                ],
+            ) as mock_get,
+        ):
+            imp.process_site("mysite")
+
+        assert mock_get.call_count == 3
+        assert imp._entry_store.add_entry.call_count == 2
 
     def test_process_site_pagination_stops_at_max_pages(self):
         imp = self._make_importer(["--max_pages", "2"])
