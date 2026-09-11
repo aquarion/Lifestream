@@ -1,14 +1,22 @@
-"""WordPress posts importer for Lifestream."""
+"""WordPress posts importer for Lifestream.
+
+Uses the WordPress REST API (built into WordPress core since 4.7) rather
+than XML-RPC, which many hosts disable by default and which needed a
+bitrotting third-party client library. Authenticates with an Application
+Password (native since WordPress 5.6) sent as HTTP Basic auth.
+"""
 
 import argparse
 import configparser
 
-from wordpress_xmlrpc import Client
-from wordpress_xmlrpc import exceptions as wordpress_exceptions
-from wordpress_xmlrpc.methods.posts import GetPosts
+import dateutil.parser
+import requests
 
 from lifestream.core import config
 from lifestream.importers.base import BaseImporter, ConfigurationError
+
+POSTS_PATH = "/wp-json/wp/v2/posts"
+PER_PAGE = 30
 
 
 class WordpressImporter(BaseImporter):
@@ -50,7 +58,46 @@ class WordpressImporter(BaseImporter):
                 sites.append(section[10:])
         return sites
 
-    def process_site(self, site: str) -> None:  # noqa: C901
+    @staticmethod
+    def _post_title(post: dict) -> str:
+        title = post["title"]["rendered"].strip()
+        if title:
+            return title
+        excerpt = post["excerpt"]["rendered"].strip()
+        if excerpt:
+            return excerpt
+        return "[Untitled Post]"
+
+    @staticmethod
+    def _post_thumbnail(post: dict) -> str:
+        media = post.get("_embedded", {}).get("wp:featuredmedia")
+        if not media:
+            return ""
+        return media[0].get("source_url", "")
+
+    def _fetch_page(
+        self, posts_url: str, auth: tuple, page: int, source: str
+    ) -> requests.Response:
+        """Fetch one page of posts, raising ConfigurationError on bad credentials."""
+        response = requests.get(
+            posts_url,
+            params={
+                "per_page": PER_PAGE,
+                "page": page,
+                "status": "publish",
+                "_embed": 1,
+            },
+            auth=auth,
+            timeout=30,
+        )
+        if response.status_code == 401:
+            raise ConfigurationError(
+                f"Invalid credentials for WordPress site '{source}': {response.text}"
+            )
+        response.raise_for_status()
+        return response
+
+    def process_site(self, site: str) -> None:
         """Process a single WordPress site."""
         source = site
         entry_type = "wordpress"
@@ -67,49 +114,41 @@ class WordpressImporter(BaseImporter):
         except configparser.NoOptionError as e:
             raise ConfigurationError(str(e))
 
-        wp = Client(url, user, passwd)
+        posts_url = url.rstrip("/") + POSTS_PATH
 
         this_page = 0
         keep_going = True
 
         while keep_going:
-            options = {"number": 30, "offset": this_page * 30, "post_status": "publish"}
-            try:
-                posts = wp.call(GetPosts(options))
-            except wordpress_exceptions.InvalidCredentialsError as e:
-                raise ConfigurationError(
-                    f"Invalid credentials for WordPress site '{source}': {e}"
-                ) from e
+            this_page += 1
+            response = self._fetch_page(posts_url, (user, passwd), this_page, source)
+            posts = response.json()
+            # WordPress reports the total page count on every collection
+            # response — a more reliable stop signal than waiting for an
+            # empty page or the rest_post_invalid_page_number error a page
+            # past the end returns.
+            total_pages = int(response.headers.get("X-WP-TotalPages", "1") or "1")
 
             for post in posts:
-                if len(post.title):
-                    title = post.title
-                elif post.excerpt:
-                    title = post.excerpt
-                else:
-                    title = "[Untitled Post]"
-
-                if post.thumbnail and "link" in post.thumbnail:
-                    thumbnail = post.thumbnail["link"]
-                else:
-                    thumbnail = ""
+                title = self._post_title(post)
+                thumbnail = self._post_thumbnail(post)
+                utcdate = dateutil.parser.parse(post["date_gmt"])
 
                 self.entry_store.add_entry(
-                    id=post.guid,
+                    id=post["guid"]["rendered"],
                     title=title,
                     source=source,
-                    date=post.date.strftime("%Y-%m-%d %H:%M"),
-                    url=post.link,
+                    date=utcdate.strftime("%Y-%m-%d %H:%M"),
+                    url=post["link"],
                     image=thumbnail,
                     type=entry_type,
                 )
 
-                self.logger.info(f"{post.date.strftime('%Y-%m-%d')}: {title}")
+                self.logger.info(f"{utcdate.strftime('%Y-%m-%d')}: {title}")
 
-            if not len(posts):
+            if not posts or this_page >= total_pages:
                 keep_going = False
 
-            this_page += 1
             if this_page >= self.args.max_pages and not self.args.all_pages:
                 keep_going = False
             elif not self.args.all_pages:

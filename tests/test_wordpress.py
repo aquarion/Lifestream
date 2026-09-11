@@ -1,7 +1,6 @@
 """Tests for the WordPress importer."""
 
 import configparser
-from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,16 +9,33 @@ from lifestream.importers.base import ConfigurationError
 from lifestream.importers.wordpress import WordpressImporter
 
 
-class FakePost:
-    """Stand-in for a wordpress_xmlrpc WordPressPost."""
+def _post(
+    guid="http://example.com/?p=1",
+    title="A Post",
+    excerpt="",
+    date_gmt="2024-03-05T09:30:00",
+    link="http://example.com/a-post",
+    featured_media=None,
+):
+    post = {
+        "guid": {"rendered": guid},
+        "title": {"rendered": title},
+        "excerpt": {"rendered": excerpt},
+        "date_gmt": date_gmt,
+        "link": link,
+    }
+    if featured_media is not None:
+        post["_embedded"] = {"wp:featuredmedia": featured_media}
+    return post
 
-    def __init__(self, guid, title="", excerpt="", thumbnail=None, date=None, link=""):
-        self.guid = guid
-        self.title = title
-        self.excerpt = excerpt
-        self.thumbnail = thumbnail
-        self.date = date or datetime(2024, 1, 1, 12, 0)
-        self.link = link
+
+def _response(posts, total_pages=1, status_code=200, text=""):
+    response = MagicMock()
+    response.status_code = status_code
+    response.json.return_value = posts
+    response.headers = {"X-WP-TotalPages": str(total_pages)}
+    response.text = text
+    return response
 
 
 class TestWordpressImporter:
@@ -40,22 +56,38 @@ class TestWordpressImporter:
                 imp.process_site("missing")
 
     def test_process_site_raises_on_invalid_credentials(self):
-        """Invalid credentials raise ConfigurationError, not silent loop exit."""
-        from wordpress_xmlrpc import exceptions as wp_exc
-
+        """A 401 response raises ConfigurationError, not silent loop exit."""
         imp = self._make_importer()
         mock_config = MagicMock()
         mock_config.get.return_value = "http://example.com"
 
-        mock_client = MagicMock()
-        mock_client.call.side_effect = wp_exc.InvalidCredentialsError()
+        with (
+            patch("lifestream.importers.wordpress.config", mock_config),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                return_value=_response([], status_code=401, text="bad creds"),
+            ),
+        ):
+            with pytest.raises(ConfigurationError, match="Invalid credentials"):
+                imp.process_site("mysite")
 
-        with patch("lifestream.importers.wordpress.config", mock_config):
-            with patch(
-                "lifestream.importers.wordpress.Client", return_value=mock_client
-            ):
-                with pytest.raises(ConfigurationError, match="Invalid credentials"):
-                    imp.process_site("mysite")
+    def test_process_site_builds_rest_api_url_from_site_url(self):
+        imp = self._make_importer()
+        mock_config = MagicMock()
+        mock_config.get.return_value = "http://example.com/"
+
+        with (
+            patch("lifestream.importers.wordpress.config", mock_config),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                return_value=_response([]),
+            ) as mock_get,
+        ):
+            imp.process_site("mysite")
+
+        args, kwargs = mock_get.call_args
+        assert args[0] == "http://example.com/wp-json/wp/v2/posts"
+        assert kwargs["auth"] == ("http://example.com/", "http://example.com/")
 
     def test_process_site_adds_an_entry_per_post(self):
         imp = self._make_importer()
@@ -63,25 +95,26 @@ class TestWordpressImporter:
         mock_config.get.return_value = "http://example.com"
 
         posts = [
-            FakePost(
-                "guid-1",
+            _post(
+                guid="http://example.com/?p=1",
                 title="A Post",
-                date=datetime(2024, 3, 5, 9, 30),
+                date_gmt="2024-03-05T09:30:00",
                 link="http://example.com/a-post",
-            ),
+            )
         ]
-        mock_client = MagicMock()
-        mock_client.call.side_effect = [posts, []]
 
         with (
             patch("lifestream.importers.wordpress.config", mock_config),
-            patch("lifestream.importers.wordpress.Client", return_value=mock_client),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                return_value=_response(posts),
+            ),
         ):
             imp.process_site("mysite")
 
         imp._entry_store.add_entry.assert_called_once()
         kwargs = imp._entry_store.add_entry.call_args.kwargs
-        assert kwargs["id"] == "guid-1"
+        assert kwargs["id"] == "http://example.com/?p=1"
         assert kwargs["title"] == "A Post"
         assert kwargs["source"] == "mysite"
         assert kwargs["date"] == "2024-03-05 09:30"
@@ -95,16 +128,17 @@ class TestWordpressImporter:
         mock_config.get.return_value = "http://example.com"
 
         posts = [
-            FakePost("g1", title="Has Title", excerpt="Ignored"),
-            FakePost("g2", title="", excerpt="Falls back to excerpt"),
-            FakePost("g3", title="", excerpt=""),
+            _post(guid="g1", title="Has Title", excerpt="Ignored"),
+            _post(guid="g2", title="", excerpt="Falls back to excerpt"),
+            _post(guid="g3", title="", excerpt=""),
         ]
-        mock_client = MagicMock()
-        mock_client.call.side_effect = [posts, []]
 
         with (
             patch("lifestream.importers.wordpress.config", mock_config),
-            patch("lifestream.importers.wordpress.Client", return_value=mock_client),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                return_value=_response(posts),
+            ),
         ):
             imp.process_site("mysite")
 
@@ -119,16 +153,21 @@ class TestWordpressImporter:
         mock_config.get.return_value = "http://example.com"
 
         posts = [
-            FakePost("g1", title="With thumb", thumbnail={"link": "http://img/1.jpg"}),
-            FakePost("g2", title="Thumb with no link key", thumbnail={"foo": "bar"}),
-            FakePost("g3", title="No thumb", thumbnail=None),
+            _post(
+                guid="g1",
+                title="With thumb",
+                featured_media=[{"source_url": "http://img/1.jpg"}],
+            ),
+            _post(guid="g2", title="No embedded media at all", featured_media=None),
+            _post(guid="g3", title="Empty media list", featured_media=[]),
         ]
-        mock_client = MagicMock()
-        mock_client.call.side_effect = [posts, []]
 
         with (
             patch("lifestream.importers.wordpress.config", mock_config),
-            patch("lifestream.importers.wordpress.Client", return_value=mock_client),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                return_value=_response(posts),
+            ),
         ):
             imp.process_site("mysite")
 
@@ -142,39 +181,63 @@ class TestWordpressImporter:
         mock_config = MagicMock()
         mock_config.get.return_value = "http://example.com"
 
-        page1 = [FakePost("g1", title="Page 1 post")]
-        page2 = [FakePost("g2", title="Page 2 post")]
-        # A third call would mean pagination overran max_pages.
-        mock_client = MagicMock()
-        mock_client.call.side_effect = [
-            page1,
-            page2,
-            RuntimeError("should not be called"),
-        ]
+        page1 = [_post(guid="g1", title="Page 1 post")]
+        page2 = [_post(guid="g2", title="Page 2 post")]
 
         with (
             patch("lifestream.importers.wordpress.config", mock_config),
-            patch("lifestream.importers.wordpress.Client", return_value=mock_client),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                side_effect=[
+                    _response(page1, total_pages=5),
+                    _response(page2, total_pages=5),
+                ],
+            ) as mock_get,
         ):
             imp.process_site("mysite")
 
-        assert mock_client.call.call_count == 2
+        assert mock_get.call_count == 2
         assert imp._entry_store.add_entry.call_count == 2
 
-    def test_process_site_pagination_stops_on_empty_page(self):
+    def test_process_site_pagination_stops_on_total_pages_header(self):
         imp = self._make_importer(["--all"])
         mock_config = MagicMock()
         mock_config.get.return_value = "http://example.com"
 
-        page1 = [FakePost("g1", title="Only post")]
-        mock_client = MagicMock()
-        mock_client.call.side_effect = [page1, []]
+        page1 = [_post(guid="g1", title="Only post")]
 
         with (
             patch("lifestream.importers.wordpress.config", mock_config),
-            patch("lifestream.importers.wordpress.Client", return_value=mock_client),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                return_value=_response(page1, total_pages=1),
+            ) as mock_get,
         ):
             imp.process_site("mysite")
 
-        assert mock_client.call.call_count == 2
+        assert mock_get.call_count == 1
+        assert imp._entry_store.add_entry.call_count == 1
+
+    def test_process_site_pagination_stops_on_empty_page(self):
+        """Defensive: an empty page stops the loop even if the total-pages
+        header is missing or wrong."""
+        imp = self._make_importer(["--all"])
+        mock_config = MagicMock()
+        mock_config.get.return_value = "http://example.com"
+
+        page1 = [_post(guid="g1", title="Only post")]
+
+        with (
+            patch("lifestream.importers.wordpress.config", mock_config),
+            patch(
+                "lifestream.importers.wordpress.requests.get",
+                side_effect=[
+                    _response(page1, total_pages=5),
+                    _response([], total_pages=5),
+                ],
+            ) as mock_get,
+        ):
+            imp.process_site("mysite")
+
+        assert mock_get.call_count == 2
         assert imp._entry_store.add_entry.call_count == 1
