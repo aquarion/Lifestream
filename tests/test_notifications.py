@@ -178,7 +178,9 @@ class TestSendFailureSlack:
                 with patch.object(
                     notifications.requests, "post", return_value=mock_response
                 ) as mock_post:
-                    notifications.send_failure_slack("test_job", Exception("test"), 1.5)
+                    result = notifications.send_failure_slack(
+                        "test_job", Exception("test"), 1.5
+                    )
 
                     mock_post.assert_called_once()
                     call_args = mock_post.call_args
@@ -189,6 +191,65 @@ class TestSendFailureSlack:
                             0
                         ]  # codeql[py/incomplete-url-substring-sanitization]
                     )
+                    assert result is True
+
+    def test_slack_returns_false_on_non_200_response(self):
+        """A non-200 response from the webhook counts as a failed send."""
+        mock_config = MagicMock()
+        mock_config.get.side_effect = lambda s, k, **kw: {
+            ("notifications", "slack_channel"): "test-channel",
+            (
+                "slack",
+                "webhook_url",
+            ): "https://hooks.slack.com/services/T00000000/B00000000/xxxxx",
+            ("slack", "slack_botname"): "TestBot",
+        }.get((s, k), kw.get("fallback"))
+        mock_config.has_section.return_value = True
+
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.text = "Internal Server Error"
+
+        with patch.object(
+            notifications, "_is_notifications_enabled", return_value=True
+        ):
+            with patch.object(notifications, "config", mock_config):
+                with patch.object(
+                    notifications.requests, "post", return_value=mock_response
+                ):
+                    result = notifications.send_failure_slack(
+                        "test_job", Exception("test"), 1.5
+                    )
+
+                    assert result is False
+
+    def test_slack_returns_false_on_request_exception(self):
+        """A network/request error sending to the webhook is a failed send."""
+        mock_config = MagicMock()
+        mock_config.get.side_effect = lambda s, k, **kw: {
+            ("notifications", "slack_channel"): "test-channel",
+            (
+                "slack",
+                "webhook_url",
+            ): "https://hooks.slack.com/services/T00000000/B00000000/xxxxx",
+            ("slack", "slack_botname"): "TestBot",
+        }.get((s, k), kw.get("fallback"))
+        mock_config.has_section.return_value = True
+
+        with patch.object(
+            notifications, "_is_notifications_enabled", return_value=True
+        ):
+            with patch.object(notifications, "config", mock_config):
+                with patch.object(
+                    notifications.requests,
+                    "post",
+                    side_effect=ConnectionError("network unreachable"),
+                ):
+                    result = notifications.send_failure_slack(
+                        "test_job", Exception("test"), 1.5
+                    )
+
+                    assert result is False
 
 
 class TestSendFailureNotifications:

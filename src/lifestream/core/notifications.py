@@ -82,9 +82,11 @@ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 server.starttls()
             if smtp_user and smtp_password:
                 server.login(smtp_user, smtp_password)
-            # sendmail() only raises if *every* recipient was refused; a
-            # partial refusal (relevant here since there's just the one
-            # recipient) comes back as a non-empty dict instead.
+            # sendmail() raises SMTPRecipientsRefused if *every* recipient
+            # was refused; with more than one recipient, a *partial*
+            # refusal instead comes back as a non-empty dict here. There's
+            # only one recipient today, so this defensive check is a no-op
+            # in practice, but it's cheap insurance if that ever changes.
             refused = server.sendmail(from_addr, [to_addr], msg.as_string())
         if refused:
             logger.error(

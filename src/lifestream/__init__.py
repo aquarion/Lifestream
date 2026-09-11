@@ -18,7 +18,7 @@ from lifestream.core.config import (
     get_log_dir,
     get_project_root,
 )
-from lifestream.core.db import EntryStore, get_connection, get_cursor
+from lifestream.core.db import EntryResult, EntryStore, get_connection, get_cursor
 from lifestream.core.logging import get_logger, setup_logging
 from lifestream.core.notifications import send_failure_notifications
 from lifestream.core.oauth_utils import read_token_file, write_token_file
@@ -42,6 +42,7 @@ __all__ = [
     "get_logger",
     # Database
     "EntryStore",
+    "EntryResult",
     "get_connection",
     "get_cursor",
     # Cache
