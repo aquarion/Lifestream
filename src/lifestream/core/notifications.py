@@ -29,7 +29,9 @@ def _is_notifications_enabled() -> bool:
         return False
 
 
-def send_failure_email(job_name: str, error: Exception | str, duration: float) -> bool:
+def send_failure_email(
+    job_name: str, error: Exception | str, duration: float
+) -> bool | None:
     """
     Send an email notification when a job fails.
 
@@ -39,11 +41,13 @@ def send_failure_email(job_name: str, error: Exception | str, duration: float) -
         duration: How long the job ran before failing (seconds)
 
     Returns:
-        True if the email was sent successfully, False otherwise (including
-        when notifications/email are disabled or not configured).
+        True if the email was sent.
+        False if email was configured and enabled but sending failed.
+        None if notifications are disabled or email isn't configured —
+        no delivery was attempted.
     """
     if not _is_notifications_enabled():
-        return False
+        return None
 
     try:
         smtp_host = config.get("notifications", "smtp_host")
@@ -55,7 +59,7 @@ def send_failure_email(job_name: str, error: Exception | str, duration: float) -
         to_addr = config.get("notifications", "to_address")
     except (configparser.NoSectionError, configparser.NoOptionError, ValueError) as e:
         logger.warning(f"Email notification not configured properly: {e}")
-        return False
+        return None
 
     subject = f"[Lifestream] Job failed: {job_name}"
 
@@ -101,7 +105,9 @@ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         return False
 
 
-def send_failure_slack(job_name: str, error: Exception | str, duration: float) -> bool:
+def send_failure_slack(
+    job_name: str, error: Exception | str, duration: float
+) -> bool | None:
     """
     Send a Slack notification when a job fails.
 
@@ -111,26 +117,28 @@ def send_failure_slack(job_name: str, error: Exception | str, duration: float) -
         duration: How long the job ran before failing (seconds)
 
     Returns:
-        True if the Slack message was sent successfully, False otherwise
-        (including when notifications/Slack are disabled or not configured).
+        True if the Slack message was sent.
+        False if Slack was configured and enabled but sending failed.
+        None if notifications are disabled or Slack isn't configured —
+        no delivery was attempted.
     """
     if not _is_notifications_enabled():
-        return False
+        return None
 
     try:
         slack_channel = config.get("notifications", "slack_channel", fallback=None)
         if not slack_channel:
-            return False
+            return None
 
         if not config.has_section("slack"):
             logger.warning("Slack channel configured but no [slack] section found")
-            return False
+            return None
 
         webhook_url = config.get("slack", "webhook_url")
         botname = config.get("slack", "slack_botname", fallback="Lifestream")
-    except (configparser.NoSectionError, configparser.NoOptionError) as e:
+    except (configparser.NoSectionError, configparser.NoOptionError, ValueError) as e:
         logger.warning(f"Slack notification not configured properly: {e}")
-        return False
+        return None
 
     message = {
         "channel": f"#{slack_channel}",
@@ -174,10 +182,18 @@ def send_failure_notifications(
     """
     Send all configured failure notifications (email and Slack).
 
-    If notifications are enabled but both channels fail to deliver, logs at
-    CRITICAL (distinct from the per-channel ERROR/WARNING logging above) so
-    a total alerting-pipeline outage — which by definition can't page anyone
-    — is at least visible to anyone/anything watching the log level.
+    If at least one channel is actually configured and enabled, and every
+    channel that was attempted failed to send, this is the alerting
+    pipeline itself going dark — the one failure mode this function can't
+    report through its own channels. Log it at CRITICAL (distinct from the
+    per-channel ERROR/WARNING logging above) so it's visible to anyone/
+    anything watching the log level, independent of email/Slack.
+
+    Note: send_failure_email()/send_failure_slack() return None (not
+    False) when a channel isn't configured, so an unconfigured channel
+    never counts as "failed" here — otherwise a deliberate single-channel
+    setup (e.g. only email configured) would be misreported as "both
+    email and Slack failing" on every ordinary send failure.
 
     Args:
         job_name: Name of the failed job
@@ -187,10 +203,14 @@ def send_failure_notifications(
     email_sent = send_failure_email(job_name, error, duration)
     slack_sent = send_failure_slack(job_name, error, duration)
 
-    if _is_notifications_enabled() and not email_sent and not slack_sent:
+    attempted_and_failed = email_sent is False or slack_sent is False
+    any_succeeded = email_sent is True or slack_sent is True
+
+    if attempted_and_failed and not any_succeeded:
         logger.critical(
-            "Both email and Slack failure notifications failed for job "
-            "'%s' — this failure was not delivered anywhere. Check the "
-            "[notifications]/[slack] config (SMTP creds, webhook URL).",
+            "NOTIFICATION_PIPELINE_DOWN: every configured failure-alert "
+            "channel failed to send for job '%s' — no alert was delivered "
+            "for this failure. Check the [notifications]/[slack] config "
+            "(SMTP creds, webhook URL).",
             job_name,
         )
