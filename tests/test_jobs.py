@@ -1,5 +1,7 @@
 """Tests for lifestream.core.jobs module."""
 
+import threading
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -294,6 +296,41 @@ class TestImportRegistryFailure:
                             jobs.run_import("test_module")
 
         mock_logger.error.assert_not_called()
+
+    def test_import_error_notifies_exactly_once_under_concurrency(self, tmp_path):
+        """Regression: the supervisor runs jobs on a thread pool, so concurrent
+        run_import() calls must not double-notify. The check-and-set on
+        _IMPORTERS_IMPORT_ERROR_NOTIFIED is lock-protected for exactly this."""
+        script = tmp_path / "imports" / "test_module.py"
+        script.parent.mkdir()
+        script.write_text("# stub legacy script")
+        mock_result = MagicMock(returncode=0, stdout="", stderr="")
+
+        def slow_notify(*args, **kwargs):
+            # Widen the race window so a broken guard would show up reliably.
+            time.sleep(0.02)
+
+        with patch.object(jobs, "_IMPORTERS_IMPORT_ERROR", ImportError("boom")):
+            with patch.object(jobs, "_IMPORTERS_IMPORT_ERROR_NOTIFIED", False):
+                with patch.object(jobs, "get_project_root", return_value=tmp_path):
+                    with patch.object(jobs.subprocess, "run", return_value=mock_result):
+                        with patch.object(
+                            jobs,
+                            "send_failure_notifications",
+                            side_effect=slow_notify,
+                        ) as mock_notify:
+                            threads = [
+                                threading.Thread(
+                                    target=jobs.run_import, args=("test_module",)
+                                )
+                                for _ in range(10)
+                            ]
+                            for t in threads:
+                                t.start()
+                            for t in threads:
+                                t.join()
+
+        assert mock_notify.call_count == 1
 
 
 class TestRunShellCommand:

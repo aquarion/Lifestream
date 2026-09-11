@@ -22,7 +22,11 @@ def _is_notifications_enabled() -> bool:
     """Check if notifications are enabled."""
     if not config.has_section("notifications"):
         return False
-    return config.getboolean("notifications", "enabled", fallback=False)
+    try:
+        return config.getboolean("notifications", "enabled", fallback=False)
+    except ValueError as e:
+        logger.warning(f"Invalid 'enabled' value in [notifications] config: {e}")
+        return False
 
 
 def send_failure_email(job_name: str, error: Exception | str, duration: float) -> bool:
@@ -49,7 +53,7 @@ def send_failure_email(job_name: str, error: Exception | str, duration: float) -
         use_tls = config.getboolean("notifications", "smtp_use_tls", fallback=True)
         from_addr = config.get("notifications", "from_address")
         to_addr = config.get("notifications", "to_address")
-    except (configparser.NoSectionError, configparser.NoOptionError) as e:
+    except (configparser.NoSectionError, configparser.NoOptionError, ValueError) as e:
         logger.warning(f"Email notification not configured properly: {e}")
         return False
 
@@ -78,7 +82,16 @@ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 server.starttls()
             if smtp_user and smtp_password:
                 server.login(smtp_user, smtp_password)
-            server.sendmail(from_addr, [to_addr], msg.as_string())
+            # sendmail() only raises if *every* recipient was refused; a
+            # partial refusal (relevant here since there's just the one
+            # recipient) comes back as a non-empty dict instead.
+            refused = server.sendmail(from_addr, [to_addr], msg.as_string())
+        if refused:
+            logger.error(
+                f"Notification email for job {job_name} was refused for "
+                f"recipient(s): {refused}"
+            )
+            return False
         logger.info(f"Sent failure notification email for job {job_name}")
         return True
     except Exception as e:
