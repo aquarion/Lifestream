@@ -16,13 +16,20 @@ Usage:
     python supervisor.py              # Run supervisor daemon
     python supervisor.py --list       # List configured jobs
     python supervisor.py --run JOB    # Run a specific job immediately
+    python supervisor.py --run JOB --help  # Show JOB's own importer-specific flags
     python supervisor.py --status     # Show job status and next run times
+
+Extra args after `--run JOB` (e.g. `--reauth`) are forwarded straight to the
+importer, so they're invisible to this top-level --help — use
+`--run JOB --help` to see what JOB itself accepts.
 """
 
 import argparse
 import logging
+import subprocess
 import sys
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from datetime import datetime
 
 import uvicorn
@@ -31,7 +38,7 @@ from apscheduler.jobstores.redis import RedisJobStore  # noqa: E402
 from apscheduler.schedulers.background import BackgroundScheduler  # noqa: E402
 from apscheduler.triggers.cron import CronTrigger  # noqa: E402
 
-from lifestream.core.config import config  # noqa: E402
+from lifestream.core.config import config, get_project_root  # noqa: E402
 from lifestream.core.jobs import run_import, run_shell_command  # noqa: E402
 from lifestream.core.webserver import create_app  # noqa: E402
 
@@ -72,9 +79,28 @@ def _parse_job_options(opts_str, job_name):
     return options
 
 
-def get_schedules():
+@dataclass(frozen=True)
+class ScheduleEntry:
+    """
+    A parsed, typed row from the `[schedules]` section of config.ini.
+
+    `is_shell` (whether the job name had a `!` prefix, dispatched to
+    `run_shell_command` rather than `run_import`) is computed once here
+    instead of being re-derived from `name` at each of the three call
+    sites that need it.
+    """
+
+    name: str
+    cron: str
+    is_shell: bool
+    misfire_grace_time: int = DEFAULT_MISFIRE_GRACE_TIME
+    coalesce: bool = DEFAULT_COALESCE
+    command: str | None = None
+
+
+def get_schedules() -> dict[str, ScheduleEntry]:
     """Read schedules from config.ini [schedules] section."""
-    schedules = {}
+    schedules: dict[str, ScheduleEntry] = {}
 
     if not config.has_section("schedules"):
         logger.warning("No [schedules] section found in config.ini")
@@ -89,14 +115,20 @@ def get_schedules():
         parts = cron_expr.split("|")
         cron = parts[0].strip()
         options = (
-            _parse_job_options(parts[1].strip(), job_name)
-            if len(parts) > 1
-            else {
-                "misfire_grace_time": DEFAULT_MISFIRE_GRACE_TIME,
-                "coalesce": DEFAULT_COALESCE,
-            }
+            _parse_job_options(parts[1].strip(), job_name) if len(parts) > 1 else {}
         )
-        schedules[job_name] = {"cron": cron, **options}
+
+        is_shell = job_name.startswith("!")
+        schedules[job_name] = ScheduleEntry(
+            name=job_name[1:] if is_shell else job_name,
+            cron=cron,
+            is_shell=is_shell,
+            misfire_grace_time=options.get(
+                "misfire_grace_time", DEFAULT_MISFIRE_GRACE_TIME
+            ),
+            coalesce=options.get("coalesce", DEFAULT_COALESCE),
+            command=options.get("command"),
+        )
 
     return schedules
 
@@ -144,44 +176,40 @@ def add_jobs(scheduler):
     """Add all configured jobs to the scheduler."""
     schedules = get_schedules()
 
-    for job_name, job_config in schedules.items():
-        cron = job_config["cron"]
-
+    for job_key, entry in schedules.items():
         try:
-            trigger = CronTrigger.from_crontab(cron)
+            trigger = CronTrigger.from_crontab(entry.cron)
         except ValueError as e:
-            logger.error(f"Invalid cron expression for {job_name}: {cron} - {e}")
+            logger.error(f"Invalid cron expression for {job_key}: {entry.cron} - {e}")
             continue
 
-        if job_name.startswith("!"):
-            actual_name = job_name[1:]
-            command = job_config.get("command")
-            if not command:
-                logger.error(f"Shell job '{actual_name}' has no cmd= option, skipping")
+        if entry.is_shell:
+            if not entry.command:
+                logger.error(f"Shell job '{entry.name}' has no cmd= option, skipping")
                 continue
             scheduler.add_job(
                 run_shell_command,
                 trigger=trigger,
-                args=[actual_name, command],
-                id=actual_name,
-                name=actual_name,
-                misfire_grace_time=job_config["misfire_grace_time"],
-                coalesce=job_config["coalesce"],
+                args=[entry.name, entry.command],
+                id=entry.name,
+                name=entry.name,
+                misfire_grace_time=entry.misfire_grace_time,
+                coalesce=entry.coalesce,
                 replace_existing=True,
             )
         else:
             scheduler.add_job(
                 run_import,
                 trigger=trigger,
-                args=[job_name],
-                id=job_name,
-                name=job_name,
-                misfire_grace_time=job_config["misfire_grace_time"],
-                coalesce=job_config["coalesce"],
+                args=[entry.name],
+                id=entry.name,
+                name=entry.name,
+                misfire_grace_time=entry.misfire_grace_time,
+                coalesce=entry.coalesce,
                 replace_existing=True,
             )
 
-        logger.info(f"Scheduled job: {job_name} with cron '{cron}'")
+        logger.info(f"Scheduled job: {job_key} with cron '{entry.cron}'")
 
     return len(schedules)
 
@@ -197,9 +225,9 @@ def list_jobs():
     print(f"{'Job Name':<25} {'Schedule':<20} {'Grace(s)':<10} {'Coalesce'}")
     print("-" * 70)
 
-    for job_name, job_config in sorted(schedules.items()):
+    for job_key, entry in sorted(schedules.items()):
         print(
-            f"{job_name:<25} {job_config['cron']:<20} {job_config['misfire_grace_time']:<10} {job_config['coalesce']}"
+            f"{job_key:<25} {entry.cron:<20} {entry.misfire_grace_time:<10} {entry.coalesce}"
         )
 
 
@@ -250,8 +278,8 @@ def run_job_now(job_name, extra_args=None):
 
     if job_name.startswith("!"):
         actual_name = job_name[1:]
-        job_config = schedules.get(job_name)
-        if not job_config or not job_config.get("command"):
+        entry = schedules.get(job_name)
+        if entry is None or not entry.command:
             logger.error(
                 f"Shell job '{actual_name}' not found in schedules or has no cmd= configured"
             )
@@ -263,13 +291,50 @@ def run_job_now(job_name, extra_args=None):
                 extra_args,
                 actual_name,
             )
-        run_shell_command(actual_name, job_config["command"])
+        run_shell_command(actual_name, entry.command)
         return
 
     if job_name not in schedules:
         logger.info(f"Job {job_name} not in schedules, attempting direct run...")
 
     run_import(job_name, extra_args=extra_args)
+
+
+def _print_job_help(job_name: str) -> None:
+    """
+    Print JOB's own --help instead of the supervisor's.
+
+    `--run JOB` forwards unrecognized args straight to the importer (see
+    main()), so those flags — e.g. OAuthImporter's --reauth — are invisible
+    to `supervisor.py --help` and argparse's automatic -h/--help would
+    otherwise just print the supervisor's own help before --run is even
+    parsed. Dispatches to the importer's own argparse parser for new-style
+    importers, or runs the legacy script with --help as a subprocess.
+    """
+    if job_name.startswith("!"):
+        print(
+            f"'{job_name}' is a shell job: it runs a fixed command from "
+            "config.ini's [schedules] section and does not accept extra "
+            "arguments."
+        )
+        return
+
+    from lifestream.importers import IMPORTERS
+
+    importer_cls = IMPORTERS.get(job_name)
+    if importer_cls is not None:
+        importer_cls().get_parser().print_help()
+        return
+
+    script_path = get_project_root() / "imports" / f"{job_name}.py"
+    if script_path.exists():
+        subprocess.run(
+            [sys.executable, str(script_path), "--help"], cwd=get_project_root()
+        )
+        return
+
+    print(f"No importer found for job '{job_name}'", file=sys.stderr)
+    sys.exit(1)
 
 
 def build_app(scheduler):
@@ -292,6 +357,17 @@ def build_app(scheduler):
 
 
 def main():
+    argv = sys.argv[1:]
+
+    # `--run JOB --help` should show JOB's own --help, not the supervisor's —
+    # argparse's automatic -h/--help action would otherwise intercept it
+    # before --run's value is even parsed. Handled ahead of the parser below.
+    if "--run" in argv and ("--help" in argv or "-h" in argv):
+        run_index = argv.index("--run")
+        if run_index + 1 < len(argv):
+            _print_job_help(argv[run_index + 1])
+            return
+
     parser = argparse.ArgumentParser(
         description="Lifestream Supervisor",
         formatter_class=argparse.RawDescriptionHelpFormatter,
