@@ -24,16 +24,19 @@ target_metadata = None
 def _lifestream_db_url() -> str:
     """Build the sqlalchemy URL from the same [database] section db.py uses."""
     db = dict(lifestream_config.items("database"))
-    return str(
-        URL.create(
-            "mysql+pymysql",
-            username=db["username"],
-            password=db["password"],
-            host=db["hostname"],
-            database=db["database"],
-            query={"charset": "utf8mb4"},
-        )
+    url = URL.create(
+        "mysql+pymysql",
+        username=db["username"],
+        password=db["password"],
+        host=db["hostname"],
+        database=db["database"],
+        query={"charset": "utf8mb4"},
     )
+    # str(url) defaults to hide_password=True (renders "***"), which would
+    # make online migrations authenticate with a literal "***". Render the
+    # real password, then escape "%" since set_main_option() stores this
+    # through ConfigParser interpolation, which treats a bare "%" as syntax.
+    return url.render_as_string(hide_password=False).replace("%", "%%")
 
 
 config.set_main_option("sqlalchemy.url", _lifestream_db_url())
