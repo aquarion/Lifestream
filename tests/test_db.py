@@ -62,11 +62,18 @@ class TestEntryStore:
         assert isinstance(store, db.MysqlEntryStore)
         assert store.no_db is False
 
-    def test_no_db_is_read_only(self):
+    def test_no_db_is_read_only_on_nodb_backend(self):
         """no_db can't be flipped after construction, unlike the old mutable flag."""
         store = db.EntryStore(no_db=True)
         with pytest.raises(AttributeError):
             store.no_db = False
+
+    def test_no_db_is_read_only_on_mysql_backend(self):
+        """Same immutability check, but for the other concrete backend —
+        MysqlEntryStore defines its own no_db property too."""
+        store = db.EntryStore(no_db=False)
+        with pytest.raises(AttributeError):
+            store.no_db = True
 
     def test_no_db_mode_prints_instead_of_writing(self, capsys):
         """Test that --no-db mode prints instead of database operations."""
