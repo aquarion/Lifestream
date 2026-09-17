@@ -169,6 +169,16 @@ class EntryStore(ABC):
     def add_stat(self, date: datetime | str, stat: str, number: int | float) -> bool:
         """Add or update a statistic entry."""
 
+    @abstractmethod
+    def get_historic_entries(
+        self, date_from: datetime | str, date_to: datetime | str
+    ) -> list[dict[str, Any]]:
+        """
+        Get Tumblr posts and tweets created in [date_from, date_to).
+
+        Used by the historic replay importer to find posts from ten years ago.
+        """
+
 
 class MysqlEntryStore(EntryStore):
     """EntryStore backend that reads and writes the real MySQL database."""
@@ -310,6 +320,18 @@ class MysqlEntryStore(EntryStore):
         self.dbcxn.commit()
         return True
 
+    def get_historic_entries(
+        self, date_from: datetime | str, date_to: datetime | str
+    ) -> list[dict[str, Any]]:
+        cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
+        sql = (
+            "select title, date_created, url, fulldata_json, systemid, source, type "
+            "from lifestream where (source = 'tumblr' or type = 'twitter') "
+            "and date_created between %s and %s"
+        )
+        cursor.execute(sql, (date_from, date_to))
+        return list(cursor.fetchall())
+
 
 class NoDbEntryStore(EntryStore):
     """EntryStore backend that prints intended writes instead of executing them."""
@@ -378,3 +400,8 @@ class NoDbEntryStore(EntryStore):
     def add_stat(self, date: datetime | str, stat: str, number: int | float) -> bool:
         print(f"[NO-DB] STAT: date={date}, stat={stat}, number={number}")
         return True
+
+    def get_historic_entries(
+        self, date_from: datetime | str, date_to: datetime | str
+    ) -> list[dict[str, Any]]:
+        return []
