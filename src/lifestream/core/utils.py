@@ -2,6 +2,7 @@
 
 import json
 from datetime import datetime, timedelta
+from typing import Any
 
 
 class AnAttributeError(Exception):
@@ -69,7 +70,7 @@ def yearsago(years: int, from_date: datetime | None = None) -> datetime:
         return from_date.replace(month=2, day=28, year=from_date.year - years)
 
 
-def is_jsonable(x) -> bool:
+def is_jsonable(x: Any) -> bool:
     """Check if an object can be serialized to JSON."""
     try:
         json.dumps(x)
@@ -78,7 +79,7 @@ def is_jsonable(x) -> bool:
         return False
 
 
-def force_json(incoming):
+def force_json(incoming: Any) -> Any:
     """Recursively convert an object to JSON-serializable form."""
     if isinstance(incoming, dict):
         outgoing = {}
@@ -86,10 +87,10 @@ def force_json(incoming):
             outgoing[key] = force_json(value)
         return outgoing
     elif isinstance(incoming, (tuple, list)):
-        outgoing = []
+        outgoing_list = []
         for value in incoming:
-            outgoing.append(force_json(value))
-        return outgoing
+            outgoing_list.append(force_json(value))
+        return outgoing_list
     else:
         if is_jsonable(incoming):
             return incoming

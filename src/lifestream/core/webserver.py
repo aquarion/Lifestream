@@ -10,10 +10,12 @@ terminates TLS.
 import html
 import json
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
+from starlette.types import Lifespan
 
 from lifestream.core.cache import get_redis_connection
 from lifestream.core.code_fetcher import (
@@ -31,11 +33,11 @@ def _allowed_origins() -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
-def _template_path(name: str):
+def _template_path(name: str) -> Path:
     return get_project_root() / "templates" / name
 
 
-def create_app(lifespan=None) -> FastAPI:
+def create_app(lifespan: Lifespan[FastAPI] | None = None) -> FastAPI:
     """Build the FastAPI app: CORS, health check, and (Task 3) the OAuth
     catcher route. `lifespan` is an optional async context manager factory
     (see supervisor.py's build_app), used to hook subsystem startup/shutdown
@@ -57,8 +59,8 @@ def create_app(lifespan=None) -> FastAPI:
     def test_success() -> FileResponse:
         return FileResponse(_template_path("success.html"), media_type="text/html")
 
-    @app.get("/keyback/")
-    def keyback(request: Request):
+    @app.get("/keyback/", response_model=None)
+    def keyback(request: Request) -> FileResponse | HTMLResponse:
         params: dict[str, list[str]] = {}
         for key, value in request.query_params.multi_items():
             params.setdefault(key, []).append(value)

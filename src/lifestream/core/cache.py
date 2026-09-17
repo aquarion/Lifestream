@@ -2,16 +2,18 @@
 
 import json
 import logging
+from collections.abc import Callable
+from typing import Any
 
 import redis
 
 from .config import config
 
 # Module-level Redis connection (lazy initialized)
-_redis_connection = None
+_redis_connection: redis.Redis | None = None
 
 
-def get_redis_connection():
+def get_redis_connection() -> redis.Redis:
     """Get a Redis connection using config settings."""
     global _redis_connection
     if _redis_connection is None:
@@ -65,7 +67,7 @@ def check_and_set_backoff(warning_id: str, hours: int = 24) -> int | bool:
         return cxn.ttl(warning_id)
 
 
-def redis_cache(cache_id: str, maxage: int):
+def redis_cache(cache_id: str, maxage: int) -> Callable[[Callable], Callable]:
     """
     A decorator that caches a function's JSON-serializable result in Redis.
 
@@ -77,8 +79,8 @@ def redis_cache(cache_id: str, maxage: int):
         Decorator function
     """
 
-    def decorator(fn):
-        def wrapped(*args, **kwargs):
+    def decorator(fn: Callable) -> Callable:
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
             cxn = get_redis_connection()
             logger = logging.getLogger("redis_cache")
 
