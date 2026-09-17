@@ -103,30 +103,28 @@ poetry run alembic current
 poetry run alembic revision -m "describe the change"
 ```
 
-If you have an existing deployment that already has the schema applied (from
-`schema.sql`, pre-dating Alembic), don't run `upgrade head` — it would try to
-recreate tables that already exist. Instead, tell Alembic it's already at the
-baseline:
+If you have an existing deployment that predates Alembic and already has the
+schema applied, don't run `upgrade head` — it would try to recreate tables
+that already exist. Instead, tell Alembic it's already at the baseline:
 
 ```bash
 poetry run alembic stamp 827f4a24602a
 ```
 
-`schema.sql` is stale — it's a 2015 dump that has drifted from the real
-schema (column types, charsets, and a `lifestream_locations.device` column
-it doesn't have at all) — and is superseded by the `baseline schema`
-migration in `alembic/versions/`, which was built from `SHOW CREATE TABLE`
-against production. New installs should use `alembic upgrade head`, not
-`mysql ... < schema.sql`.
+The `baseline schema` migration in `alembic/versions/` is the source of
+truth for the schema, built from `SHOW CREATE TABLE` against production.
+There used to be a `schema.sql` dump for manual setup, but it had drifted
+from the real schema (column types, charsets, a `lifestream_locations.device`
+column it didn't have at all) and has been removed rather than left around
+as a wrong reference.
 
 ## Project Structure
 
 ```
 supervisor.py         # Main supervisor daemon (scheduler + webserver)
 config.ini            # Configuration (not in repo)
-alembic/              # Migration environment and version scripts
+alembic/              # Migration environment and version scripts (source of truth for the schema)
 alembic.ini           # Alembic configuration
-schema.sql            # Historical schema dump, superseded by alembic/versions/
 
 src/lifestream/
   cli.py              # `lifestream-import` console script
