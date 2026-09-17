@@ -87,7 +87,9 @@ class TestPlanetsideImporter:
     def test_run_adds_rank_and_achievement_entries(self):
         imp = self._make_importer()
 
-        with patch("lifestream.importers.planetside.requests.get", side_effect=_fake_get):
+        with patch(
+            "lifestream.importers.planetside.requests.get", side_effect=_fake_get
+        ):
             imp.run()
 
         assert imp._entry_store.add_entry.call_count == 2
@@ -106,7 +108,9 @@ class TestPlanetsideImporter:
     def test_run_skips_unfinished_achievements(self):
         imp = self._make_importer()
 
-        with patch("lifestream.importers.planetside.requests.get", side_effect=_fake_get):
+        with patch(
+            "lifestream.importers.planetside.requests.get", side_effect=_fake_get
+        ):
             imp.run()
 
         texts = [c.args[2] for c in imp._entry_store.add_entry.call_args_list]
