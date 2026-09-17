@@ -370,14 +370,17 @@ def build_app(scheduler):
 
 
 def _extract_run_target(argv: list[str]) -> str | None:
-    """Return the JOB value passed to --run in argv, accepting both the
-    `--run JOB` and `--run=JOB` spellings argparse itself would accept."""
-    for i, arg in enumerate(argv):
-        if arg == "--run":
-            return argv[i + 1] if i + 1 < len(argv) else None
-        if arg.startswith("--run="):
-            return arg[len("--run=") :]
-    return None
+    """Return the JOB value passed to --run in argv, or None if not given.
+
+    Delegates to a bare argparse parser (no -h) instead of hand-parsing argv,
+    so it accepts exactly what the real parser below accepts for --run
+    (`--run JOB`, `--run=JOB`, unambiguous prefixes) rather than a second,
+    narrower reimplementation of that same flag.
+    """
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--run")
+    known, _ = pre_parser.parse_known_args(argv)
+    return known.run
 
 
 def main():

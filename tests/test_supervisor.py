@@ -341,8 +341,14 @@ class TestExtractRunTarget:
     def test_equals_form(self):
         assert supervisor._extract_run_target(["--run=lastfm", "--help"]) == "lastfm"
 
-    def test_missing_value_after_run(self):
-        assert supervisor._extract_run_target(["--run"]) is None
+    def test_missing_value_after_run_errors_like_the_real_parser(self):
+        """--run with no value is invalid usage; argparse exits(2) here just
+        as it would when the real parser below hits the same argv."""
+        try:
+            supervisor._extract_run_target(["--run"])
+            assert False, "expected SystemExit"
+        except SystemExit as e:
+            assert e.code == 2
 
     def test_no_run_flag(self):
         assert supervisor._extract_run_target(["--list"]) is None
