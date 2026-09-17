@@ -273,6 +273,7 @@ class TestPrintJobHelp:
         with patch.dict("lifestream.importers.IMPORTERS", {}, clear=False):
             with patch.object(supervisor, "get_project_root", return_value=tmp_path):
                 with patch.object(supervisor.subprocess, "run") as mock_run:
+                    mock_run.return_value.returncode = 0
                     supervisor._print_job_help("legacy_job")
 
         mock_run.assert_called_once()
@@ -294,3 +295,54 @@ class TestPrintJobHelp:
 
         captured = capsys.readouterr()
         assert "shell job" in captured.out
+
+    def test_falls_back_to_legacy_when_importers_registry_fails_to_import(
+        self, tmp_path
+    ):
+        """Mirrors run_import()'s own ImportError fallback: a broken new-style
+        importer registry shouldn't stop --run JOB --help for a legacy script."""
+        (tmp_path / "imports").mkdir()
+        (tmp_path / "imports" / "legacy_job.py").write_text("")
+
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "lifestream.importers":
+                raise ImportError("boom")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=fake_import):
+            with patch.object(supervisor, "get_project_root", return_value=tmp_path):
+                with patch.object(supervisor.subprocess, "run") as mock_run:
+                    mock_run.return_value.returncode = 0
+                    supervisor._print_job_help("legacy_job")
+
+        mock_run.assert_called_once()
+
+    def test_legacy_script_failure_propagates_exit_code(self, tmp_path):
+        (tmp_path / "imports").mkdir()
+        (tmp_path / "imports" / "legacy_job.py").write_text("")
+
+        with patch.dict("lifestream.importers.IMPORTERS", {}, clear=False):
+            with patch.object(supervisor, "get_project_root", return_value=tmp_path):
+                with patch.object(supervisor.subprocess, "run") as mock_run:
+                    mock_run.return_value.returncode = 2
+                    try:
+                        supervisor._print_job_help("legacy_job")
+                        assert False, "expected SystemExit"
+                    except SystemExit as e:
+                        assert e.code == 2
+
+
+class TestExtractRunTarget:
+    def test_space_separated_form(self):
+        assert supervisor._extract_run_target(["--run", "lastfm", "--help"]) == "lastfm"
+
+    def test_equals_form(self):
+        assert supervisor._extract_run_target(["--run=lastfm", "--help"]) == "lastfm"
+
+    def test_missing_value_after_run(self):
+        assert supervisor._extract_run_target(["--run"]) is None
+
+    def test_no_run_flag(self):
+        assert supervisor._extract_run_target(["--list"]) is None

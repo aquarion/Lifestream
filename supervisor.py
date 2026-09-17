@@ -275,13 +275,12 @@ def run_job_now(job_name, extra_args=None):
             from config rather than argparse-style flags.
     """
     schedules = get_schedules()
+    entry = schedules.get(job_name)
 
-    if job_name.startswith("!"):
-        actual_name = job_name[1:]
-        entry = schedules.get(job_name)
-        if entry is None or not entry.command:
+    if entry is not None and entry.is_shell:
+        if not entry.command:
             logger.error(
-                f"Shell job '{actual_name}' not found in schedules or has no cmd= configured"
+                f"Shell job '{entry.name}' not found in schedules or has no cmd= configured"
             )
             sys.exit(1)
         if extra_args:
@@ -289,10 +288,16 @@ def run_job_now(job_name, extra_args=None):
                 "Ignoring extra args %s for shell job '%s' (shell jobs run a fixed "
                 "cmd= from config, not argparse flags)",
                 extra_args,
-                actual_name,
+                entry.name,
             )
-        run_shell_command(actual_name, entry.command)
+        run_shell_command(entry.name, entry.command)
         return
+
+    if job_name.startswith("!") and entry is None:
+        logger.error(
+            f"Shell job '{job_name[1:]}' not found in schedules or has no cmd= configured"
+        )
+        sys.exit(1)
 
     if job_name not in schedules:
         logger.info(f"Job {job_name} not in schedules, attempting direct run...")
@@ -319,7 +324,13 @@ def _print_job_help(job_name: str) -> None:
         )
         return
 
-    from lifestream.importers import IMPORTERS
+    try:
+        from lifestream.importers import IMPORTERS
+    except ImportError:
+        # Matches lifestream.core.jobs.run_import()'s own fallback: if the
+        # new-style importer registry can't be imported, treat it as empty
+        # rather than blowing up --run JOB --help for a legacy script.
+        IMPORTERS = {}
 
     importer_cls = IMPORTERS.get(job_name)
     if importer_cls is not None:
@@ -328,9 +339,11 @@ def _print_job_help(job_name: str) -> None:
 
     script_path = get_project_root() / "imports" / f"{job_name}.py"
     if script_path.exists():
-        subprocess.run(
+        result = subprocess.run(
             [sys.executable, str(script_path), "--help"], cwd=get_project_root()
         )
+        if result.returncode != 0:
+            sys.exit(result.returncode)
         return
 
     print(f"No importer found for job '{job_name}'", file=sys.stderr)
@@ -356,16 +369,27 @@ def build_app(scheduler):
     return create_app(lifespan=lifespan)
 
 
+def _extract_run_target(argv: list[str]) -> str | None:
+    """Return the JOB value passed to --run in argv, accepting both the
+    `--run JOB` and `--run=JOB` spellings argparse itself would accept."""
+    for i, arg in enumerate(argv):
+        if arg == "--run":
+            return argv[i + 1] if i + 1 < len(argv) else None
+        if arg.startswith("--run="):
+            return arg[len("--run=") :]
+    return None
+
+
 def main():
     argv = sys.argv[1:]
 
     # `--run JOB --help` should show JOB's own --help, not the supervisor's —
     # argparse's automatic -h/--help action would otherwise intercept it
     # before --run's value is even parsed. Handled ahead of the parser below.
-    if "--run" in argv and ("--help" in argv or "-h" in argv):
-        run_index = argv.index("--run")
-        if run_index + 1 < len(argv):
-            _print_job_help(argv[run_index + 1])
+    if "--help" in argv or "-h" in argv:
+        run_target = _extract_run_target(argv)
+        if run_target is not None:
+            _print_job_help(run_target)
             return
 
     parser = argparse.ArgumentParser(

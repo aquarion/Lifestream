@@ -100,6 +100,16 @@ class EntryStore(ABC):
     def no_db(self) -> bool:
         """Whether this store no-ops writes (printing instead of hitting the DB)."""
 
+    @property
+    @abstractmethod
+    def dbcxn(self):
+        """The underlying database connection, or None in no-db mode."""
+
+    @property
+    @abstractmethod
+    def cursor(self):
+        """A cursor on `dbcxn`, or None in no-db mode."""
+
     @abstractmethod
     def commit(self) -> None:
         """Commit the current transaction."""
