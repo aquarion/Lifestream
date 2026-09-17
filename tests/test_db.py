@@ -292,9 +292,27 @@ class TestEntryStore:
         assert result == [
             {"title": "T", "systemid": "1", "source": "tumblr", "type": "text"}
         ]
+        assert mock_conn.cursor.call_args == call(db.pymysql.cursors.DictCursor)
         args, _ = mock_cursor.execute.call_args
         assert "tumblr" in args[0] and "twitter" in args[0]
         assert args[1] == ("2016-01-01", "2016-01-02")
+
+    def test_get_historic_entries_upper_bound_is_exclusive(self):
+        """The window is half-open, so a row exactly at date_to is not this
+        run's - it belongs to the next, adjacent window instead, and an
+        inclusive upper bound would replay it in both."""
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.get_historic_entries("2016-01-01", "2016-01-02")
+
+        args, _ = mock_cursor.execute.call_args
+        assert ">= %s" in args[0]
+        assert "< %s" in args[0]
+        assert "between" not in args[0].lower()
 
     def test_no_db_get_historic_entries_returns_empty_list(self):
         """--no-db mode returns no rows rather than touching the database."""

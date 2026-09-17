@@ -327,7 +327,7 @@ class MysqlEntryStore(EntryStore):
         sql = (
             "select title, date_created, url, fulldata_json, systemid, source, type "
             "from lifestream where (source = 'tumblr' or type = 'twitter') "
-            "and date_created between %s and %s"
+            "and date_created >= %s and date_created < %s"
         )
         cursor.execute(sql, (date_from, date_to))
         return list(cursor.fetchall())
