@@ -48,7 +48,7 @@ def run_import(job_name: str, extra_args: list[str] | None = None) -> None:
     requiring each one to be individually audited/fixed.
 
     Args:
-        job_name: The name of the importer to run (e.g., 'lastfm', 'flickr')
+        job_name: The name of the importer to run (e.g., 'lastfm', 'tumblr')
         extra_args: Extra CLI arguments to pass to the importer, e.g.
             ['--reauth']. Only meaningful for manual/`--run` invocations —
             scheduled cron runs never pass any.

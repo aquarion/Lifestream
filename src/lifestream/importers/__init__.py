@@ -12,7 +12,6 @@ from lifestream.importers.destiny2 import Destiny2Importer
 from lifestream.importers.facebook_page import FacebookPageImporter
 from lifestream.importers.facebook_posts import FacebookPostsImporter
 from lifestream.importers.ffxiv import FFXIVImporter
-from lifestream.importers.flickr import FlickrImporter
 from lifestream.importers.foursquare import FoursquareImporter
 from lifestream.importers.github_commits import GithubCommitsImporter
 from lifestream.importers.gw2 import GW2Importer
@@ -39,7 +38,6 @@ __all__ = [
     "FacebookPageImporter",
     "FacebookPostsImporter",
     "FFXIVImporter",
-    "FlickrImporter",
     "FoursquareImporter",
     "GithubCommitsImporter",
     "GW2Importer",
@@ -63,7 +61,6 @@ IMPORTERS = {
     "facebook_page": FacebookPageImporter,
     "facebook_posts": FacebookPostsImporter,
     "ffxiv": FFXIVImporter,
-    "flickr": FlickrImporter,
     "foursquare": FoursquareImporter,
     "github": GithubCommitsImporter,
     "github_commits": GithubCommitsImporter,  # legacy schedule name
