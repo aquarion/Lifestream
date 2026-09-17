@@ -186,6 +186,7 @@ class TestPlanetsideImporter:
         legacy script's sys.exit(1)) instead of the run silently "succeeding".
         """
         imp = self._make_importer()
+        imp.logger = MagicMock()
 
         with (
             patch(
@@ -199,10 +200,13 @@ class TestPlanetsideImporter:
                 imp.run()
 
         imp._entry_store.add_entry.assert_not_called()
+        imp.logger.error.assert_called_once()
+        assert "census is down" in str(imp.logger.error.call_args.args[1])
 
     def test_run_logs_at_info_level_when_error_already_warned_recently(self):
         """The backoff-suppressed second failure still re-raises, just logged quieter."""
         imp = self._make_importer()
+        imp.logger = MagicMock()
 
         with (
             patch(
@@ -215,3 +219,17 @@ class TestPlanetsideImporter:
             mock_redis.return_value.ttl.return_value = 3600
             with pytest.raises(OSError):
                 imp.run()
+
+        imp.logger.error.assert_not_called()
+        backoff_call = imp.logger.info.call_args_list[-1]
+        assert backoff_call.args[0] == (
+            "Error importing Planetside data: %s (already warned %s ago)"
+        )
+        assert "census is down" in str(backoff_call.args[1])
+
+        imp.logger.error.assert_not_called()
+        imp.logger.info.assert_any_call(
+            "Error importing Planetside data: %s (already warned %s ago)",
+            imp.logger.info.call_args_list[-1].args[1],
+            imp.logger.info.call_args_list[-1].args[2],
+        )

@@ -136,12 +136,12 @@ class PlanetsideImporter(BaseImporter):
             ttl = check_and_set_backoff(WARNING_BACKOFF_KEY)
             if ttl:
                 self.logger.info(
-                    "Error fetching achievements: %s (already warned %s ago)",
+                    "Error importing Planetside data: %s (already warned %s ago)",
                     e,
                     niceTimeDelta(ttl),
                 )
             else:
-                self.logger.error("Error fetching achievements: %s", e)
+                self.logger.error("Error importing Planetside data: %s", e)
             raise
 
 
