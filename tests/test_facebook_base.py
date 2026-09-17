@@ -20,7 +20,8 @@ class TestFacebookBaseImporter:
     def test_validate_config_requires_appid_and_secret(self):
         imp = FacebookPostsImporter()
         imp.get_config = MagicMock(return_value=None)
-        assert imp.validate_config() is False
+        with pytest.raises(ConfigurationError):
+            imp.validate_config()
 
     def test_authenticate_uses_saved_token_without_reauth(self):
         imp = self._make_importer()

@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from redis.exceptions import ConnectionError as RedisConnectionError
 
+from lifestream.importers.base import ConfigurationError
 from lifestream.importers.historic import HistoricImporter
 
 WHEN = datetime(2016, 8, 3, 10, 0, 0)
@@ -50,7 +51,8 @@ class TestHistoricImporter:
     def test_validate_config_fails_when_keys_missing(self):
         imp = self._make_importer()
         imp.get_config = MagicMock(return_value=None)
-        assert imp.validate_config() is False
+        with pytest.raises(ConfigurationError):
+            imp.validate_config()
 
     def test_validate_config_passes_when_all_keys_present(self):
         imp = self._make_importer()

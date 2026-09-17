@@ -19,12 +19,7 @@ class GithubCommitsImporter(BaseImporter):
 
     def validate_config(self) -> bool:
         """Ensure GitHub credentials are configured."""
-        if not self.get_config("username"):
-            self.logger.error("No GitHub username in config")
-            return False
-        if not self.get_config("auth_token"):
-            self.logger.error("No GitHub auth_token in config")
-            return False
+        self.require_config("username", "auth_token")
         return True
 
     def github_call(self, path: str, page: int = 1, per_page: int = 100) -> list | dict:

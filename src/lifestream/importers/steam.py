@@ -29,12 +29,7 @@ class SteamImporter(BaseImporter):
 
     def validate_config(self) -> bool:
         """Ensure Steam credentials are configured."""
-        missing = [
-            k for k in ("username", "apikey", "steamid") if not self.get_config(k)
-        ]
-        if missing:
-            self.logger.error(f"Missing Steam config keys: {', '.join(missing)}")
-            return False
+        self.require_config("username", "apikey", "steamid")
         return True
 
     def run(self) -> None:  # noqa: C901

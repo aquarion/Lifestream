@@ -48,10 +48,7 @@ class WowImporter(OAuthImporter):
 
     def validate_config(self) -> bool:
         """Ensure Blizzard app credentials are configured."""
-        missing = [k for k in ("key", "secret", "region") if not self.get_config(k)]
-        if missing:
-            self.logger.error(f"Missing Blizzard config keys: {', '.join(missing)}")
-            return False
+        self.require_config("key", "secret", "region")
         return True
 
     def _oauth_base(self) -> str:

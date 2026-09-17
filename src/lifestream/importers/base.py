@@ -45,6 +45,11 @@ class BaseImporter(ABC):
 
     def __init__(self):
         """Initialize the importer."""
+        if self.name == "base":
+            raise NotImplementedError(
+                f"{type(self).__name__} must override the 'name' class attribute "
+                "(used for its logger, config section, and CLI prog name)"
+            )
         self.logger = logging.getLogger(self.name)
         self._entry_store: EntryStore | None = None
         self._args: argparse.Namespace | None = None
@@ -88,9 +93,25 @@ class BaseImporter(ABC):
                 action="store_true",
                 help="Print database operations instead of executing them",
             )
+            # Arguments a whole tier of importers must always get (e.g.
+            # OAuthImporter's --reauth), independent of whether a leaf
+            # importer's own add_arguments() override remembers to call
+            # super().add_arguments(parser).
+            self._add_standard_arguments(self._parser)
             # Let subclasses add their own arguments
             self.add_arguments(self._parser)
         return self._parser
+
+    def _add_standard_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """
+        Add arguments that every importer in this class's tier must have.
+
+        Override this (not add_arguments()) when a BaseImporter subclass
+        (like OAuthImporter) needs to guarantee an argument is present for
+        every one of *its* subclasses, regardless of add_arguments()
+        override chaining further down.
+        """
+        pass
 
     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
         """
@@ -106,7 +127,16 @@ class BaseImporter(ABC):
         return parser.parse_args(args)
 
     def get_config(self, key: str, fallback: str | None = None) -> str | None:
-        """Get a config value from this importer's section."""
+        """
+        Get a config value from this importer's section.
+
+        Assumes one fixed section per importer (config_section or name). An
+        importer that needs multiple dynamic sections at once — e.g. one
+        `[site:<name>]` block per configured account, as in wordpress.py and
+        atproto_posts.py — can't express that here and reads
+        `lifestream.core.config` directly instead, iterating
+        `config.sections()` to discover its own sections.
+        """
         section = self.config_section or self.name
         if config.has_option(section, key):
             return config.get(section, key)
@@ -123,19 +153,24 @@ class BaseImporter(ABC):
         """
         Require that config keys exist, returning their values.
 
+        Built on get_config() (rather than reading `config` directly) so the
+        two share one definition of "how does this importer read a config
+        key" — including the same mocking seam in tests.
+
         Raises ConfigurationError if any keys are missing.
         """
-        section = self.config_section or self.name
         values = {}
         missing = []
 
         for key in keys:
-            if config.has_option(section, key):
-                values[key] = config.get(section, key)
-            else:
+            value = self.get_config(key)
+            if not value:
                 missing.append(key)
+            else:
+                values[key] = value
 
         if missing:
+            section = self.config_section or self.name
             raise ConfigurationError(
                 f"Missing required config keys in [{section}]: {', '.join(missing)}"
             )
@@ -283,8 +318,10 @@ class OAuthImporter(BaseImporter):
 
     oauth_filename: str | None = None
 
-    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
-        """Add OAuth-related arguments."""
+    def _add_standard_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Add --reauth. Uses the always-called hook (not add_arguments())
+        so a subclass gets it even if its own add_arguments() override
+        doesn't call super().add_arguments(parser)."""
         parser.add_argument(
             "--reauth",
             action="store_true",

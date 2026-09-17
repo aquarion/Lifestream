@@ -21,11 +21,8 @@ class FacebookPageImporter(FacebookBaseImporter):
 
     def validate_config(self) -> bool:
         """Ensure Facebook app credentials and a target page_id are configured."""
-        if not super().validate_config():
-            return False
-        if not self.get_config("page_id"):
-            self.logger.error("Missing Facebook config key: page_id")
-            return False
+        super().validate_config()
+        self.require_config("page_id")
         return True
 
     def run(self) -> None:

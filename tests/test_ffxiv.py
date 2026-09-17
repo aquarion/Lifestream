@@ -26,7 +26,8 @@ class TestFFXIVImporter:
     def test_validate_config_requires_all_keys(self):
         imp = FFXIVImporter()
         imp.get_config = MagicMock(return_value=None)
-        assert imp.validate_config() is False
+        with pytest.raises(ConfigurationError):
+            imp.validate_config()
 
     def test_validate_config_passes_without_apikey(self):
         """apikey isn't required: nothing in this importer reads it (it's a

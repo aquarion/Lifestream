@@ -58,12 +58,7 @@ class Destiny2Importer(OAuthImporter):
 
     def validate_config(self) -> bool:
         """Ensure Bungie app credentials are configured."""
-        missing = [
-            k for k in ("key", "client_id", "client_secret") if not self.get_config(k)
-        ]
-        if missing:
-            self.logger.error(f"Missing Bungie config keys: {', '.join(missing)}")
-            return False
+        self.require_config("key", "client_id", "client_secret")
         return True
 
     def _fetch_auth_code(self) -> str:

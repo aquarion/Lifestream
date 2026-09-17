@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from guildwars2api.base import GuildWars2APIError
 
+from lifestream.importers.base import ConfigurationError
 from lifestream.importers.gw2 import GW2Importer
 
 
@@ -19,7 +20,8 @@ class TestGW2Importer:
     def test_validate_config_requires_apikey(self):
         imp = GW2Importer()
         imp.get_config = MagicMock(return_value=None)
-        assert imp.validate_config() is False
+        with pytest.raises(ConfigurationError):
+            imp.validate_config()
 
     def test_run_adds_entry_for_completed_achievement(self):
         """A completed achievement with matching info is stored as an entry."""

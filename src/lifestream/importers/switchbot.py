@@ -77,10 +77,7 @@ class SwitchbotImporter(BaseImporter):
 
     def validate_config(self) -> bool:
         """Ensure SwitchBot credentials are configured."""
-        missing = [k for k in ("token", "secret") if not self.get_config(k)]
-        if missing:
-            self.logger.error(f"Missing SwitchBot config keys: {', '.join(missing)}")
-            return False
+        self.require_config("token", "secret")
         return True
 
     def run(self) -> None:

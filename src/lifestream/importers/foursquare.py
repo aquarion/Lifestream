@@ -28,12 +28,7 @@ class FoursquareImporter(OAuthImporter):
 
     def validate_config(self) -> bool:
         """Ensure Foursquare app credentials are configured."""
-        missing = [
-            k for k in ("client_id", "secret", "username") if not self.get_config(k)
-        ]
-        if missing:
-            self.logger.error(f"Missing Foursquare config keys: {', '.join(missing)}")
-            return False
+        self.require_config("client_id", "secret", "username")
         return True
 
     def _redirect_uri(self) -> tuple[str, bool]:
