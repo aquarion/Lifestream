@@ -173,14 +173,7 @@ class FFXIVImporter(BaseImporter):
 
     def validate_config(self) -> bool:
         """Ensure the FFXIV Lodestone import config is present."""
-        missing = [
-            k
-            for k in ("characters", "icon_base", "achievement_db")
-            if not self.get_config(k)
-        ]
-        if missing:
-            self.logger.error(f"Missing xivapi config keys: {', '.join(missing)}")
-            return False
+        self.require_config("characters", "icon_base", "achievement_db")
         return True
 
     def _update_achievements(self, lodestone: Lodestone, char_id: str) -> None:

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from lifestream.importers.base import ConfigurationError
 from lifestream.importers.steam_badges import SteamBadgesImporter
 
 BADGE_ROW_WITH_YEAR = """
@@ -108,7 +109,8 @@ class TestSteamBadgesImporter:
     def test_validate_config_fails_when_username_missing(self):
         imp = self._make_importer()
         imp.get_config = MagicMock(return_value=None)
-        assert imp.validate_config() is False
+        with pytest.raises(ConfigurationError):
+            imp.validate_config()
 
     def test_validate_config_passes_when_username_present(self):
         imp = self._make_importer()

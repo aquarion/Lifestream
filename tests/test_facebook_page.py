@@ -2,6 +2,9 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from lifestream.importers.base import ConfigurationError
 from lifestream.importers.facebook_page import FacebookPageImporter
 
 
@@ -28,7 +31,8 @@ class TestFacebookPageImporter:
                 "secret": "sec",
             }.get(k, fallback)
         )
-        assert imp.validate_config() is False
+        with pytest.raises(ConfigurationError):
+            imp.validate_config()
 
     def test_validate_config_passes_with_page_id_and_credentials(self):
         imp = FacebookPageImporter()

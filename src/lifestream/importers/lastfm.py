@@ -32,10 +32,7 @@ class LastfmImporter(BaseImporter):
 
     def validate_config(self) -> bool:
         """Ensure Last.fm credentials are configured."""
-        missing = [k for k in ("username", "api_key") if not self.get_config(k)]
-        if missing:
-            self.logger.error(f"Missing Last.fm config keys: {', '.join(missing)}")
-            return False
+        self.require_config("username", "api_key")
         return True
 
     @staticmethod

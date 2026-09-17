@@ -33,14 +33,14 @@ from dataclasses import dataclass
 from datetime import datetime
 
 import uvicorn
-from apscheduler.executors.pool import ThreadPoolExecutor  # noqa: E402
-from apscheduler.jobstores.redis import RedisJobStore  # noqa: E402
-from apscheduler.schedulers.background import BackgroundScheduler  # noqa: E402
-from apscheduler.triggers.cron import CronTrigger  # noqa: E402
+from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.jobstores.redis import RedisJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
-from lifestream.core.config import config, get_project_root  # noqa: E402
-from lifestream.core.jobs import run_import, run_shell_command  # noqa: E402
-from lifestream.core.webserver import create_app  # noqa: E402
+from lifestream.core.config import config, get_project_root
+from lifestream.core.jobs import run_import, run_shell_command
+from lifestream.core.webserver import create_app
 
 logger = logging.getLogger("Supervisor")
 

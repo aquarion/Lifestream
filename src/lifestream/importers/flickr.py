@@ -34,12 +34,7 @@ class FlickrImporter(BaseImporter):
 
     def validate_config(self) -> bool:
         """Ensure Flickr credentials are configured."""
-        if not self.get_config("api_key"):
-            self.logger.error("No Flickr api_key in config")
-            return False
-        if not self.get_config("account"):
-            self.logger.error("No Flickr account in config")
-            return False
+        self.require_config("api_key", "account")
         return True
 
     def run(self) -> None:

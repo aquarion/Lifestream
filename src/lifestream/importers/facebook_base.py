@@ -61,10 +61,7 @@ class FacebookBaseImporter(OAuthImporter):
 
     def validate_config(self) -> bool:
         """Ensure Facebook app credentials are configured."""
-        missing = [k for k in ("appid", "secret") if not self.get_config(k)]
-        if missing:
-            self.logger.error(f"Missing Facebook config keys: {', '.join(missing)}")
-            return False
+        self.require_config("appid", "secret")
         return True
 
     def _get_redirect_uri(self) -> tuple[str, bool]:

@@ -31,9 +31,7 @@ class SteamBadgesImporter(BaseImporter):
 
     def validate_config(self) -> bool:
         """Ensure Steam credentials are configured."""
-        if not self.get_config("username"):
-            self.logger.error("Missing Steam config key: username")
-            return False
+        self.require_config("username")
         return True
 
     def fetch_badges_page(self, username: str) -> str:

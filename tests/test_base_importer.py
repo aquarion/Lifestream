@@ -140,3 +140,41 @@ class TestOAuthImporter:
                 match=r"Missing required config keys in \[test_importer\]: api_key, username",
             ):
                 imp.require_config("api_key", "username")
+
+
+class TestNameEnforcement:
+    def test_forgetting_to_override_name_raises(self):
+        """A subclass that forgets to set `name` fails fast at construction,
+        instead of silently falling back to BaseImporter's "base" default."""
+
+        class ForgotName(BaseImporter):
+            def run(self):
+                pass
+
+        with pytest.raises(NotImplementedError, match="ForgotName"):
+            ForgotName()
+
+    def test_overriding_name_is_fine(self):
+        ConcreteImporter()  # name = "test_importer"; must not raise
+
+
+class TestOAuthReauthAlwaysPresent:
+    def test_reauth_present_even_without_super_call(self):
+        """A subclass's add_arguments() override that forgets to call
+        super().add_arguments(parser) must still get --reauth, since
+        OAuthImporter now adds it via the always-called
+        _add_standard_arguments() hook rather than add_arguments()."""
+
+        class ForgetfulOAuthImporter(OAuthImporter):
+            name = "forgetful_oauth"
+
+            def add_arguments(self, parser):
+                parser.add_argument("--custom", action="store_true")
+
+            def run(self):
+                pass
+
+        parser = ForgetfulOAuthImporter().get_parser()
+        args = parser.parse_args(["--reauth", "--custom"])
+        assert args.reauth is True
+        assert args.custom is True

@@ -51,9 +51,7 @@ class GW2Importer(BaseImporter):
 
     def validate_config(self) -> bool:
         """Ensure a Guild Wars 2 API key is configured."""
-        if not self.get_config("apikey"):
-            self.logger.error("No Guild Wars 2 API key in config")
-            return False
+        self.require_config("apikey")
         return True
 
     def _get_all_my_achievements(self, api):

@@ -127,14 +127,7 @@ class HistoricImporter(OAuthImporter):
 
     def validate_config(self) -> bool:
         """Ensure Tumblr credentials are configured."""
-        missing = [
-            k
-            for k in ("consumer_key", "secret_key", "secrets_file")
-            if not self.get_config(k)
-        ]
-        if missing:
-            self.logger.error(f"Missing Tumblr config keys: {', '.join(missing)}")
-            return False
+        self.require_config("consumer_key", "secret_key", "secrets_file")
         return True
 
     def get_oauth_path(self) -> str:
