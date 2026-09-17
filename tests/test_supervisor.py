@@ -1,5 +1,6 @@
 """Tests for the APScheduler-based supervisor.py job configuration/dispatch logic."""
 
+import sys
 from unittest.mock import MagicMock, patch
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -352,3 +353,34 @@ class TestExtractRunTarget:
 
     def test_no_run_flag(self):
         assert supervisor._extract_run_target(["--list"]) is None
+
+
+class TestMainHelpRouting:
+    """argv-driven coverage of main()'s pre-parser dispatch, not just its
+    pieces (_extract_run_target/_print_job_help) in isolation."""
+
+    def test_run_job_help_dispatches_before_argparse(self):
+        with patch.object(sys, "argv", ["supervisor.py", "--run", "lastfm", "--help"]):
+            with patch.object(supervisor, "_print_job_help") as mock_help:
+                supervisor.main()
+
+        mock_help.assert_called_once_with("lastfm")
+
+    def test_run_equals_job_help_dispatches_before_argparse(self):
+        with patch.object(sys, "argv", ["supervisor.py", "--run=lastfm", "--help"]):
+            with patch.object(supervisor, "_print_job_help") as mock_help:
+                supervisor.main()
+
+        mock_help.assert_called_once_with("lastfm")
+
+    def test_plain_help_falls_through_to_the_top_level_parser(self):
+        """--help with no --run shows the supervisor's own help, unaffected."""
+        with patch.object(sys, "argv", ["supervisor.py", "--help"]):
+            with patch.object(supervisor, "_print_job_help") as mock_help:
+                try:
+                    supervisor.main()
+                    assert False, "expected SystemExit from argparse's -h action"
+                except SystemExit:
+                    pass
+
+        mock_help.assert_not_called()
