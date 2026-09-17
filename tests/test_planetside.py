@@ -1,5 +1,6 @@
 """Tests for the Planetside 2 importer."""
 
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -103,7 +104,36 @@ class TestPlanetsideImporter:
         achievement_args = achievement_call.args
         assert achievement_args[0] == "gaming"
         assert "TestChar earnt First Kill" in achievement_args[2]
-        assert achievement_args[3] == "PS2 Achivement"
+        assert achievement_args[3] == "PS2 Achievement"
+
+    def test_achievement_date_is_converted_from_unix_epoch(self):
+        """finish_date is a Unix-epoch string; the `lifestream` table's
+        date_created column is a DATETIME, so it must be converted rather
+        than passed through as-is."""
+        imp = self._make_importer()
+
+        with patch(
+            "lifestream.importers.planetside.requests.get", side_effect=_fake_get
+        ):
+            imp.run()
+
+        _, achievement_call = imp._entry_store.add_entry.call_args_list
+        assert achievement_call.args[4] == datetime.fromtimestamp(1700000000, tz=UTC)
+
+    def test_achievement_text_uses_the_apis_canonical_name(self):
+        """The API's own capitalization of the name is used for achievement
+        text/hashing, not however it happens to be spelled in config -
+        matching the legacy importer, which reassigned character_name to the
+        API's name right after fetching the profile."""
+        imp = self._make_importer(characters="testchar")
+
+        with patch(
+            "lifestream.importers.planetside.requests.get", side_effect=_fake_get
+        ):
+            imp.run()
+
+        _, achievement_call = imp._entry_store.add_entry.call_args_list
+        assert achievement_call.args[2].startswith("TestChar earnt")
 
     def test_run_skips_unfinished_achievements(self):
         imp = self._make_importer()

@@ -1,7 +1,7 @@
 """Planetside 2 importer for Lifestream, via Daybreak Games' Census API."""
 
 import hashlib
-from datetime import datetime
+from datetime import UTC, datetime
 
 import requests
 
@@ -37,8 +37,12 @@ class PlanetsideImporter(BaseImporter):
         response.raise_for_status()
         return response.json()
 
-    def _import_rank(self, character_name: str) -> str:
-        """Log the character's current battle rank, returning its character_id."""
+    def _import_rank(self, character_name: str) -> tuple[str, str]:
+        """Log the character's current battle rank, returning (character_id,
+        canonical_name) - the API's own capitalization of the name, which may
+        differ from how it's spelled in config and must be used consistently
+        so achievement entries hash/match the same way the legacy importer's
+        did."""
         profile = self._census_get(
             "character/",
             {"name.first_lower": character_name, "c:resolve": "faction"},
@@ -73,7 +77,7 @@ class PlanetsideImporter(BaseImporter):
             image=image,
             fulldata_json=profile,
         )
-        return character_id
+        return character_id, name
 
     def _log_achievement(
         self, achievement: dict, character_name: str, url: str
@@ -82,9 +86,10 @@ class PlanetsideImporter(BaseImporter):
         info = achievement["achievement_id_join_achievement"]
         name = info["name"]["en"]
         text = f"{character_name} earnt {name}"
-        date = achievement["finish_date"]
+        finish_date = achievement["finish_date"]
+        date = datetime.fromtimestamp(int(finish_date), tz=UTC)
         image = CENSUS_BASE + info["image_path"]
-        raw = f"{text}{date}"
+        raw = f"{text}{finish_date}"
 
         # Same false positive as _import_rank: text/raw hold achievement and
         # character data, not the service key.
@@ -94,7 +99,7 @@ class PlanetsideImporter(BaseImporter):
             "gaming",
             digest.hexdigest(),
             text,
-            "PS2 Achivement",
+            "PS2 Achievement",
             date,
             url=url,
             image=image,
@@ -125,8 +130,8 @@ class PlanetsideImporter(BaseImporter):
         try:
             for character_name in characters:
                 self.logger.info("Data for %s", character_name)
-                character_id = self._import_rank(character_name)
-                self._import_achievements(character_id, character_name)
+                character_id, canonical_name = self._import_rank(character_name)
+                self._import_achievements(character_id, canonical_name)
         except Exception as e:
             ttl = check_and_set_backoff(WARNING_BACKOFF_KEY)
             if ttl:
