@@ -57,10 +57,15 @@ class PlanetsideImporter(BaseImporter):
         text = f"In Planetside 2, {name} achieved the rank {rank}"
         image = CENSUS_BASE + rank_info[f"{faction}_image_path"]
 
-        self.logger.info(text)
+        # text is rank/name data from the API response, not the service key -
+        # but CodeQL's requests model treats a response as tainted by the URL
+        # that fetched it, which embeds the key (Census has no other way to
+        # take it). False positives on both lines below.
+        self.logger.info(text)  # codeql[py/clear-text-logging-sensitive-data]
+        digest = hashlib.md5(text.encode())  # codeql[py/weak-sensitive-data-hashing]
         self.entry_store.add_entry(
             "gaming",
-            hashlib.md5(text.encode()).hexdigest(),
+            digest.hexdigest(),
             text,
             "Planetside 2",
             datetime.now(),
@@ -69,6 +74,32 @@ class PlanetsideImporter(BaseImporter):
             fulldata_json=profile,
         )
         return character_id
+
+    def _log_achievement(
+        self, achievement: dict, character_name: str, url: str
+    ) -> None:
+        """Log one finished achievement as an entry."""
+        info = achievement["achievement_id_join_achievement"]
+        name = info["name"]["en"]
+        text = f"{character_name} earnt {name}"
+        date = achievement["finish_date"]
+        image = CENSUS_BASE + info["image_path"]
+        raw = f"{text}{date}"
+
+        # Same false positive as _import_rank: text/raw hold achievement and
+        # character data, not the service key.
+        self.logger.info(text)  # codeql[py/clear-text-logging-sensitive-data]
+        digest = hashlib.md5(raw.encode())  # codeql[py/weak-sensitive-data-hashing]
+        self.entry_store.add_entry(
+            "gaming",
+            digest.hexdigest(),
+            text,
+            "PS2 Achivement",
+            date,
+            url=url,
+            image=image,
+            fulldata_json=achievement,
+        )
 
     def _import_achievements(self, character_id: str, character_name: str) -> None:
         """Log every finished achievement for one character."""
@@ -85,24 +116,7 @@ class PlanetsideImporter(BaseImporter):
         for achievement in achievements:
             if achievement["finish"] == "0":
                 continue
-
-            info = achievement["achievement_id_join_achievement"]
-            name = info["name"]["en"]
-            text = f"{character_name} earnt {name}"
-            date = achievement["finish_date"]
-            image = CENSUS_BASE + info["image_path"]
-
-            self.logger.info(text)
-            self.entry_store.add_entry(
-                "gaming",
-                hashlib.md5(f"{text}{date}".encode()).hexdigest(),
-                text,
-                "PS2 Achivement",
-                date,
-                url=url,
-                image=image,
-                fulldata_json=achievement,
-            )
+            self._log_achievement(achievement, character_name, url)
 
     def run(self) -> None:
         """Log rank and achievements for each configured character."""
