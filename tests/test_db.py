@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, call, patch
 
+import pytest
+
 from lifestream import db
 
 
@@ -47,6 +49,31 @@ class TestGetConnection:
 
 class TestEntryStore:
     """Tests for EntryStore class."""
+
+    def test_no_db_true_dispatches_to_nodb_backend(self):
+        """EntryStore(no_db=True) resolves to the NoDbEntryStore backend."""
+        store = db.EntryStore(no_db=True)
+        assert isinstance(store, db.NoDbEntryStore)
+        assert store.no_db is True
+
+    def test_no_db_false_dispatches_to_mysql_backend(self):
+        """EntryStore(no_db=False) resolves to the MysqlEntryStore backend."""
+        store = db.EntryStore(no_db=False)
+        assert isinstance(store, db.MysqlEntryStore)
+        assert store.no_db is False
+
+    def test_no_db_is_read_only_on_nodb_backend(self):
+        """no_db can't be flipped after construction, unlike the old mutable flag."""
+        store = db.EntryStore(no_db=True)
+        with pytest.raises(AttributeError):
+            store.no_db = False
+
+    def test_no_db_is_read_only_on_mysql_backend(self):
+        """Same immutability check, but for the other concrete backend —
+        MysqlEntryStore defines its own no_db property too."""
+        store = db.EntryStore(no_db=False)
+        with pytest.raises(AttributeError):
+            store.no_db = True
 
     def test_no_db_mode_prints_instead_of_writing(self, capsys):
         """Test that --no-db mode prints instead of database operations."""
