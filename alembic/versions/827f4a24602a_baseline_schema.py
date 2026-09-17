@@ -11,6 +11,7 @@ Revises:
 Create Date: 2026-09-17 17:10:37.210001
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
