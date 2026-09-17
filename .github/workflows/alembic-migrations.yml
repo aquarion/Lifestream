@@ -10,6 +10,7 @@ on:
       - "alembic/**"
       - "alembic.ini"
       - "src/lifestream/core/config.py"
+      - "pyproject.toml"
       - ".github/workflows/alembic-migrations.yml"
   pull_request:
     branches: ["main"]
@@ -17,6 +18,7 @@ on:
       - "alembic/**"
       - "alembic.ini"
       - "src/lifestream/core/config.py"
+      - "pyproject.toml"
       - ".github/workflows/alembic-migrations.yml"
 
 jobs:
