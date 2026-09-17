@@ -28,6 +28,8 @@ from .config import (
 from .db import (
     EntryResult,
     EntryStore,
+    MysqlEntryStore,
+    NoDbEntryStore,
     get_connection,
     get_cursor,
     get_no_db_mode,
@@ -64,6 +66,8 @@ __all__ = [
     "is_logging_configured",
     # Database
     "EntryStore",
+    "MysqlEntryStore",
+    "NoDbEntryStore",
     "EntryResult",
     "get_connection",
     "get_cursor",

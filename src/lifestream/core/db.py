@@ -3,6 +3,7 @@
 import enum
 import json
 import warnings
+from abc import ABC, abstractmethod
 from datetime import datetime
 
 import pymysql as MySQLdb
@@ -63,70 +64,69 @@ def get_cursor(dbcxn):
     return dbc
 
 
-class EntryStore:
-    """Main database interface for lifestream entries."""
+class EntryStore(ABC):
+    """
+    Interface for the lifestream entry store.
+
+    Instantiating this class dispatches to a concrete backend —
+    :class:`MysqlEntryStore` or :class:`NoDbEntryStore` — chosen once, at
+    construction time, from `no_db` (or the global no-db setting when
+    `no_db` is omitted). This keeps existing call sites like
+    `EntryStore()` / `EntryStore(no_db=True)` working unchanged, while the
+    no-db/real-db behavior itself lives on the concrete type instead of a
+    mutable flag re-checked in every method. `no_db` is a read-only
+    property of the resulting instance; mixing modes mid-instance isn't
+    possible.
+    """
+
+    def __new__(cls, no_db: bool | None = None):
+        if cls is not EntryStore:
+            return super().__new__(cls)
+        effective_no_db = no_db if no_db is not None else get_no_db_mode()
+        target = NoDbEntryStore if effective_no_db else MysqlEntryStore
+        return super().__new__(target)
 
     def __init__(self, no_db: bool | None = None):
         """
         Initialize EntryStore.
 
         Args:
-            no_db: Override no-db mode. If None, uses global setting.
+            no_db: Selects the backend. If None, uses the global setting.
+                Only consulted by `__new__`; concrete backends ignore it.
         """
-        self._dbcxn = None
-        self._cursor = None
-        self.no_db = no_db if no_db is not None else get_no_db_mode()
 
     @property
+    @abstractmethod
+    def no_db(self) -> bool:
+        """Whether this store no-ops writes (printing instead of hitting the DB)."""
+
+    @property
+    @abstractmethod
     def dbcxn(self):
-        """Lazy database connection."""
-        if self.no_db:
-            return None
-        if self._dbcxn is None:
-            self._dbcxn = get_connection()
-        return self._dbcxn
+        """The underlying database connection, or None in no-db mode."""
 
     @property
+    @abstractmethod
     def cursor(self):
-        """Lazy cursor initialization."""
-        if self.no_db:
-            return None
-        if self._cursor is None:
-            self._cursor = get_cursor(self.dbcxn)
-        return self._cursor
+        """A cursor on `dbcxn`, or None in no-db mode."""
 
-    def commit(self):
+    @abstractmethod
+    def commit(self) -> None:
         """Commit the current transaction."""
-        if self.dbcxn:
-            self.dbcxn.commit()
 
+    @abstractmethod
     def get_by_id(self, type: str, entry_id: str):
         """Get an entry by type and system ID."""
-        if self.no_db:
-            return None
-        cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
-        sql = "select * from lifestream where type = %s and systemid = %s"
-        cursor.execute(sql, (type, entry_id))
-        return cursor.fetchone()
 
+    @abstractmethod
     def get_by_title(self, type: str, title: str):
         """Get an entry by type and title."""
-        if self.no_db:
-            return None
-        cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
-        sql = "select * from lifestream where type = %s and title = %s"
-        cursor.execute(sql, (type, title))
-        return cursor.fetchone()
 
-    def delete_entry(self, type: str, entry_id: str):
+    @abstractmethod
+    def delete_entry(self, type: str, entry_id: str) -> None:
         """Delete an entry by type and system ID."""
-        if self.no_db:
-            print(f"[NO-DB] DELETE: type={type}, systemid={entry_id}")
-            return
-        sql = "delete from lifestream where type = %s and systemid = %s"
-        self.cursor.execute(sql, (type, entry_id))
-        self.dbcxn.commit()
 
+    @abstractmethod
     def add_entry(
         self,
         type: str,
@@ -150,15 +150,85 @@ class EntryStore:
             and update=False. Returns None in no-db mode (no write is
             performed).
         """
+
+    @abstractmethod
+    def add_location(
+        self,
+        timestamp,
+        source: str,
+        lat: float,
+        lon: float,
+        title: str,
+        icon: str = "",
+        fulldata=None,
+    ) -> None:
+        """Add a location entry."""
+
+    @abstractmethod
+    def add_stat(self, date, stat: str, number: int | float) -> bool:
+        """Add or update a statistic entry."""
+
+
+class MysqlEntryStore(EntryStore):
+    """EntryStore backend that reads and writes the real MySQL database."""
+
+    def __init__(self, no_db: bool | None = None):
+        self._dbcxn = None
+        self._cursor = None
+
+    @property
+    def no_db(self) -> bool:
+        return False
+
+    @property
+    def dbcxn(self):
+        """Lazy database connection."""
+        if self._dbcxn is None:
+            self._dbcxn = get_connection()
+        return self._dbcxn
+
+    @property
+    def cursor(self):
+        """Lazy cursor initialization."""
+        if self._cursor is None:
+            self._cursor = get_cursor(self.dbcxn)
+        return self._cursor
+
+    def commit(self):
+        self.dbcxn.commit()
+
+    def get_by_id(self, type: str, entry_id: str):
+        cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
+        sql = "select * from lifestream where type = %s and systemid = %s"
+        cursor.execute(sql, (type, entry_id))
+        return cursor.fetchone()
+
+    def get_by_title(self, type: str, title: str):
+        cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
+        sql = "select * from lifestream where type = %s and title = %s"
+        cursor.execute(sql, (type, title))
+        return cursor.fetchone()
+
+    def delete_entry(self, type: str, entry_id: str):
+        sql = "delete from lifestream where type = %s and systemid = %s"
+        self.cursor.execute(sql, (type, entry_id))
+        self.dbcxn.commit()
+
+    def add_entry(
+        self,
+        type: str,
+        id: str,
+        title: str,
+        source: str,
+        date,
+        url: str = "",
+        image: str = "",
+        fulldata_json=None,
+        update: bool = False,
+        debug: bool = False,
+    ) -> EntryResult | None:
         if fulldata_json:
             fulldata_json = json.dumps(fulldata_json)
-
-        if self.no_db:
-            print(
-                f"[NO-DB] INSERT: type={type}, systemid={id}, title={title}, "
-                f"source={source}, date={date}, url={url}, image={image}"
-            )
-            return None
 
         sql = (
             "select date_created from lifestream where type = %s and systemid = %s "
@@ -206,14 +276,6 @@ class EntryStore:
         icon: str = "",
         fulldata=None,
     ):
-        """Add a location entry."""
-        if self.no_db:
-            print(
-                f"[NO-DB] LOCATION: source={source}, lat={lat}, lon={lon}, "
-                f"timestamp={timestamp}, title={title}"
-            )
-            return
-
         fulldata_json = json.dumps(fulldata) if fulldata else ""
 
         l_sql = (
@@ -242,12 +304,76 @@ class EntryStore:
         self.dbcxn.commit()
 
     def add_stat(self, date, stat: str, number: int | float):
-        """Add or update a statistic entry."""
-        if self.no_db:
-            print(f"[NO-DB] STAT: date={date}, stat={stat}, number={number}")
-            return True
-
         s_sql = "replace into lifestream_stats (`date`, `statistic`, `number`) values (%s, %s, %s);"
         self.cursor.execute(s_sql, (date, stat, number))
         self.dbcxn.commit()
+        return True
+
+
+class NoDbEntryStore(EntryStore):
+    """EntryStore backend that prints intended writes instead of executing them."""
+
+    def __init__(self, no_db: bool | None = None):
+        pass
+
+    @property
+    def no_db(self) -> bool:
+        return True
+
+    @property
+    def dbcxn(self):
+        return None
+
+    @property
+    def cursor(self):
+        return None
+
+    def commit(self):
+        pass
+
+    def get_by_id(self, type: str, entry_id: str):
+        return None
+
+    def get_by_title(self, type: str, title: str):
+        return None
+
+    def delete_entry(self, type: str, entry_id: str):
+        print(f"[NO-DB] DELETE: type={type}, systemid={entry_id}")
+
+    def add_entry(
+        self,
+        type: str,
+        id: str,
+        title: str,
+        source: str,
+        date,
+        url: str = "",
+        image: str = "",
+        fulldata_json=None,
+        update: bool = False,
+        debug: bool = False,
+    ) -> EntryResult | None:
+        print(
+            f"[NO-DB] INSERT: type={type}, systemid={id}, title={title}, "
+            f"source={source}, date={date}, url={url}, image={image}"
+        )
+        return None
+
+    def add_location(
+        self,
+        timestamp,
+        source: str,
+        lat: float,
+        lon: float,
+        title: str,
+        icon: str = "",
+        fulldata=None,
+    ):
+        print(
+            f"[NO-DB] LOCATION: source={source}, lat={lat}, lon={lon}, "
+            f"timestamp={timestamp}, title={title}"
+        )
+
+    def add_stat(self, date, stat: str, number: int | float):
+        print(f"[NO-DB] STAT: date={date}, stat={stat}, number={number}")
         return True

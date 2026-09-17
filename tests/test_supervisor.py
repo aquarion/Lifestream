@@ -75,9 +75,10 @@ class TestGetSchedules:
         with patch.object(supervisor, "config", mock_config):
             schedules = supervisor.get_schedules()
 
-        assert schedules["myjob"]["cron"] == "*/15 * * * *"
-        assert schedules["myjob"]["misfire_grace_time"] == 1800
-        assert schedules["myjob"]["coalesce"] is False
+        assert schedules["myjob"].cron == "*/15 * * * *"
+        assert schedules["myjob"].misfire_grace_time == 1800
+        assert schedules["myjob"].coalesce is False
+        assert schedules["myjob"].is_shell is False
 
     def test_shell_job_captures_command(self):
         mock_config = MagicMock()
@@ -89,7 +90,10 @@ class TestGetSchedules:
         with patch.object(supervisor, "config", mock_config):
             schedules = supervisor.get_schedules()
 
-        assert schedules["!my_shell_job"]["command"] == "echo hi"
+        entry = schedules["!my_shell_job"]
+        assert entry.command == "echo hi"
+        assert entry.is_shell is True
+        assert entry.name == "my_shell_job"
 
 
 class TestAddJobs:
@@ -99,11 +103,13 @@ class TestAddJobs:
     def test_import_job_dispatches_to_run_import(self):
         mock_scheduler = MagicMock()
         schedules = {
-            "myimporter": {
-                "cron": "*/15 * * * *",
-                "misfire_grace_time": 3600,
-                "coalesce": True,
-            }
+            "myimporter": supervisor.ScheduleEntry(
+                name="myimporter",
+                cron="*/15 * * * *",
+                is_shell=False,
+                misfire_grace_time=3600,
+                coalesce=True,
+            )
         }
         with self._mock_schedules(schedules):
             count = supervisor.add_jobs(mock_scheduler)
@@ -117,12 +123,14 @@ class TestAddJobs:
     def test_shell_job_dispatches_to_run_shell_command(self):
         mock_scheduler = MagicMock()
         schedules = {
-            "!backup": {
-                "cron": "0 3 * * *",
-                "misfire_grace_time": 3600,
-                "coalesce": True,
-                "command": "echo backup",
-            }
+            "!backup": supervisor.ScheduleEntry(
+                name="backup",
+                cron="0 3 * * *",
+                is_shell=True,
+                misfire_grace_time=3600,
+                coalesce=True,
+                command="echo backup",
+            )
         }
         with self._mock_schedules(schedules):
             supervisor.add_jobs(mock_scheduler)
@@ -135,11 +143,13 @@ class TestAddJobs:
     def test_shell_job_without_command_is_skipped(self):
         mock_scheduler = MagicMock()
         schedules = {
-            "!backup": {
-                "cron": "0 3 * * *",
-                "misfire_grace_time": 3600,
-                "coalesce": True,
-            }
+            "!backup": supervisor.ScheduleEntry(
+                name="backup",
+                cron="0 3 * * *",
+                is_shell=True,
+                misfire_grace_time=3600,
+                coalesce=True,
+            )
         }
         with self._mock_schedules(schedules):
             count = supervisor.add_jobs(mock_scheduler)
@@ -150,11 +160,13 @@ class TestAddJobs:
     def test_invalid_cron_is_skipped(self):
         mock_scheduler = MagicMock()
         schedules = {
-            "badjob": {
-                "cron": "not a cron expression",
-                "misfire_grace_time": 3600,
-                "coalesce": True,
-            }
+            "badjob": supervisor.ScheduleEntry(
+                name="badjob",
+                cron="not a cron expression",
+                is_shell=False,
+                misfire_grace_time=3600,
+                coalesce=True,
+            )
         }
         with self._mock_schedules(schedules):
             supervisor.add_jobs(mock_scheduler)
@@ -179,7 +191,11 @@ class TestRunJobNow:
         mock_run_import.assert_called_once_with("myimporter", extra_args=["--reauth"])
 
     def test_runs_shell_job_with_configured_command(self):
-        schedules = {"!backup": {"cron": "0 3 * * *", "command": "echo backup"}}
+        schedules = {
+            "!backup": supervisor.ScheduleEntry(
+                name="backup", cron="0 3 * * *", is_shell=True, command="echo backup"
+            )
+        }
         with patch.object(supervisor, "get_schedules", return_value=schedules):
             with patch.object(supervisor, "run_shell_command") as mock_run_shell:
                 supervisor.run_job_now("!backup")
@@ -188,7 +204,11 @@ class TestRunJobNow:
 
     def test_ignores_extra_args_for_shell_job(self):
         """Shell jobs run a fixed cmd= from config; extra args are logged and dropped."""
-        schedules = {"!backup": {"cron": "0 3 * * *", "command": "echo backup"}}
+        schedules = {
+            "!backup": supervisor.ScheduleEntry(
+                name="backup", cron="0 3 * * *", is_shell=True, command="echo backup"
+            )
+        }
         with patch.object(supervisor, "get_schedules", return_value=schedules):
             with patch.object(supervisor, "run_shell_command") as mock_run_shell:
                 supervisor.run_job_now("!backup", extra_args=["--reauth"])
@@ -196,7 +216,11 @@ class TestRunJobNow:
         mock_run_shell.assert_called_once_with("backup", "echo backup")
 
     def test_shell_job_missing_command_exits(self):
-        schedules = {"!backup": {"cron": "0 3 * * *"}}
+        schedules = {
+            "!backup": supervisor.ScheduleEntry(
+                name="backup", cron="0 3 * * *", is_shell=True
+            )
+        }
         with patch.object(supervisor, "get_schedules", return_value=schedules):
             with patch.object(supervisor, "run_shell_command") as mock_run_shell:
                 try:
@@ -229,3 +253,102 @@ class TestBuildApp:
             mock_scheduler.shutdown.assert_not_called()
 
         mock_scheduler.shutdown.assert_called_once_with(wait=False)
+
+
+class TestPrintJobHelp:
+    def test_new_style_importer_prints_its_own_parser_help(self, capsys):
+        """--run JOB --help for a new-style importer shows *its* flags (e.g. --reauth)."""
+        mock_importer = MagicMock()
+        with patch.dict(
+            "lifestream.importers.IMPORTERS", {"myimporter": mock_importer}
+        ):
+            supervisor._print_job_help("myimporter")
+
+        mock_importer.return_value.get_parser.return_value.print_help.assert_called_once()
+
+    def test_legacy_script_runs_as_subprocess_with_help(self, tmp_path):
+        (tmp_path / "imports").mkdir()
+        (tmp_path / "imports" / "legacy_job.py").write_text("")
+
+        with patch.dict("lifestream.importers.IMPORTERS", {}, clear=False):
+            with patch.object(supervisor, "get_project_root", return_value=tmp_path):
+                with patch.object(supervisor.subprocess, "run") as mock_run:
+                    mock_run.return_value.returncode = 0
+                    supervisor._print_job_help("legacy_job")
+
+        mock_run.assert_called_once()
+        assert "--help" in mock_run.call_args.args[0]
+
+    def test_unknown_job_errors_and_exits(self, tmp_path):
+        (tmp_path / "imports").mkdir()
+
+        with patch.dict("lifestream.importers.IMPORTERS", {}, clear=False):
+            with patch.object(supervisor, "get_project_root", return_value=tmp_path):
+                try:
+                    supervisor._print_job_help("nope")
+                    assert False, "expected SystemExit"
+                except SystemExit as e:
+                    assert e.code == 1
+
+    def test_shell_job_prints_explanation_without_touching_importers(self, capsys):
+        supervisor._print_job_help("!backup")
+
+        captured = capsys.readouterr()
+        assert "shell job" in captured.out
+
+    def test_falls_back_to_legacy_when_importers_registry_fails_to_import(
+        self, tmp_path
+    ):
+        """Mirrors run_import()'s own ImportError fallback: a broken new-style
+        importer registry shouldn't stop --run JOB --help for a legacy script."""
+        (tmp_path / "imports").mkdir()
+        (tmp_path / "imports" / "legacy_job.py").write_text("")
+
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "lifestream.importers":
+                raise ImportError("boom")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=fake_import):
+            with patch.object(supervisor, "get_project_root", return_value=tmp_path):
+                with patch.object(supervisor.subprocess, "run") as mock_run:
+                    mock_run.return_value.returncode = 0
+                    supervisor._print_job_help("legacy_job")
+
+        mock_run.assert_called_once()
+
+    def test_legacy_script_failure_propagates_exit_code(self, tmp_path):
+        (tmp_path / "imports").mkdir()
+        (tmp_path / "imports" / "legacy_job.py").write_text("")
+
+        with patch.dict("lifestream.importers.IMPORTERS", {}, clear=False):
+            with patch.object(supervisor, "get_project_root", return_value=tmp_path):
+                with patch.object(supervisor.subprocess, "run") as mock_run:
+                    mock_run.return_value.returncode = 2
+                    try:
+                        supervisor._print_job_help("legacy_job")
+                        assert False, "expected SystemExit"
+                    except SystemExit as e:
+                        assert e.code == 2
+
+
+class TestExtractRunTarget:
+    def test_space_separated_form(self):
+        assert supervisor._extract_run_target(["--run", "lastfm", "--help"]) == "lastfm"
+
+    def test_equals_form(self):
+        assert supervisor._extract_run_target(["--run=lastfm", "--help"]) == "lastfm"
+
+    def test_missing_value_after_run_errors_like_the_real_parser(self):
+        """--run with no value is invalid usage; argparse exits(2) here just
+        as it would when the real parser below hits the same argv."""
+        try:
+            supervisor._extract_run_target(["--run"])
+            assert False, "expected SystemExit"
+        except SystemExit as e:
+            assert e.code == 2
+
+    def test_no_run_flag(self):
+        assert supervisor._extract_run_target(["--list"]) is None
