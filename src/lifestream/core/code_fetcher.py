@@ -11,6 +11,7 @@ import configparser
 import json
 import logging
 import time
+from typing import Any
 
 from lifestream.core.cache import get_redis_connection
 from lifestream.core.config import config
@@ -47,7 +48,7 @@ def are_we_working() -> bool:
     return True
 
 
-def _parse_callback_message(message) -> dict | None:
+def _parse_callback_message(message: dict[str, Any] | None) -> dict | None:
     """Extract the params dict from a pubsub message, or None if it's not a
     usable callback (wrong event type, malformed JSON, or not a dict)."""
     if message is None or message.get("type") != "message":

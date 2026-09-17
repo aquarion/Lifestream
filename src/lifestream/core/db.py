@@ -5,6 +5,7 @@ import json
 import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import Any
 
 import pymysql as MySQLdb
 import pymysql.cursors
@@ -39,7 +40,7 @@ def get_no_db_mode() -> bool:
     return _no_db_mode
 
 
-def get_connection():
+def get_connection() -> MySQLdb.connections.Connection:
     """Get a database connection using config settings."""
     db = {}
     for item in config.items("database"):
@@ -55,7 +56,7 @@ def get_connection():
     return dbcxn
 
 
-def get_cursor(dbcxn):
+def get_cursor(dbcxn: MySQLdb.connections.Connection) -> pymysql.cursors.Cursor:
     """Get a cursor with UTF-8 settings configured."""
     dbc = dbcxn.cursor()
     dbc.execute("SET NAMES utf8mb4;")
@@ -79,14 +80,14 @@ class EntryStore(ABC):
     possible.
     """
 
-    def __new__(cls, no_db: bool | None = None):
+    def __new__(cls, no_db: bool | None = None) -> "EntryStore":
         if cls is not EntryStore:
             return super().__new__(cls)
         effective_no_db = no_db if no_db is not None else get_no_db_mode()
         target = NoDbEntryStore if effective_no_db else MysqlEntryStore
         return super().__new__(target)
 
-    def __init__(self, no_db: bool | None = None):
+    def __init__(self, no_db: bool | None = None) -> None:
         """
         Initialize EntryStore.
 
@@ -102,12 +103,12 @@ class EntryStore(ABC):
 
     @property
     @abstractmethod
-    def dbcxn(self):
+    def dbcxn(self) -> MySQLdb.connections.Connection | None:
         """The underlying database connection, or None in no-db mode."""
 
     @property
     @abstractmethod
-    def cursor(self):
+    def cursor(self) -> pymysql.cursors.Cursor | None:
         """A cursor on `dbcxn`, or None in no-db mode."""
 
     @abstractmethod
@@ -115,11 +116,11 @@ class EntryStore(ABC):
         """Commit the current transaction."""
 
     @abstractmethod
-    def get_by_id(self, type: str, entry_id: str):
+    def get_by_id(self, type: str, entry_id: str) -> dict[str, Any] | None:
         """Get an entry by type and system ID."""
 
     @abstractmethod
-    def get_by_title(self, type: str, title: str):
+    def get_by_title(self, type: str, title: str) -> dict[str, Any] | None:
         """Get an entry by type and title."""
 
     @abstractmethod
@@ -133,10 +134,10 @@ class EntryStore(ABC):
         id: str,
         title: str,
         source: str,
-        date,
+        date: datetime | str,
         url: str = "",
         image: str = "",
-        fulldata_json=None,
+        fulldata_json: Any = None,
         update: bool = False,
         debug: bool = False,
     ) -> EntryResult | None:
@@ -154,62 +155,62 @@ class EntryStore(ABC):
     @abstractmethod
     def add_location(
         self,
-        timestamp,
+        timestamp: datetime,
         source: str,
         lat: float,
         lon: float,
         title: str,
         icon: str = "",
-        fulldata=None,
+        fulldata: Any = None,
     ) -> None:
         """Add a location entry."""
 
     @abstractmethod
-    def add_stat(self, date, stat: str, number: int | float) -> bool:
+    def add_stat(self, date: datetime | str, stat: str, number: int | float) -> bool:
         """Add or update a statistic entry."""
 
 
 class MysqlEntryStore(EntryStore):
     """EntryStore backend that reads and writes the real MySQL database."""
 
-    def __init__(self, no_db: bool | None = None):
-        self._dbcxn = None
-        self._cursor = None
+    def __init__(self, no_db: bool | None = None) -> None:
+        self._dbcxn: MySQLdb.connections.Connection | None = None
+        self._cursor: pymysql.cursors.Cursor | None = None
 
     @property
     def no_db(self) -> bool:
         return False
 
     @property
-    def dbcxn(self):
+    def dbcxn(self) -> MySQLdb.connections.Connection:
         """Lazy database connection."""
         if self._dbcxn is None:
             self._dbcxn = get_connection()
         return self._dbcxn
 
     @property
-    def cursor(self):
+    def cursor(self) -> pymysql.cursors.Cursor:
         """Lazy cursor initialization."""
         if self._cursor is None:
             self._cursor = get_cursor(self.dbcxn)
         return self._cursor
 
-    def commit(self):
+    def commit(self) -> None:
         self.dbcxn.commit()
 
-    def get_by_id(self, type: str, entry_id: str):
+    def get_by_id(self, type: str, entry_id: str) -> dict[str, Any] | None:
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
         sql = "select * from lifestream where type = %s and systemid = %s"
         cursor.execute(sql, (type, entry_id))
         return cursor.fetchone()
 
-    def get_by_title(self, type: str, title: str):
+    def get_by_title(self, type: str, title: str) -> dict[str, Any] | None:
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
         sql = "select * from lifestream where type = %s and title = %s"
         cursor.execute(sql, (type, title))
         return cursor.fetchone()
 
-    def delete_entry(self, type: str, entry_id: str):
+    def delete_entry(self, type: str, entry_id: str) -> None:
         sql = "delete from lifestream where type = %s and systemid = %s"
         self.cursor.execute(sql, (type, entry_id))
         self.dbcxn.commit()
@@ -220,10 +221,10 @@ class MysqlEntryStore(EntryStore):
         id: str,
         title: str,
         source: str,
-        date,
+        date: datetime | str,
         url: str = "",
         image: str = "",
-        fulldata_json=None,
+        fulldata_json: Any = None,
         update: bool = False,
         debug: bool = False,
     ) -> EntryResult | None:
@@ -268,14 +269,14 @@ class MysqlEntryStore(EntryStore):
 
     def add_location(
         self,
-        timestamp,
+        timestamp: datetime,
         source: str,
         lat: float,
         lon: float,
         title: str,
         icon: str = "",
-        fulldata=None,
-    ):
+        fulldata: Any = None,
+    ) -> None:
         fulldata_json = json.dumps(fulldata) if fulldata else ""
 
         l_sql = (
@@ -303,7 +304,7 @@ class MysqlEntryStore(EntryStore):
         )
         self.dbcxn.commit()
 
-    def add_stat(self, date, stat: str, number: int | float):
+    def add_stat(self, date: datetime | str, stat: str, number: int | float) -> bool:
         s_sql = "replace into lifestream_stats (`date`, `statistic`, `number`) values (%s, %s, %s);"
         self.cursor.execute(s_sql, (date, stat, number))
         self.dbcxn.commit()
@@ -313,7 +314,7 @@ class MysqlEntryStore(EntryStore):
 class NoDbEntryStore(EntryStore):
     """EntryStore backend that prints intended writes instead of executing them."""
 
-    def __init__(self, no_db: bool | None = None):
+    def __init__(self, no_db: bool | None = None) -> None:
         pass
 
     @property
@@ -321,23 +322,23 @@ class NoDbEntryStore(EntryStore):
         return True
 
     @property
-    def dbcxn(self):
+    def dbcxn(self) -> None:
         return None
 
     @property
-    def cursor(self):
+    def cursor(self) -> None:
         return None
 
-    def commit(self):
+    def commit(self) -> None:
         pass
 
-    def get_by_id(self, type: str, entry_id: str):
+    def get_by_id(self, type: str, entry_id: str) -> None:
         return None
 
-    def get_by_title(self, type: str, title: str):
+    def get_by_title(self, type: str, title: str) -> None:
         return None
 
-    def delete_entry(self, type: str, entry_id: str):
+    def delete_entry(self, type: str, entry_id: str) -> None:
         print(f"[NO-DB] DELETE: type={type}, systemid={entry_id}")
 
     def add_entry(
@@ -346,10 +347,10 @@ class NoDbEntryStore(EntryStore):
         id: str,
         title: str,
         source: str,
-        date,
+        date: datetime | str,
         url: str = "",
         image: str = "",
-        fulldata_json=None,
+        fulldata_json: Any = None,
         update: bool = False,
         debug: bool = False,
     ) -> EntryResult | None:
@@ -361,19 +362,19 @@ class NoDbEntryStore(EntryStore):
 
     def add_location(
         self,
-        timestamp,
+        timestamp: datetime,
         source: str,
         lat: float,
         lon: float,
         title: str,
         icon: str = "",
-        fulldata=None,
-    ):
+        fulldata: Any = None,
+    ) -> None:
         print(
             f"[NO-DB] LOCATION: source={source}, lat={lat}, lon={lon}, "
             f"timestamp={timestamp}, title={title}"
         )
 
-    def add_stat(self, date, stat: str, number: int | float):
+    def add_stat(self, date: datetime | str, stat: str, number: int | float) -> bool:
         print(f"[NO-DB] STAT: date={date}, stat={stat}, number={number}")
         return True

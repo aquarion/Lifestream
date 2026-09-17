@@ -10,7 +10,7 @@ class SteamAPI:
 
     BASE_URL = "https://api.steampowered.com/"
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize with config credentials."""
         self.api_key = config.get("steam", "apikey")
         self.steamid = config.get("steam", "steamid")
