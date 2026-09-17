@@ -97,13 +97,6 @@ def _tweet_text(title: str, data: dict) -> str:
     return f"[RT:💬{handle}] {_clean(body or RT_PREFIX_RE.sub('', title))}"
 
 
-SELECT_SQL = (
-    "select title, date_created, url, fulldata_json, systemid, source, type "
-    "from lifestream where (source = 'tumblr' or type = 'twitter') "
-    "and date_created between %s and %s"
-)
-
-
 class HistoricImporter(OAuthImporter):
     """Replay Tumblr posts and tweets from ten years ago."""
 
@@ -295,7 +288,13 @@ class HistoricImporter(OAuthImporter):
         does not overlap it, so a row allowed to raise would take every row
         behind it out of the only run they were ever going to get.
         """
-        title, date_created, url, fulldata_json, systemid, source, contenttype = row
+        title = row["title"]
+        date_created = row["date_created"]
+        url = row["url"]
+        fulldata_json = row["fulldata_json"]
+        systemid = row["systemid"]
+        source = row["source"]
+        contenttype = row["type"]
 
         if not title:
             self.logger.info("Skipping, no content")
@@ -329,17 +328,15 @@ class HistoricImporter(OAuthImporter):
         date_from = now - TEN_YEARS
         date_to = date_from + WINDOW
 
-        rows = []
-        if not self.entry_store.no_db:
-            with self.entry_store.dbcxn.cursor() as cursor:
-                cursor.execute(SELECT_SQL, (date_from.isoformat(), date_to.isoformat()))
-                rows = cursor.fetchall()
+        rows = self.entry_store.get_historic_entries(
+            date_from.isoformat(), date_to.isoformat()
+        )
 
         if not rows:
             self.logger.info("Nothing posted in this window ten years ago")
             return
 
-        failed = [row[4] for row in rows if not self._replay_row(row)]
+        failed = [row["systemid"] for row in rows if not self._replay_row(row)]
 
         if failed:
             raise RuntimeError(

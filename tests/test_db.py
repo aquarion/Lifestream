@@ -276,6 +276,51 @@ class TestEntryStore:
         params = [c.args[1] for c in mock_cursor.execute.call_args_list]
         assert any('"raw": "payload"' in str(p[-1]) for p in params)
 
+    def test_get_historic_entries_returns_matching_rows(self):
+        """get_historic_entries queries lifestream with a DictCursor."""
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = [
+            {"title": "T", "systemid": "1", "source": "tumblr", "type": "text"}
+        ]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            result = store.get_historic_entries("2016-01-01", "2016-01-02")
+
+        assert result == [
+            {"title": "T", "systemid": "1", "source": "tumblr", "type": "text"}
+        ]
+        assert mock_conn.cursor.call_args == call(db.pymysql.cursors.DictCursor)
+        args, _ = mock_cursor.execute.call_args
+        assert "tumblr" in args[0] and "twitter" in args[0]
+        assert args[1] == ("2016-01-01", "2016-01-02")
+
+    def test_get_historic_entries_upper_bound_is_exclusive(self):
+        """The window is half-open, so a row exactly at date_to is not this
+        run's - it belongs to the next, adjacent window instead, and an
+        inclusive upper bound would replay it in both."""
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.get_historic_entries("2016-01-01", "2016-01-02")
+
+        args, _ = mock_cursor.execute.call_args
+        assert ">= %s" in args[0]
+        assert "< %s" in args[0]
+        assert "between" not in args[0].lower()
+
+    def test_no_db_get_historic_entries_returns_empty_list(self):
+        """--no-db mode returns no rows rather than touching the database."""
+        store = db.EntryStore(no_db=True)
+        result = store.get_historic_entries("2016-01-01", "2016-01-02")
+
+        assert result == []
+
     def test_add_location_without_fulldata_stores_empty_string(self):
         """add_location with no fulldata stores an empty string, not the string 'None'."""
         from datetime import datetime

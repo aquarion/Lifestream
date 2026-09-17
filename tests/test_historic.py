@@ -13,14 +13,27 @@ from lifestream.importers.historic import HistoricImporter
 WHEN = datetime(2016, 8, 3, 10, 0, 0)
 
 
+def row(title, when, url, fulldata_json, systemid, source, contenttype):
+    """A lifestream row as get_historic_entries() returns one."""
+    return {
+        "title": title,
+        "date_created": when,
+        "url": url,
+        "fulldata_json": fulldata_json,
+        "systemid": systemid,
+        "source": source,
+        "type": contenttype,
+    }
+
+
 def retweet_row(title, handle, full_text=None, systemid="tweet1"):
     """A lifestream row for a retweet, as python-twitter's AsDict() shapes it."""
     retweeted = {"user": {"screen_name": handle}}
     if full_text is not None:
         retweeted["full_text"] = full_text
-    row = list(tweet_row(title, systemid))
-    row[3] = json.dumps({"id_str": systemid, "retweeted_status": retweeted})
-    return tuple(row)
+    r = tweet_row(title, systemid)
+    r["fulldata_json"] = json.dumps({"id_str": systemid, "retweeted_status": retweeted})
+    return r
 
 
 def tweet_row(title, systemid="tweet1"):
@@ -29,7 +42,7 @@ def tweet_row(title, systemid="tweet1"):
     `source` is the client the tweet was sent from, not "twitter" - which is
     why the importer matches tweets on `type` instead.
     """
-    return (
+    return row(
         title,
         WHEN,
         f"http://twitter.com/aquarion/status/{systemid}",
@@ -46,6 +59,7 @@ class TestHistoricImporter:
         imp._args = imp.parse_args([])
         imp._entry_store = MagicMock()
         imp._entry_store.no_db = False
+        imp._entry_store.get_historic_entries.return_value = []
         return imp
 
     def test_validate_config_fails_when_keys_missing(self):
@@ -67,11 +81,6 @@ class TestHistoricImporter:
     def test_run_skips_reblog_and_auth_when_nothing_in_window(self):
         """No matching rows means no OAuth flow is even triggered."""
         imp = self._make_importer()
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = []
-        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_cursor.__exit__ = MagicMock(return_value=False)
-        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
 
         with patch("lifestream.importers.historic.authenticate") as mock_auth:
             imp.run()
@@ -81,20 +90,17 @@ class TestHistoricImporter:
     def test_run_reblogs_matching_post(self):
         imp = self._make_importer()
         fulldata = json.dumps({"reblog_key": "rbkey123"})
-        row = (
-            "A title",
-            datetime(2016, 8, 3, 10, 0, 0),
-            "http://example.tumblr.com/post/1",
-            fulldata,
-            "systemid1",
-            "tumblr",
-            "text",
-        )
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = [row]
-        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_cursor.__exit__ = MagicMock(return_value=False)
-        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+        imp._entry_store.get_historic_entries.return_value = [
+            row(
+                "A title",
+                datetime(2016, 8, 3, 10, 0, 0),
+                "http://example.tumblr.com/post/1",
+                fulldata,
+                "systemid1",
+                "tumblr",
+                "text",
+            )
+        ]
 
         mock_tumblr = MagicMock()
         with patch(
@@ -122,15 +128,10 @@ class TestHistoricImporter:
     def test_run_skips_rows_without_title_or_fulldata(self):
         imp = self._make_importer()
         when = datetime(2016, 8, 3, 10, 0, 0)
-        rows = [
-            (None, when, "url", "{}", "id1", "tumblr", "text"),
-            ("Has title", when, "url", None, "id2", "tumblr", "text"),
+        imp._entry_store.get_historic_entries.return_value = [
+            row(None, when, "url", "{}", "id1", "tumblr", "text"),
+            row("Has title", when, "url", None, "id2", "tumblr", "text"),
         ]
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = rows
-        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_cursor.__exit__ = MagicMock(return_value=False)
-        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
 
         mock_tumblr = MagicMock()
         with patch(
@@ -147,20 +148,17 @@ class TestHistoricImporter:
         own = json.dumps(
             {"reblog_key": "rbkey123", "blog_name": "aquarions-of-history"}
         )
-        row = (
-            "A title",
-            when,
-            "https://aquarions-of-history.tumblr.com/post/1",
-            own,
-            "systemid1",
-            "tumblr",
-            "text",
-        )
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = [row]
-        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_cursor.__exit__ = MagicMock(return_value=False)
-        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+        imp._entry_store.get_historic_entries.return_value = [
+            row(
+                "A title",
+                when,
+                "https://aquarions-of-history.tumblr.com/post/1",
+                own,
+                "systemid1",
+                "tumblr",
+                "text",
+            )
+        ]
 
         mock_tumblr = MagicMock()
         with patch(
@@ -174,8 +172,8 @@ class TestHistoricImporter:
         """Older rows may have no blog_name; the post URL still identifies it."""
         imp = self._make_importer()
         when = datetime(2016, 8, 3, 10, 0, 0)
-        rows = [
-            (
+        imp._entry_store.get_historic_entries.return_value = [
+            row(
                 "Mine",
                 when,
                 "https://aquarions-of-history.tumblr.com/post/1",
@@ -184,7 +182,7 @@ class TestHistoricImporter:
                 "tumblr",
                 "text",
             ),
-            (
+            row(
                 "Theirs",
                 when,
                 "https://someone-else.tumblr.com/post/2",
@@ -194,11 +192,6 @@ class TestHistoricImporter:
                 "text",
             ),
         ]
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = rows
-        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_cursor.__exit__ = MagicMock(return_value=False)
-        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
 
         mock_tumblr = MagicMock()
         with patch(
@@ -217,6 +210,7 @@ class TestHistoricTumblrConfig:
         imp._args = imp.parse_args([])
         imp._entry_store = MagicMock()
         imp._entry_store.no_db = False
+        imp._entry_store.get_historic_entries.return_value = []
         return imp
 
     def test_to_blog_defaults_when_unconfigured(self):
@@ -242,20 +236,17 @@ class TestHistoricTumblrConfig:
 
     def test_reblog_targets_the_configured_blog(self):
         imp = self._make_importer()
-        row = (
-            "A title",
-            WHEN,
-            "https://example.tumblr.com/post/1",
-            json.dumps({"reblog_key": "rbkey123"}),
-            "systemid1",
-            "tumblr",
-            "text",
-        )
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = [row]
-        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_cursor.__exit__ = MagicMock(return_value=False)
-        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+        imp._entry_store.get_historic_entries.return_value = [
+            row(
+                "A title",
+                WHEN,
+                "https://example.tumblr.com/post/1",
+                json.dumps({"reblog_key": "rbkey123"}),
+                "systemid1",
+                "tumblr",
+                "text",
+            )
+        ]
 
         mock_tumblr = MagicMock()
         with (
@@ -291,12 +282,7 @@ class TestHistoricTweetReplay:
         imp._args = imp.parse_args([])
         imp._entry_store = MagicMock()
         imp._entry_store.no_db = False
-
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = rows
-        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_cursor.__exit__ = MagicMock(return_value=False)
-        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+        imp._entry_store.get_historic_entries.return_value = rows
 
         config = {
             ("historic", "atproto_username"): (
@@ -440,35 +426,35 @@ class TestHistoricTweetReplay:
         client.send_post.assert_called_once_with(text="just me talking")
 
     def test_a_tweet_with_no_fulldata_still_replays(self):
-        row = list(tweet_row("Hello from 2016"))
-        row[3] = None
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("Hello from 2016")
+        r["fulldata_json"] = None
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="Hello from 2016")
 
     def test_a_retweet_with_no_fulldata_is_attributed_from_its_title(self):
         """Older rows have no fulldata, so the RT prefix is all there is."""
-        row = list(tweet_row("RT @someone: what they said"))
-        row[3] = None
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("RT @someone: what they said")
+        r["fulldata_json"] = None
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="[RT:💬someone] what they said")
 
     def test_a_fulldata_less_retweet_body_is_defanged(self):
-        row = list(tweet_row("RT @someone: hi @thirdparty"))
-        row[3] = None
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("RT @someone: hi @thirdparty")
+        r["fulldata_json"] = None
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="[RT:💬someone] hi 💬thirdparty")
 
     def test_a_fulldata_less_ordinary_tweet_is_untouched(self):
         """Only a leading RT prefix counts - an @ mid-sentence is not one."""
-        row = list(tweet_row("talking about @someone: they are great"))
-        row[3] = None
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("talking about @someone: they are great")
+        r["fulldata_json"] = None
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(
@@ -477,15 +463,12 @@ class TestHistoricTweetReplay:
 
     def test_the_old_rt_colon_convention_is_attributed(self):
         """Pre-retweet-button clients typed "RT: @handle:" by hand."""
-        row = list(
-            tweet_row(
-                "RT: @bigcalm: http://www.todaysbigthing.com/2009/08/20 "
-                "(via @Xalior)",
-                systemid="3448309763",
-            )
+        r = tweet_row(
+            "RT: @bigcalm: http://www.todaysbigthing.com/2009/08/20 (via @Xalior)",
+            systemid="3448309763",
         )
-        row[3] = None
-        imp = self._make_importer([tuple(row)])
+        r["fulldata_json"] = None
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(
@@ -496,17 +479,17 @@ class TestHistoricTweetReplay:
         )
 
     def test_a_handle_only_retweet_prefix_needs_no_colon(self):
-        row = list(tweet_row("RT @someone what they said"))
-        row[3] = None
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("RT @someone what they said")
+        r["fulldata_json"] = None
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="[RT:💬someone] what they said")
 
     def test_a_tweet_merely_starting_with_rt_is_not_a_retweet(self):
-        row = list(tweet_row("RTs are not endorsements @someone"))
-        row[3] = None
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("RTs are not endorsements @someone")
+        r["fulldata_json"] = None
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(
@@ -515,9 +498,9 @@ class TestHistoricTweetReplay:
 
     def test_non_object_fulldata_falls_back_to_the_title(self):
         """Valid JSON that is not an object - "null" - must not blow up."""
-        row = list(tweet_row("Hello from 2016"))
-        row[3] = "null"
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("Hello from 2016")
+        r["fulldata_json"] = "null"
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="Hello from 2016")
@@ -679,8 +662,8 @@ class TestHistoricTweetReplay:
             [retweet_row("RT @someone: trunc…", "someone", full_text=None)]
         )
         # retweet_row omits full_text entirely; add the older "text" key.
-        row = list(imp._entry_store.dbcxn.cursor.return_value.fetchall.return_value[0])
-        row[3] = json.dumps(
+        rows = imp._entry_store.get_historic_entries.return_value
+        rows[0]["fulldata_json"] = json.dumps(
             {
                 "retweeted_status": {
                     "user": {"screen_name": "someone"},
@@ -688,33 +671,34 @@ class TestHistoricTweetReplay:
                 }
             }
         )
-        imp._entry_store.dbcxn.cursor.return_value.fetchall.return_value = [tuple(row)]
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="[RT:💬someone] the older key")
 
     def test_a_retweet_body_never_repeats_its_own_attribution(self):
         """Handle from fulldata, no body anywhere: the title must be stripped."""
-        row = list(tweet_row("RT @someone: what they said"))
-        row[3] = json.dumps({"retweeted_status": {"user": {"screen_name": "someone"}}})
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("RT @someone: what they said")
+        r["fulldata_json"] = json.dumps(
+            {"retweeted_status": {"user": {"screen_name": "someone"}}}
+        )
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="[RT:💬someone] what they said")
 
     def test_a_handle_longer_than_twitter_allows_is_not_a_retweet(self):
         """16 characters must fail to match, not silently attribute to 15."""
-        row = list(tweet_row("RT @abcdefghijklmnopq: hello"))
-        row[3] = None
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("RT @abcdefghijklmnopq: hello")
+        r["fulldata_json"] = None
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="RT 💬abcdefghijklmnopq: hello")
 
     def test_a_fifteen_character_handle_is_still_a_retweet(self):
-        row = list(tweet_row("RT @abcdefghijklmno: hello"))
-        row[3] = None
-        imp = self._make_importer([tuple(row)])
+        r = tweet_row("RT @abcdefghijklmno: hello")
+        r["fulldata_json"] = None
+        imp = self._make_importer([r])
         client = self._run(imp)
 
         client.send_post.assert_called_once_with(text="[RT:💬abcdefghijklmno] hello")
@@ -744,12 +728,7 @@ class TestHistoricMixedBatch:
         imp._args = imp.parse_args([])
         imp._entry_store = MagicMock()
         imp._entry_store.no_db = False
-
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = rows
-        mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
-        mock_cursor.__exit__ = MagicMock(return_value=False)
-        imp._entry_store.dbcxn.cursor.return_value = mock_cursor
+        imp._entry_store.get_historic_entries.return_value = rows
 
         config = {
             ("historic", "atproto_username"): "history.example.com",
@@ -776,7 +755,7 @@ class TestHistoricMixedBatch:
             imp.run()
 
     def test_both_halves_of_a_window_are_replayed(self):
-        tumblr_row = (
+        tumblr_row = row(
             "A tumblr post",
             WHEN,
             "https://example.tumblr.com/post/1",
@@ -794,7 +773,7 @@ class TestHistoricMixedBatch:
 
     def test_a_failing_row_does_not_take_out_the_rest_of_the_batch(self):
         """Each window is the only run its rows will ever get."""
-        broken = (
+        broken = row(
             "No reblog key here",
             WHEN,
             "https://example.tumblr.com/post/1",
