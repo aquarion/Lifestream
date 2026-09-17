@@ -13,6 +13,7 @@ To retrieve a file from git history: `git show <commit>:the_fallen/<filename>`
 | `tweets.py` | Imported/posted tweets from Twitter accounts (X's API pricing made it unsustainable) | `9c5666b` |
 | `instagram.py` | Imported photos from Instagram, via an unofficial/unmaintained private-API package Instagram hardened against | `a22876b` |
 | `oyster.py` | Scraped TfL Oyster card journey history via a live mechanize-driven website login (superseded by `oyster_csv.py`'s manual CSV export) | `e55334d` |
+| `flickr.py` | Imported photos from Flickr; retired because the account is no longer in use | `6276410` |
 
 ## Retired features
 

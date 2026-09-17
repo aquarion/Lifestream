@@ -4,7 +4,7 @@ Lifestream is a collection of Python scripts that aggregate personal data from v
 
 ## Features
 
-- **Multi-source data collection**: Import from Last.fm, Flickr, Foursquare, GitHub, Mastodon, Steam, Bluesky, and many more
+- **Multi-source data collection**: Import from Last.fm, Foursquare, GitHub, Mastodon, Steam, Bluesky, and many more
 - **Flexible scheduling**: APScheduler with Redis persistence for reliable job execution
 - **Webserver**: FastAPI/uvicorn webserver behind a reverse proxy, with CORS support — serves the OAuth callback catcher and future data APIs
 - **Failure notifications**: Email and Slack alerts when jobs fail

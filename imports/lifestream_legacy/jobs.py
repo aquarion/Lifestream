@@ -25,7 +25,7 @@ def run_import(job_name: str) -> None:
     This mimics what run_import.sh does but in-process.
 
     Args:
-        job_name: The name of the module to import and run (e.g., 'lastfm', 'flickr')
+        job_name: The name of the module to import and run (e.g., 'lastfm', 'tumblr')
 
     Raises:
         Exception: Re-raises any exception from the job after logging and notifying
