@@ -112,9 +112,12 @@ baseline:
 poetry run alembic stamp 827f4a24602a
 ```
 
-`schema.sql` is kept for historical reference but is superseded by the
-`baseline schema` migration in `alembic/versions/` — new installs should use
-`alembic upgrade head`, not `mysql ... < schema.sql`.
+`schema.sql` is stale — it's a 2015 dump that has drifted from the real
+schema (column types, charsets, and a `lifestream_locations.device` column
+it doesn't have at all) — and is superseded by the `baseline schema`
+migration in `alembic/versions/`, which was built from `SHOW CREATE TABLE`
+against production. New installs should use `alembic upgrade head`, not
+`mysql ... < schema.sql`.
 
 ## Project Structure
 
