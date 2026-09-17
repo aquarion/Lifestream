@@ -19,6 +19,7 @@ from lifestream.importers.historic import HistoricImporter
 from lifestream.importers.lastfm import LastfmImporter
 from lifestream.importers.mastodon_toots import MastodonImporter
 from lifestream.importers.oyster_csv import OysterCsvImporter
+from lifestream.importers.planetside import PlanetsideImporter
 from lifestream.importers.steam import SteamImporter
 from lifestream.importers.steam_badges import SteamBadgesImporter
 from lifestream.importers.switchbot import SwitchbotImporter
@@ -45,6 +46,7 @@ __all__ = [
     "LastfmImporter",
     "MastodonImporter",
     "OysterCsvImporter",
+    "PlanetsideImporter",
     "SteamImporter",
     "SteamBadgesImporter",
     "SwitchbotImporter",
@@ -70,6 +72,7 @@ IMPORTERS = {
     "mastodon": MastodonImporter,
     "mastodon_toots": MastodonImporter,  # legacy schedule name
     "oyster_csv": OysterCsvImporter,
+    "planetside": PlanetsideImporter,
     "steam": SteamImporter,
     "steambadges": SteamBadgesImporter,
     "switchbot": SwitchbotImporter,

@@ -119,6 +119,7 @@ lifestream-facebook-posts = "lifestream.importers.facebook_posts:main"
 lifestream-facebook-page = "lifestream.importers.facebook_page:main"
 lifestream-wow = "lifestream.importers.wow:main"
 lifestream-destiny2 = "lifestream.importers.destiny2:main"
+lifestream-planetside = "lifestream.importers.planetside:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
