@@ -1,0 +1,82 @@
+name: Alembic Migrations
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "alembic/**"
+      - "alembic.ini"
+      - "src/lifestream/core/config.py"
+      - ".github/workflows/alembic-migrations.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "alembic/**"
+      - "alembic.ini"
+      - "src/lifestream/core/config.py"
+      - ".github/workflows/alembic-migrations.yml"
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: lifestream_test
+          MARIADB_USER: lifestream
+          MARIADB_PASSWORD: lifestream
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.12'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Cache Poetry dependencies
+      uses: actions/cache@v6
+      with:
+        path: .venv
+        key: ${{ runner.os }}-lifestream-venv-${{ hashFiles('pyproject.toml') }}
+
+    - name: Use system git client for VCS dependencies
+      run: poetry config system-git-client true
+
+    - name: Install dependencies
+      run: poetry install --no-interaction
+
+    - name: Write config.ini for the MariaDB service container
+      run: |
+        cat > config.ini <<'EOF'
+        [database]
+        database = lifestream_test
+        username = lifestream
+        password = lifestream
+        hostname = 127.0.0.1
+        EOF
+
+    - name: alembic upgrade head
+      run: poetry run alembic upgrade head
+
+    - name: alembic downgrade base
+      run: poetry run alembic downgrade base
