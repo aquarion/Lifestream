@@ -2,9 +2,9 @@
 
 Serves the OAuth callback route that replaces CodeFetcher9000's dedicated
 per-flow listener (see lifestream.core.code_fetcher for the importer-CLI
-side of that handoff) and a health check, plus a base for future #134/#135
-API routes. Run by supervisor.py via uvicorn, behind a reverse proxy that
-terminates TLS.
+side of that handoff), a health check, and the public data API (#134,
+lifestream.core.api) that replaces Panopticon's direct database access. Run
+by supervisor.py via uvicorn, behind a reverse proxy that terminates TLS.
 """
 
 import html
@@ -12,17 +12,22 @@ import json
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.types import Lifespan
 
+from lifestream.core.api import router as api_router
 from lifestream.core.cache import get_redis_connection
 from lifestream.core.code_fetcher import (
     OAUTH_CALLBACK_CHANNEL,
     OAUTH_KEY_WANTED_REDIS_KEY,
 )
 from lifestream.core.config import config, get_project_root
+from lifestream.core.ratelimit import limiter
 
 logger = logging.getLogger("Webserver")
 
@@ -51,7 +56,50 @@ def create_app(lifespan: Lifespan[FastAPI] | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
+    # `limiter` is a shared, process-wide instance (see ratelimit.py) so
+    # every create_app() call - including in tests - enforces against the
+    # same counters; tests reset it explicitly between cases.
+    app.state.limiter = limiter
+    app.add_middleware(SlowAPIMiddleware)
+
+    app.include_router(api_router, prefix="/v1")
+
+    @app.exception_handler(RateLimitExceeded)
+    async def _rate_limit_exception_handler(
+        request: Request, exc: RateLimitExceeded
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=429,
+            content={"status": 429, "message": f"Rate limit exceeded: {exc.detail}"},
+        )
+
+    @app.exception_handler(HTTPException)
+    async def _http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"status": exc.status_code, "message": exc.detail},
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        # Built from exc.errors() rather than str(exc): the latter includes
+        # a rendered source snippet (file path + line number), which isn't
+        # appropriate for a public API's error responses.
+        details = "; ".join(
+            f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
+            for error in exc.errors()
+        )
+        return JSONResponse(
+            status_code=400,
+            content={"status": 400, "message": details or "Invalid request"},
+        )
+
     @app.get("/health")
+    @limiter.exempt
     def health() -> dict:
         return {"status": "ok"}
 

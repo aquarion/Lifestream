@@ -6,7 +6,7 @@ Lifestream is a collection of Python scripts that aggregate personal data from v
 
 - **Multi-source data collection**: Import from Last.fm, Foursquare, GitHub, Mastodon, Steam, Bluesky, and many more
 - **Flexible scheduling**: APScheduler with Redis persistence for reliable job execution
-- **Webserver**: FastAPI/uvicorn webserver behind a reverse proxy, with CORS support — serves the OAuth callback catcher and future data APIs
+- **Webserver**: FastAPI/uvicorn webserver behind a reverse proxy, with CORS support — serves the OAuth callback catcher and the public data API (see `docs/api/openapi.yaml`)
 - **Failure notifications**: Email and Slack alerts when jobs fail
 - **Caching**: Redis-based caching to reduce API calls
 
@@ -37,7 +37,7 @@ Copy `config.example.ini` to `config.ini` and configure:
 
 - **[database]**: MySQL connection details
 - **[redis]**: Redis connection for caching and scheduler persistence
-- **[webserver]**: host/port to bind, CORS allowed_origins, and the public domain used for OAuth redirect URLs
+- **[webserver]**: host/port to bind, CORS allowed_origins, the public domain used for OAuth redirect URLs, and the `api_key` for the public data API's `X-API-Key` auth
 - **[schedules]**: Job schedules using cron expressions
 - **[notifications]**: Email and Slack alerting (optional)
 - **Service-specific sections**: API keys and credentials for each service
@@ -47,7 +47,7 @@ Copy `config.example.ini` to `config.ini` and configure:
 ### Supervisor (Recommended)
 
 The supervisor runs all import jobs (APScheduler + Redis persistence) and
-the webserver (OAuth callback catcher, future data APIs) in one process:
+the webserver (OAuth callback catcher, public data API) in one process:
 
 ```bash
 # List configured jobs
