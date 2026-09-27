@@ -1,0 +1,561 @@
+openapi: 3.0.3
+info:
+  title: Lifestream API
+  description: >
+    API abstracting database access to the `lifestream` / `lifestream_locations` /
+    `owntracks_unhandled` tables previously shared directly between `lifestream-web`
+    and this project. Implemented by `lifestream.core.api`, mounted at `/v1` by
+    `lifestream.core.webserver.create_app()` (see docs/superpowers/specs/
+    2026-09-04-lifestream-api-design.md for the original design). Covers the read
+    and write needs of `lifestream-web` (feed, search, maps, and the
+    OwnTracks/Plex ingest webhooks).
+  version: "1.0.0"
+servers:
+  - url: https://{domain}/v1
+    description: Production - {domain} is the [webserver] domain from config.ini
+    variables:
+      domain:
+        default: domain.com
+
+tags:
+  - name: entries
+    description: Feed items (the `lifestream` table)
+  - name: locations
+    description: Location pings (the `lifestream_locations` and `owntracks_unhandled` tables)
+
+security: []
+
+paths:
+  /entries:
+    get:
+      tags: [entries]
+      summary: List feed entries
+      description: >
+        Paginated feed, ordered by `date_created` ascending unless `after` is supplied
+        (used for polling new items, ordered ascending by `date_updated`).
+        Always excludes `source in (tumblr, lastfm)` and entries with a null title.
+      operationId: listEntries
+      parameters:
+        - name: after
+          in: query
+          description: Return entries updated at or after this time (polling cursor).
+          schema:
+            type: string
+            format: date-time
+        - name: from
+          in: query
+          description: Return entries created at or after this time.
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Return entries created before this time.
+          schema:
+            type: string
+            format: date-time
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+      responses:
+        "200":
+          description: A page of entries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, offset, limit]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Entry"
+                  total:
+                    type: integer
+                    description: Total number of entries matching the filter, ignoring offset/limit.
+                  offset:
+                    type: integer
+                  limit:
+                    type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      tags: [entries]
+      summary: Create or update a feed entry
+      description: >
+        Upserts by the unique `(type, systemid)` pair, mirroring the existing
+        `addEntry()` helper. If a matching entry exists and `update` is false
+        (the default), the request is a no-op.
+      operationId: createEntry
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryInput"
+      responses:
+        "201":
+          description: No matching `(type, systemid)` entry existed; a new one was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        "200":
+          description: >
+            A matching entry already existed. Updated in place if `update` was true;
+            otherwise left unchanged (a no-op).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /entries/search:
+    get:
+      tags: [entries]
+      summary: Search feed entries by title
+      description: >
+        Title `LIKE %q%` match, ordered ascending by `date_created`. Applies the same
+        `source in (tumblr, lastfm)` and null-`title` exclusions as `GET /entries`.
+      operationId: searchEntries
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+      responses:
+        "200":
+          description: Matching entries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, offset, limit]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Entry"
+                  total:
+                    type: integer
+                  offset:
+                    type: integer
+                  limit:
+                    type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /locations:
+    get:
+      tags: [locations]
+      summary: List location points in a time range
+      description: >
+        Unauthenticated calls get redacted points: `lat`/`long` and `fulldata_json` are
+        null, and only the rounded `lat_vague`/`long_vague` are populated — matching what
+        `maps.php` exposes publicly today. Passing a valid `X-API-Key` includes the precise
+        `lat`/`long` and `fulldata_json`.
+      operationId: listLocations
+      security:
+        - ApiKeyAuth: []
+        - {}
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: End of the time range. Defaults to now if omitted.
+          schema:
+            type: string
+            format: date-time
+        - name: source
+          in: query
+          description: Filter to a single source (e.g. `owntracks`, `foursquare`).
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Location points ordered by timestamp ascending.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Location"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      tags: [locations]
+      summary: Record a location ping
+      description: >
+        Mirrors the existing `add_location()` helper. If, for the given source, the
+        point most recently recorded strictly before this one's timestamp rounds to
+        the same lat/long (1 decimal place) as this one, the request is a no-op and
+        no new row is written. Note this compares against the last point *before*
+        this timestamp, not the source's overall latest point — an out-of-order or
+        replayed ping is deduped against its chronological predecessor.
+      operationId: createLocation
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationInput"
+      responses:
+        "201":
+          description: Location recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "200":
+          description: Duplicate of the source's last point; no new row written.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /locations/heatmap:
+    get:
+      tags: [locations]
+      summary: Aggregated location points for heatmap display
+      description: >
+        Rounds `lat`/`long` to 2 decimal places, groups identical rounded points, and
+        returns a count per group, mirroring `generate_location_query()` in
+        `fetchNext.php`.
+      operationId: getLocationHeatmap
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: End of the time range. Defaults to now if omitted.
+          schema:
+            type: string
+            format: date-time
+        - name: source
+          in: query
+          description: Filter to a single source (e.g. `foursquare`). Omit for all sources.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Aggregated heatmap points.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HeatmapPoint"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /locations/latest:
+    get:
+      tags: [locations]
+      summary: Most recent location point
+      description: >
+        Unauthenticated calls get a redacted point (see `GET /locations`): `lat`/`long`
+        and `fulldata_json` are null, only `lat_vague`/`long_vague` are populated —
+        matching what `lastseen.php` exposes publicly today. Passing a valid
+        `X-API-Key` includes the precise `lat`/`long` and `fulldata_json`.
+      operationId: getLatestLocation
+      security:
+        - ApiKeyAuth: []
+        - {}
+      responses:
+        "200":
+          description: The most recent location point, if any exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "404":
+          description: No location points recorded yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /locations/unhandled:
+    post:
+      tags: [locations]
+      summary: Record an unhandled OwnTracks payload
+      description: >
+        Mirrors `raw_location_data()` — archives the raw payload for every OwnTracks
+        event type, including `location` events (which are also separately recorded
+        via `POST /locations`). Callers should call this for every payload received,
+        not just ones that don't map to a `Location`.
+      operationId: createUnhandledLocationPayload
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, fulldata_json]
+              properties:
+                type:
+                  type: string
+                  description: The OwnTracks `_type` field.
+                fulldata_json:
+                  type: object
+                  description: The full, unmodified payload as received.
+      responses:
+        "201":
+          description: Payload stored.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  responses:
+    BadRequest:
+      description: The request was malformed or failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: integer
+        message:
+          type: string
+
+    Entry:
+      type: object
+      required: [type, systemid, source, date_created, date_updated]
+      properties:
+        type:
+          type: string
+          description: Entry category, e.g. `twitter`, `steam`, `flickr`, `Media`.
+        systemid:
+          type: string
+          description: Source-system identifier, unique within `type`.
+        title:
+          type: string
+          nullable: true
+        source:
+          type: string
+          description: Human-readable source label, e.g. `Plex`, `Foursquare`.
+        url:
+          type: string
+          nullable: true
+        image:
+          type: string
+          nullable: true
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+        fulldata_json:
+          type: object
+          nullable: true
+          description: Original payload from the source system, as received.
+
+    EntryInput:
+      type: object
+      required: [type, systemid, title, source, date_created]
+      properties:
+        type:
+          type: string
+        systemid:
+          type: string
+        title:
+          type: string
+        source:
+          type: string
+        date_created:
+          type: string
+          format: date-time
+        url:
+          type: string
+        image:
+          type: string
+        fulldata_json:
+          type: object
+          nullable: true
+        update:
+          type: boolean
+          default: false
+          description: If true and an entry with this `(type, systemid)` exists, update it.
+
+    Location:
+      type: object
+      required: [source, lat, long, timestamp]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: >
+            Epoch timestamp forming a composite primary key together with `source`;
+            same-second pings from different sources do not collide.
+        source:
+          type: string
+        device:
+          type: string
+          nullable: true
+        lat:
+          type: number
+          format: double
+          nullable: true
+          description: >
+            Precise latitude. Null on `GET /locations`/`GET /locations/latest` responses
+            to unauthenticated callers — use `lat_vague` instead.
+        long:
+          type: number
+          format: double
+          nullable: true
+          description: >
+            Precise longitude. Null on `GET /locations`/`GET /locations/latest` responses
+            to unauthenticated callers — use `long_vague` instead.
+        alt:
+          type: number
+          nullable: true
+        alt_vague:
+          type: number
+          nullable: true
+          description: Altitude rounded to 2 decimal places.
+        lat_vague:
+          type: number
+          format: double
+          nullable: true
+        long_vague:
+          type: number
+          nullable: true
+        accuracy:
+          type: integer
+          default: 0
+        title:
+          type: string
+          nullable: true
+        icon:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+        fulldata_json:
+          type: object
+          nullable: true
+          description: >
+            Raw payload from the source. Also null on `GET /locations`/
+            `GET /locations/latest` responses to unauthenticated callers.
+
+    LocationInput:
+      type: object
+      required: [source, lat, long, timestamp]
+      properties:
+        source:
+          type: string
+        device:
+          type: string
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        long:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        alt:
+          type: number
+        accuracy:
+          type: integer
+        title:
+          type: string
+        icon:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        fulldata_json:
+          type: object
+          nullable: true
+
+    HeatmapPoint:
+      type: object
+      required: [lat, long, count]
+      properties:
+        lat:
+          type: number
+          format: double
+          description: Latitude rounded to 2 decimal places.
+        long:
+          type: number
+          format: double
+          description: Longitude rounded to 2 decimal places.
+        count:
+          type: integer
+        title:
+          type: string
+          nullable: true
+        icon:
+          type: string
+          nullable: true

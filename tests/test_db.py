@@ -340,3 +340,288 @@ class TestEntryStore:
 
         params = [c.args[1] for c in mock_cursor.execute.call_args_list]
         assert any(p[-1] == "" for p in params)
+
+
+class TestListEntries:
+    """Tests for EntryStore.list_entries (public API, #134)."""
+
+    def test_applies_exclusions_and_returns_total(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 2}
+        mock_cursor.fetchall.return_value = [{"type": "steam", "systemid": "1"}]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            items, total = store.list_entries()
+
+        assert items == [{"type": "steam", "systemid": "1"}]
+        assert total == 2
+        count_sql, count_params = mock_cursor.execute.call_args_list[0].args
+        assert "title IS NOT NULL" in count_sql
+        assert "source NOT IN" in count_sql
+        assert count_params == ["tumblr", "lastfm"]
+
+    def test_orders_by_date_created_by_default(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.list_entries()
+
+        select_sql, _ = mock_cursor.execute.call_args_list[1].args
+        assert "ORDER BY date_created ASC" in select_sql
+
+    def test_orders_by_date_updated_when_after_given(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.list_entries(after="2024-01-01T00:00:00")
+
+        select_sql, select_params = mock_cursor.execute.call_args_list[1].args
+        assert "ORDER BY date_updated ASC" in select_sql
+        assert "date_updated >= %s" in select_sql
+        assert "2024-01-01T00:00:00" in select_params
+
+    def test_applies_date_range_filters(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.list_entries(date_from="2024-01-01", date_to="2024-02-01")
+
+        select_sql, select_params = mock_cursor.execute.call_args_list[1].args
+        assert "date_created >= %s" in select_sql
+        assert "date_created < %s" in select_sql
+        assert select_params[-4:-2] == ["2024-01-01", "2024-02-01"]
+
+    def test_no_db_returns_empty(self):
+        store = db.EntryStore(no_db=True)
+        assert store.list_entries() == ([], 0)
+
+
+class TestSearchEntries:
+    """Tests for EntryStore.search_entries (public API, #134)."""
+
+    def test_searches_by_title_like(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 1}
+        mock_cursor.fetchall.return_value = [{"title": "Matching Entry"}]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            items, total = store.search_entries(q="Match")
+
+        assert items == [{"title": "Matching Entry"}]
+        assert total == 1
+        _, count_params = mock_cursor.execute.call_args_list[0].args
+        assert count_params[-1] == "%Match%"
+
+    def test_no_db_returns_empty(self):
+        store = db.EntryStore(no_db=True)
+        assert store.search_entries(q="anything") == ([], 0)
+
+
+class TestListLocations:
+    """Tests for EntryStore.list_locations (public API, #134)."""
+
+    def test_filters_by_range_and_source(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = [{"source": "owntracks"}]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            result = store.list_locations(
+                date_from="2024-01-01", date_to="2024-02-01", source="owntracks"
+            )
+
+        assert result == [{"source": "owntracks"}]
+        sql, params = mock_cursor.execute.call_args.args
+        assert "timestamp >= %s" in sql
+        assert "timestamp < %s" in sql
+        assert "source = %s" in sql
+        assert "ORDER BY timestamp ASC" in sql
+        assert params == ["2024-01-01", "2024-02-01", "owntracks"]
+
+    def test_no_db_returns_empty(self):
+        store = db.EntryStore(no_db=True)
+        assert store.list_locations(date_from="2024-01-01") == []
+
+
+class TestGetLocationHeatmap:
+    """Tests for EntryStore.get_location_heatmap (public API, #134)."""
+
+    def test_groups_and_counts_rounded_points(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchall.return_value = [
+            {"lat": 51.501, "long": -0.099, "title": "Home", "icon": "house"},
+            {"lat": 51.502, "long": -0.098, "title": "Home Again", "icon": None},
+            {"lat": 40.0, "long": -70.0, "title": None, "icon": None},
+        ]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            points = store.get_location_heatmap(date_from="2024-01-01")
+
+        by_key = {(p["lat"], p["long"]): p for p in points}
+        assert by_key[(51.5, -0.1)]["count"] == 2
+        assert by_key[(51.5, -0.1)]["title"] == "Home"
+        assert by_key[(40.0, -70.0)]["count"] == 1
+
+    def test_no_db_returns_empty(self):
+        store = db.EntryStore(no_db=True)
+        assert store.get_location_heatmap(date_from="2024-01-01") == []
+
+
+class TestGetLatestLocation:
+    """Tests for EntryStore.get_latest_location (public API, #134)."""
+
+    def test_returns_most_recent_row(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"source": "owntracks", "id": 123}
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            result = store.get_latest_location()
+
+        assert result == {"source": "owntracks", "id": 123}
+        sql = mock_cursor.execute.call_args.args[0]
+        assert "ORDER BY timestamp DESC LIMIT 1" in sql
+
+    def test_returns_none_when_no_rows(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = None
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            assert store.get_latest_location() is None
+
+    def test_no_db_returns_none(self):
+        store = db.EntryStore(no_db=True)
+        assert store.get_latest_location() is None
+
+
+class TestCreateLocation:
+    """Tests for EntryStore.create_location (public API's POST /v1/locations,
+    #134) — mirrors lifestream-web's add_location() dedup rule."""
+
+    def test_skips_duplicate_within_rounding(self):
+        from datetime import datetime
+
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {
+            "lat_vague": 51.51,
+            "long_vague": -0.09,
+        }
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            row, created = store.create_location(
+                source="owntracks",
+                lat=51.53,
+                lon=-0.08,
+                timestamp=datetime(2024, 6, 1, 12, 0, 0),
+            )
+
+        assert created is False
+        assert row == {"lat_vague": 51.51, "long_vague": -0.09}
+        # No INSERT/REPLACE should have run for a deduped write.
+        executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
+        assert not any("REPLACE" in sql for sql in executed_sqls)
+
+    def test_inserts_when_not_a_duplicate(self):
+        from datetime import datetime
+
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                mock_cursor.fetchone.return_value = None  # no prior point
+                store = db.EntryStore(no_db=False)
+                row, created = store.create_location(
+                    source="owntracks",
+                    lat=51.5,
+                    lon=-0.1,
+                    timestamp=datetime(2024, 6, 1, 12, 0, 0),
+                    title="Home",
+                )
+
+        assert created is True
+        assert row["source"] == "owntracks"
+        assert row["lat"] == 51.5
+        assert row["title"] == "Home"
+        executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
+        assert any("REPLACE INTO lifestream_locations" in sql for sql in executed_sqls)
+        mock_conn.commit.assert_called()
+
+    def test_no_db_inserts_and_returns_echoed_row(self, capsys):
+        from datetime import datetime
+
+        store = db.EntryStore(no_db=True)
+        row, created = store.create_location(
+            source="owntracks",
+            lat=51.5,
+            lon=-0.1,
+            timestamp=datetime(2024, 6, 1, 12, 0, 0),
+        )
+
+        assert created is True
+        assert row["source"] == "owntracks"
+        captured = capsys.readouterr()
+        assert "[NO-DB] LOCATION (API):" in captured.out
+
+
+class TestAddUnhandledLocation:
+    """Tests for EntryStore.add_unhandled_location (public API's
+    POST /v1/locations/unhandled, #134) — mirrors raw_location_data()."""
+
+    def test_inserts_type_and_json_payload(self):
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                store.add_unhandled_location("waypoints", {"lat": 1, "lon": 2})
+
+        sql, params = mock_cursor.execute.call_args.args
+        assert "owntracks_unhandled" in sql
+        assert params[0] == "waypoints"
+        assert '"lat": 1' in params[1]
+        mock_conn.commit.assert_called()
+
+    def test_no_db_prints_instead_of_writing(self, capsys):
+        store = db.EntryStore(no_db=True)
+        store.add_unhandled_location("waypoints", {"lat": 1})
+
+        captured = capsys.readouterr()
+        assert "[NO-DB] UNHANDLED LOCATION:" in captured.out
