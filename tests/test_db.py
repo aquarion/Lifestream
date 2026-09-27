@@ -598,6 +598,129 @@ class TestCreateLocation:
         captured = capsys.readouterr()
         assert "[NO-DB] LOCATION (API):" in captured.out
 
+    def test_serializes_the_dedup_check_with_an_advisory_lock(self):
+        """Regression: the read-then-write dedup check used to run with no
+        locking, so two concurrent requests for the same source could both
+        read the same predecessor and both insert (a GitHub Copilot review
+        finding on PR #206). GET_LOCK/RELEASE_LOCK, scoped to `source` and
+        spanning the whole check-then-insert, close that window."""
+        from datetime import datetime
+
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = None
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                store.create_location(
+                    source="owntracks",
+                    lat=51.5,
+                    lon=-0.1,
+                    timestamp=datetime(2024, 6, 1, 12, 0, 0),
+                )
+
+        executed = [c.args for c in mock_cursor.execute.call_args_list]
+        assert executed[0] == (
+            "SELECT GET_LOCK(%s, 5)",
+            ("lifestream_location_dedup:owntracks",),
+        )
+        assert executed[-1] == (
+            "SELECT RELEASE_LOCK(%s)",
+            ("lifestream_location_dedup:owntracks",),
+        )
+
+    def test_releases_lock_even_if_insert_raises(self):
+        """The lock must not be held forever just because this particular
+        write failed - RELEASE_LOCK runs in a `finally`."""
+        from datetime import datetime
+
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = None
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_conn.commit.side_effect = RuntimeError("boom")
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                with pytest.raises(RuntimeError):
+                    store.create_location(
+                        source="owntracks",
+                        lat=51.5,
+                        lon=-0.1,
+                        timestamp=datetime(2024, 6, 1, 12, 0, 0),
+                    )
+
+        executed = [c.args[0] for c in mock_cursor.execute.call_args_list]
+        assert executed[-1] == "SELECT RELEASE_LOCK(%s)"
+
+    def test_omitted_device_defaults_to_schema_default_not_null(self):
+        """lifestream_locations.device is `NOT NULL DEFAULT 'old-data'` -
+        binding an explicit NULL bypasses that default and fails under
+        strict SQL mode, so an omitted device must be normalized in Python
+        instead of passed through as None (a GitHub Copilot review finding
+        on PR #206)."""
+        from datetime import datetime
+
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                mock_cursor.fetchone.return_value = None
+                store = db.EntryStore(no_db=False)
+                row, _ = store.create_location(
+                    source="owntracks",
+                    lat=51.5,
+                    lon=-0.1,
+                    timestamp=datetime(2024, 6, 1, 12, 0, 0),
+                )
+
+        assert row["device"] == "old-data"
+        insert_params = next(
+            c.args[1]
+            for c in mock_cursor.execute.call_args_list
+            if "REPLACE INTO lifestream_locations" in c.args[0]
+        )
+        # Params are positional: (id, source, device, accuracy, lat, long,
+        # alt, lat_vague, long_vague, alt_vague, timestamp, title, icon,
+        # fulldata_json) - `device` is index 2.
+        assert insert_params[2] == "old-data"
+
+    def test_omitted_fulldata_json_defaults_to_empty_string_not_null(self):
+        """lifestream_locations.fulldata_json is NOT NULL - binding an
+        explicit NULL for an omitted payload fails the insert instead of
+        recording the location (a GitHub Copilot review finding on
+        PR #206); the legacy add_location() already used "" for the same
+        reason."""
+        from datetime import datetime
+
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                mock_cursor.fetchone.return_value = None
+                store = db.EntryStore(no_db=False)
+                row, _ = store.create_location(
+                    source="owntracks",
+                    lat=51.5,
+                    lon=-0.1,
+                    timestamp=datetime(2024, 6, 1, 12, 0, 0),
+                )
+
+        assert row["fulldata_json"] == ""
+        insert_params = next(
+            c.args[1]
+            for c in mock_cursor.execute.call_args_list
+            if "REPLACE INTO lifestream_locations" in c.args[0]
+        )
+        assert insert_params[-1] == ""
+
 
 class TestAddUnhandledLocation:
     """Tests for EntryStore.add_unhandled_location (public API's
@@ -625,3 +748,37 @@ class TestAddUnhandledLocation:
 
         captured = capsys.readouterr()
         assert "[NO-DB] UNHANDLED LOCATION:" in captured.out
+
+
+class TestClose:
+    """Tests for EntryStore.close() (used by the public API's per-request
+    dependency, lifestream.core.api.get_entry_store, so a long-running
+    webserver process doesn't leak one MySQL connection per request - a
+    GitHub Copilot review finding on PR #206)."""
+
+    def test_closes_an_opened_connection(self):
+        mock_conn = MagicMock()
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.get_by_id("test", "123")  # forces the lazy connection open
+            store.close()
+
+        mock_conn.close.assert_called_once()
+
+    def test_does_not_force_a_connection_just_to_close_it(self):
+        """A store that never ran a query - e.g. an API request that hit an
+        endpoint not needing the DB - must not open a connection purely to
+        immediately close it."""
+        mock_conn = MagicMock()
+
+        with patch.object(db, "get_connection", return_value=mock_conn) as get_conn:
+            store = db.EntryStore(no_db=False)
+            store.close()
+
+        get_conn.assert_not_called()
+        mock_conn.close.assert_not_called()
+
+    def test_no_db_close_is_a_noop(self):
+        store = db.EntryStore(no_db=True)
+        store.close()  # must not raise

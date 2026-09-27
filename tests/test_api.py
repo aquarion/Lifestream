@@ -2,6 +2,7 @@
 /v1 by lifestream.core.webserver.create_app()."""
 
 import configparser
+import json
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
@@ -114,6 +115,27 @@ class TestListEntries:
         assert kwargs["offset"] == 5
         assert kwargs["limit"] == 10
         assert kwargs["after"] is not None
+
+    def test_decodes_double_encoded_fulldata_json(self, client, store):
+        """Regression: the existing atproto_posts importer calls
+        add_entry(..., fulldata_json=item.post.model_dump_json()) - an
+        already-JSON-encoded string, not a dict - which add_entry() then
+        re-encodes, double-encoding it in storage. A naive single
+        json.loads() of such a row returns a string where Entry expects a
+        dict, so GET /v1/entries 500'd on any atproto-sourced row (a
+        GitHub Copilot review finding on PR #206)."""
+        double_encoded_row = {
+            **ENTRY_ROW,
+            "fulldata_json": json.dumps(json.dumps({"uri": "at://did/post/1"})),
+        }
+        store.list_entries.return_value = ([double_encoded_row], 1)
+
+        response = client.get("/v1/entries")
+
+        assert response.status_code == 200
+        assert response.json()["items"][0]["fulldata_json"] == {
+            "uri": "at://did/post/1"
+        }
 
     def test_rejects_negative_offset(self, client, store):
         response = client.get("/v1/entries", params={"offset": -1})
@@ -234,6 +256,20 @@ class TestListLocations:
         [point] = response.json()
         assert point["lat"] is None
 
+    def test_omitted_to_defaults_to_now_not_unbounded(self, client, store):
+        """Regression: an omitted `to` used to reach the store as None,
+        which list_locations() treats as no upper bound at all - so a
+        future-dated row (e.g. from a clock-skewed client) would appear in
+        a request for a historical range, contradicting the documented
+        'defaults to now' contract (a GitHub Copilot review finding on
+        PR #206)."""
+        store.list_locations.return_value = []
+
+        client.get("/v1/locations", params={"from": "2024-01-01T00:00:00"})
+
+        _, kwargs = store.list_locations.call_args
+        assert kwargs["date_to"] is not None
+
 
 class TestCreateLocation:
     BODY = {
@@ -289,6 +325,14 @@ class TestGetLocationHeatmap:
         assert response.json() == [
             {"lat": 51.5, "long": -0.1, "count": 3, "title": "Home", "icon": None}
         ]
+
+    def test_omitted_to_defaults_to_now_not_unbounded(self, client, store):
+        store.get_location_heatmap.return_value = []
+
+        client.get("/v1/locations/heatmap", params={"from": "2024-01-01T00:00:00"})
+
+        _, kwargs = store.get_location_heatmap.call_args
+        assert kwargs["date_to"] is not None
 
     def test_requires_from(self, client, store):
         response = client.get("/v1/locations/heatmap")
@@ -360,6 +404,13 @@ class TestApiTokens:
     def test_garbage_token_fails(self):
         assert api._verify_api_token("not-a-real-token", API_SECRET) is False
 
+    def test_non_ascii_token_fails_cleanly(self):
+        """Regression: token.encode("ascii") previously ran outside any
+        except clause covering UnicodeEncodeError, so a non-ASCII
+        X-API-Key raised past this function instead of just failing
+        verification (a GitHub Copilot review finding on PR #206)."""
+        assert api._verify_api_token("töken-with-ünïcode", API_SECRET) is False
+
     def test_expired_token_fails(self):
         token = api.mint_api_token(API_SECRET)
 
@@ -415,3 +466,41 @@ class TestRateLimiting:
         responses = [client.get("/health") for _ in range(61)]
 
         assert all(r.status_code == 200 for r in responses)
+
+
+class TestGetEntryStore:
+    """Tests for the get_entry_store dependency's connection lifecycle
+    (a GitHub Copilot review finding on PR #206): MysqlEntryStore opens its
+    connection lazily and has no teardown of its own, so a plain
+    `Depends(lambda: EntryStore())` would leak one connection per request
+    on a long-running webserver. get_entry_store is a `yield` dependency
+    instead, so FastAPI closes the store after every request regardless of
+    whether the route touched the DB or the request raised."""
+
+    def test_closes_the_store_after_use(self):
+        with patch.object(api, "EntryStore") as mock_entry_store_cls:
+            mock_store = MagicMock()
+            mock_entry_store_cls.return_value = mock_store
+
+            generator = api.get_entry_store()
+            yielded = next(generator)
+            assert yielded is mock_store
+            mock_store.close.assert_not_called()
+
+            with pytest.raises(StopIteration):
+                next(generator)  # drives the `finally` block
+
+        mock_store.close.assert_called_once()
+
+    def test_closes_the_store_even_if_the_route_raises(self):
+        with patch.object(api, "EntryStore") as mock_entry_store_cls:
+            mock_store = MagicMock()
+            mock_entry_store_cls.return_value = mock_store
+
+            generator = api.get_entry_store()
+            next(generator)
+
+            with pytest.raises(RuntimeError):
+                generator.throw(RuntimeError("route handler blew up"))
+
+        mock_store.close.assert_called_once()

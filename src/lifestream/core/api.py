@@ -7,7 +7,8 @@ lifestream-web's `docs/api/openapi.yaml` / `docs/superpowers/specs/
 """
 
 import json
-from datetime import datetime
+from collections.abc import Generator
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
@@ -33,8 +34,19 @@ API_TOKEN_MAX_AGE_SECONDS = 300
 _TOKEN_PAYLOAD = b"lifestream-api"
 
 
-def get_entry_store() -> EntryStore:
-    return EntryStore()
+def get_entry_store() -> Generator[EntryStore, None, None]:
+    """A fresh EntryStore per request, closed once the request finishes.
+
+    MysqlEntryStore opens its connection lazily and never closes it itself
+    (fine for a one-shot importer process, which exits right after) - a
+    long-running webserver handling many requests needs the `yield`/
+    `finally` here instead, or every request leaks a MySQL connection.
+    """
+    store = EntryStore()
+    try:
+        yield store
+    finally:
+        store.close()
 
 
 def _configured_api_secret() -> str | None:
@@ -56,7 +68,11 @@ def _verify_api_token(token: str, secret: str) -> bool:
         TimestampSigner(secret).unsign(
             token.encode("ascii"), max_age=API_TOKEN_MAX_AGE_SECONDS
         )
-    except (BadSignature, SignatureExpired):
+    except (BadSignature, SignatureExpired, UnicodeEncodeError):
+        # UnicodeEncodeError: a real token is always ASCII (itsdangerous's
+        # own base64/hex alphabet), so a non-ASCII X-API-Key is simply
+        # invalid, not a server error - it must be rejected the same way a
+        # malformed-but-ASCII token is, not raise past this function.
         return False
     return True
 
@@ -83,9 +99,23 @@ def _decode_json(raw: Any) -> dict[str, Any] | None:
     if isinstance(raw, dict):
         return raw
     try:
-        return json.loads(raw)
+        decoded = json.loads(raw)
     except (TypeError, ValueError):
         return None
+    if isinstance(decoded, dict):
+        return decoded
+    if isinstance(decoded, str):
+        # Some existing importers (atproto_posts, via
+        # item.post.model_dump_json()) pass fulldata_json as an
+        # already-JSON-encoded string rather than a dict; add_entry() then
+        # re-encodes that string, double-encoding it in storage. Unwrap the
+        # extra layer instead of surfacing those rows as a decode failure.
+        try:
+            twice_decoded = json.loads(decoded)
+        except (TypeError, ValueError):
+            return None
+        return twice_decoded if isinstance(twice_decoded, dict) else None
+    return None
 
 
 class Entry(BaseModel):
@@ -284,7 +314,12 @@ def list_locations(
     store: EntryStore = Depends(get_entry_store),
 ) -> list[Location]:
     redact = not _has_valid_api_key(request)
-    rows = store.list_locations(date_from=from_, date_to=to, source=source)
+    # `to` defaults to now (per the documented contract) rather than being
+    # passed through as an unbounded upper limit - otherwise an omitted `to`
+    # would include any future-dated rows (e.g. from clock-skewed clients).
+    rows = store.list_locations(
+        date_from=from_, date_to=to or datetime.now(timezone.utc), source=source
+    )
     return [_location_from_row(row, redact=redact) for row in rows]
 
 
@@ -322,7 +357,9 @@ def get_location_heatmap(
     source: str | None = None,
     store: EntryStore = Depends(get_entry_store),
 ) -> list[HeatmapPoint]:
-    points = store.get_location_heatmap(date_from=from_, date_to=to, source=source)
+    points = store.get_location_heatmap(
+        date_from=from_, date_to=to or datetime.now(timezone.utc), source=source
+    )
     return [HeatmapPoint(**point) for point in points]
 
 

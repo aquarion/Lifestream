@@ -116,6 +116,16 @@ class EntryStore(ABC):
         """Commit the current transaction."""
 
     @abstractmethod
+    def close(self) -> None:
+        """Close the underlying connection, if one was ever opened. Safe to
+        call even if no query ran (e.g. a request handler that never
+        touched the store) - a no-op in that case, not a forced connect
+        just to immediately disconnect. Used by the public API's per-request
+        EntryStore dependency (lifestream.core.api.get_entry_store) so a
+        long-running webserver process doesn't leak one MySQL connection
+        per request."""
+
+    @abstractmethod
     def get_by_id(self, type: str, entry_id: str) -> dict[str, Any] | None:
         """Get an entry by type and system ID."""
 
@@ -297,6 +307,16 @@ class MysqlEntryStore(EntryStore):
 
     def commit(self) -> None:
         self.dbcxn.commit()
+
+    def close(self) -> None:
+        # Checks the private attribute directly, not the public `dbcxn`/
+        # `cursor` properties - those lazily open a connection on access,
+        # which would defeat the point of a no-op close when one was never
+        # opened.
+        if self._dbcxn is not None:
+            self._dbcxn.close()
+            self._dbcxn = None
+            self._cursor = None
 
     def get_by_id(self, type: str, entry_id: str) -> dict[str, Any] | None:
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
@@ -570,68 +590,85 @@ class MysqlEntryStore(EntryStore):
         fulldata_json: Any = None,
     ) -> tuple[dict[str, Any], bool]:
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
-        cursor.execute(
-            "SELECT * FROM lifestream_locations WHERE source = %s AND timestamp < %s "
-            "ORDER BY timestamp DESC LIMIT 1",
-            (source, timestamp),
-        )
-        last = cursor.fetchone()
-        if (
-            last is not None
-            and last.get("lat_vague") is not None
-            and last.get("long_vague") is not None
-            and round(last["lat_vague"], 1) == round(lat, 1)
-            and round(last["long_vague"], 1) == round(lon, 1)
-        ):
-            return last, False
 
-        epoch = int(timestamp.timestamp())
-        lat_vague = round(lat, 2)
-        long_vague = round(lon, 2)
-        alt_vague = round(alt, 2) if alt is not None else None
-        fulldata = json.dumps(fulldata_json) if fulldata_json is not None else None
+        # The read (last point for this source) and the write below aren't
+        # otherwise atomic - two concurrent requests for the same source
+        # could both read the same predecessor and both insert, defeating
+        # the dedup rule. A MySQL advisory lock, scoped to `source` and held
+        # for this whole check-then-insert, serializes exactly that.
+        lock_name = f"lifestream_location_dedup:{source}"
+        cursor.execute("SELECT GET_LOCK(%s, 5)", (lock_name,))
+        try:
+            cursor.execute(
+                "SELECT * FROM lifestream_locations WHERE source = %s "
+                "AND timestamp < %s ORDER BY timestamp DESC LIMIT 1",
+                (source, timestamp),
+            )
+            last = cursor.fetchone()
+            if (
+                last is not None
+                and last.get("lat_vague") is not None
+                and last.get("long_vague") is not None
+                and round(last["lat_vague"], 1) == round(lat, 1)
+                and round(last["long_vague"], 1) == round(lon, 1)
+            ):
+                return last, False
 
-        self.cursor.execute(
-            "REPLACE INTO lifestream_locations "
-            "(`id`, `source`, `device`, `accuracy`, `lat`, `long`, `alt`, "
-            "`lat_vague`, `long_vague`, `alt_vague`, `timestamp`, `title`, "
-            "`icon`, `fulldata_json`) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-            (
-                epoch,
-                source,
-                device,
-                accuracy,
-                lat,
-                lon,
-                alt,
-                lat_vague,
-                long_vague,
-                alt_vague,
-                timestamp,
-                title,
-                icon,
-                fulldata,
-            ),
-        )
-        self.dbcxn.commit()
+            epoch = int(timestamp.timestamp())
+            lat_vague = round(lat, 2)
+            long_vague = round(lon, 2)
+            alt_vague = round(alt, 2) if alt is not None else None
+            # Both columns are NOT NULL in the schema (device also has its
+            # own DEFAULT 'old-data', which binding an explicit NULL would
+            # bypass rather than trigger) - normalize omitted values to the
+            # same non-null placeholders the legacy add_location()/schema
+            # already use, instead of passing None through to the query.
+            device = device if device is not None else "old-data"
+            fulldata = json.dumps(fulldata_json) if fulldata_json is not None else ""
 
-        return {
-            "id": epoch,
-            "source": source,
-            "device": device,
-            "accuracy": accuracy,
-            "lat": lat,
-            "long": lon,
-            "alt": alt,
-            "lat_vague": lat_vague,
-            "long_vague": long_vague,
-            "alt_vague": alt_vague,
-            "timestamp": timestamp,
-            "title": title,
-            "icon": icon,
-            "fulldata_json": fulldata,
-        }, True
+            self.cursor.execute(
+                "REPLACE INTO lifestream_locations "
+                "(`id`, `source`, `device`, `accuracy`, `lat`, `long`, `alt`, "
+                "`lat_vague`, `long_vague`, `alt_vague`, `timestamp`, `title`, "
+                "`icon`, `fulldata_json`) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    epoch,
+                    source,
+                    device,
+                    accuracy,
+                    lat,
+                    lon,
+                    alt,
+                    lat_vague,
+                    long_vague,
+                    alt_vague,
+                    timestamp,
+                    title,
+                    icon,
+                    fulldata,
+                ),
+            )
+            self.dbcxn.commit()
+
+            return {
+                "id": epoch,
+                "source": source,
+                "device": device,
+                "accuracy": accuracy,
+                "lat": lat,
+                "long": lon,
+                "alt": alt,
+                "lat_vague": lat_vague,
+                "long_vague": long_vague,
+                "alt_vague": alt_vague,
+                "timestamp": timestamp,
+                "title": title,
+                "icon": icon,
+                "fulldata_json": fulldata,
+            }, True
+        finally:
+            cursor.execute("SELECT RELEASE_LOCK(%s)", (lock_name,))
 
     def add_unhandled_location(self, type: str, data: Any) -> None:
         self.cursor.execute(
@@ -660,6 +697,9 @@ class NoDbEntryStore(EntryStore):
         return None
 
     def commit(self) -> None:
+        pass
+
+    def close(self) -> None:
         pass
 
     def get_by_id(self, type: str, entry_id: str) -> None:
