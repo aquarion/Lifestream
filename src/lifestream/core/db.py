@@ -25,6 +25,14 @@ class EntryResult(enum.Enum):
     SKIPPED = "skipped"
 
 
+class LocationDedupLockError(RuntimeError):
+    """Raised by EntryStore.create_location() when the MySQL advisory lock
+    guarding its dedup check couldn't be acquired (timeout or error) -
+    proceeding anyway would silently reintroduce the concurrent-insert race
+    the lock exists to prevent. lifestream.core.api's POST /v1/locations
+    route catches this and returns 503."""
+
+
 # Module-level state for no-db mode
 _no_db_mode = False
 
@@ -272,6 +280,9 @@ class EntryStore(ABC):
 
         Returns (row, created) — created is False when the write was
         skipped as a duplicate.
+
+        Raises LocationDedupLockError if the advisory lock serializing this
+        check-then-insert against concurrent callers couldn't be acquired.
         """
 
     @abstractmethod
@@ -597,7 +608,18 @@ class MysqlEntryStore(EntryStore):
         # the dedup rule. A MySQL advisory lock, scoped to `source` and held
         # for this whole check-then-insert, serializes exactly that.
         lock_name = f"lifestream_location_dedup:{source}"
-        cursor.execute("SELECT GET_LOCK(%s, 5)", (lock_name,))
+        cursor.execute("SELECT GET_LOCK(%s, 5) AS acquired", (lock_name,))
+        lock_row = cursor.fetchone()
+        # GET_LOCK returns 1 on success, 0 on timeout, NULL on error - any
+        # non-1 result means we don't actually hold the lock, so proceeding
+        # into the check-then-insert below would silently reintroduce the
+        # exact race this lock exists to prevent. Only enter the try/finally
+        # (and only ever release) once acquisition is confirmed.
+        if lock_row is None or lock_row.get("acquired") != 1:
+            raise LocationDedupLockError(
+                f"Could not acquire the location dedup lock for source {source!r} "
+                "within 5s"
+            )
         try:
             cursor.execute(
                 "SELECT * FROM lifestream_locations WHERE source = %s "

@@ -310,6 +310,20 @@ class TestCreateLocation:
 
         assert response.status_code == 400
 
+    def test_lock_contention_returns_503(self, client, store):
+        """A GitHub Copilot review finding on PR #206: create_location()
+        raises LocationDedupLockError when it can't acquire the dedup
+        lock, rather than silently proceeding unprotected. The route must
+        surface that as a clean 503, not an uncaught 500."""
+        from lifestream.core.db import LocationDedupLockError
+
+        store.create_location.side_effect = LocationDedupLockError("no lock")
+
+        response = client.post("/v1/locations", json=self.BODY, headers=_auth_headers())
+
+        assert response.status_code == 503
+        assert response.json()["status"] == 503
+
 
 class TestGetLocationHeatmap:
     def test_returns_points(self, client, store):

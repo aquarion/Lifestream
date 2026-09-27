@@ -11,8 +11,12 @@ table and every request to that endpoint fails with a missing-table error.
 Unlike the baseline, this isn't a production schema snapshot - the two
 columns actually written (`type`, `fulldata_json`) are known from the
 existing INSERT; `id`/`date_created` are a reasonable inferred shape, not
-a confirmed one. Uses IF NOT EXISTS/DROP IF EXISTS since it's possible some
-deployments already created this table by hand outside of migrations.
+a confirmed one. Uses CREATE TABLE IF NOT EXISTS since it's possible some
+deployments already created this table by hand outside of migrations -
+which is also why downgrade() doesn't DROP it: there's no way to tell,
+after the fact, "this migration's upgrade() created the table" from "it
+already existed", and guessing wrong would destroy a pre-existing table's
+data on exactly the deployments IF NOT EXISTS was added to protect.
 
 Revision ID: 0eb85726c19e
 Revises: 827f4a24602a
@@ -47,5 +51,14 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Drop owntracks_unhandled."""
-    op.execute("DROP TABLE IF EXISTS `owntracks_unhandled`")
+    """Intentionally a no-op, not a DROP TABLE.
+
+    upgrade() uses CREATE TABLE IF NOT EXISTS because some deployments may
+    already have had owntracks_unhandled before this migration existed; on
+    those, an unconditional DROP TABLE here would destroy a pre-existing
+    table (and all its data) that this migration never created. There's no
+    reliable way to tell "this revision's upgrade() created the table" from
+    "it already existed" after the fact, so downgrading this revision
+    leaves the table in place rather than guessing wrong in the destructive
+    direction.
+    """

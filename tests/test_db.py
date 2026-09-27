@@ -527,16 +527,25 @@ class TestGetLatestLocation:
 
 class TestCreateLocation:
     """Tests for EntryStore.create_location (public API's POST /v1/locations,
-    #134) — mirrors lifestream-web's add_location() dedup rule."""
+    #134) — mirrors lifestream-web's add_location() dedup rule.
+
+    Every real MySQL round trip here issues GET_LOCK before the dedup
+    SELECT, so mocked fetchone() results are supplied via side_effect as
+    [lock-acquisition result, dedup-SELECT result] rather than a single
+    static return_value.
+    """
+
+    LOCK_ACQUIRED = {"acquired": 1}
+    LOCK_NOT_ACQUIRED = {"acquired": 0}
 
     def test_skips_duplicate_within_rounding(self):
         from datetime import datetime
 
         mock_cursor = MagicMock()
-        mock_cursor.fetchone.return_value = {
-            "lat_vague": 51.51,
-            "long_vague": -0.09,
-        }
+        mock_cursor.fetchone.side_effect = [
+            self.LOCK_ACQUIRED,
+            {"lat_vague": 51.51, "long_vague": -0.09},
+        ]
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
 
@@ -564,7 +573,10 @@ class TestCreateLocation:
 
         with patch.object(db, "get_connection", return_value=mock_conn):
             with patch.object(db, "get_cursor", return_value=mock_cursor):
-                mock_cursor.fetchone.return_value = None  # no prior point
+                mock_cursor.fetchone.side_effect = [
+                    self.LOCK_ACQUIRED,
+                    None,  # no prior point
+                ]
                 store = db.EntryStore(no_db=False)
                 row, created = store.create_location(
                     source="owntracks",
@@ -607,7 +619,7 @@ class TestCreateLocation:
         from datetime import datetime
 
         mock_cursor = MagicMock()
-        mock_cursor.fetchone.return_value = None
+        mock_cursor.fetchone.side_effect = [self.LOCK_ACQUIRED, None]
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
 
@@ -623,7 +635,7 @@ class TestCreateLocation:
 
         executed = [c.args for c in mock_cursor.execute.call_args_list]
         assert executed[0] == (
-            "SELECT GET_LOCK(%s, 5)",
+            "SELECT GET_LOCK(%s, 5) AS acquired",
             ("lifestream_location_dedup:owntracks",),
         )
         assert executed[-1] == (
@@ -631,13 +643,44 @@ class TestCreateLocation:
             ("lifestream_location_dedup:owntracks",),
         )
 
+    def test_raises_and_skips_release_when_lock_not_acquired(self):
+        """Regression: GET_LOCK's result was previously discarded, so a
+        timeout (0) or error (NULL) still fell through into the
+        check-then-insert as if protected - silently reintroducing the
+        exact race the lock exists to prevent (a GitHub Copilot review
+        finding on PR #206). A failed acquisition must raise before ever
+        reaching that block, and must never call RELEASE_LOCK for a lock
+        this connection doesn't hold."""
+        from datetime import datetime
+
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = self.LOCK_NOT_ACQUIRED
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                with pytest.raises(db.LocationDedupLockError):
+                    store.create_location(
+                        source="owntracks",
+                        lat=51.5,
+                        lon=-0.1,
+                        timestamp=datetime(2024, 6, 1, 12, 0, 0),
+                    )
+
+        executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
+        assert "SELECT RELEASE_LOCK(%s)" not in executed_sqls
+        assert not any("REPLACE" in sql for sql in executed_sqls)
+        mock_conn.commit.assert_not_called()
+
     def test_releases_lock_even_if_insert_raises(self):
         """The lock must not be held forever just because this particular
         write failed - RELEASE_LOCK runs in a `finally`."""
         from datetime import datetime
 
         mock_cursor = MagicMock()
-        mock_cursor.fetchone.return_value = None
+        mock_cursor.fetchone.side_effect = [self.LOCK_ACQUIRED, None]
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
         mock_conn.commit.side_effect = RuntimeError("boom")
@@ -670,7 +713,7 @@ class TestCreateLocation:
 
         with patch.object(db, "get_connection", return_value=mock_conn):
             with patch.object(db, "get_cursor", return_value=mock_cursor):
-                mock_cursor.fetchone.return_value = None
+                mock_cursor.fetchone.side_effect = [self.LOCK_ACQUIRED, None]
                 store = db.EntryStore(no_db=False)
                 row, _ = store.create_location(
                     source="owntracks",
@@ -704,7 +747,7 @@ class TestCreateLocation:
 
         with patch.object(db, "get_connection", return_value=mock_conn):
             with patch.object(db, "get_cursor", return_value=mock_cursor):
-                mock_cursor.fetchone.return_value = None
+                mock_cursor.fetchone.side_effect = [self.LOCK_ACQUIRED, None]
                 store = db.EntryStore(no_db=False)
                 row, _ = store.create_location(
                     source="owntracks",

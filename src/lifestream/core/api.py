@@ -16,7 +16,7 @@ from itsdangerous import BadSignature, SignatureExpired, TimestampSigner
 from pydantic import BaseModel, Field
 
 from lifestream.core.config import config
-from lifestream.core.db import EntryResult, EntryStore
+from lifestream.core.db import EntryResult, EntryStore, LocationDedupLockError
 from lifestream.core.ratelimit import DEFAULT_RATE_LIMIT, limiter
 
 router = APIRouter()
@@ -332,18 +332,23 @@ def create_location(
     _: None = Depends(require_api_key),
     store: EntryStore = Depends(get_entry_store),
 ) -> Location:
-    row, created = store.create_location(
-        source=body.source,
-        lat=body.lat,
-        lon=body.long,
-        timestamp=body.timestamp,
-        device=body.device,
-        alt=body.alt,
-        accuracy=body.accuracy,
-        title=body.title,
-        icon=body.icon,
-        fulldata_json=body.fulldata_json,
-    )
+    try:
+        row, created = store.create_location(
+            source=body.source,
+            lat=body.lat,
+            lon=body.long,
+            timestamp=body.timestamp,
+            device=body.device,
+            alt=body.alt,
+            accuracy=body.accuracy,
+            title=body.title,
+            icon=body.icon,
+            fulldata_json=body.fulldata_json,
+        )
+    except LocationDedupLockError as e:
+        # Contention on this source's dedup lock, not a client error - the
+        # caller should retry rather than the write silently racing.
+        raise HTTPException(status_code=503, detail=str(e)) from e
     response.status_code = 201 if created else 200
     return _location_from_row(row, redact=False)
 
