@@ -481,12 +481,18 @@ components:
             Precise longitude. Null on `GET /locations`/`GET /locations/latest` responses
             to unauthenticated callers — use `long_vague` instead.
         alt:
-          type: number
+          type: integer
           nullable: true
+          description: >
+            Altitude in meters, rounded to the nearest integer - the
+            underlying column is INT, so a fractional value would be
+            silently truncated by MySQL rather than stored as given.
         alt_vague:
-          type: number
+          type: integer
           nullable: true
-          description: Altitude rounded to 2 decimal places.
+          description: >
+            Same value as `alt` - unlike lat_vague/long_vague, there's no
+            separate reduced-precision form for an already-integer column.
         lat_vague:
           type: number
           format: double
@@ -533,6 +539,9 @@ components:
           maximum: 180
         alt:
           type: number
+          description: >
+            Accepted as a number but rounded to the nearest integer before
+            storage and in the response - the underlying column is INT.
         accuracy:
           type: integer
         title:

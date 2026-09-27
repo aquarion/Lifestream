@@ -14,6 +14,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from itsdangerous import BadSignature, SignatureExpired, TimestampSigner
 from pydantic import BaseModel, Field
+from pymysql.err import IntegrityError
 
 from lifestream.core.config import config
 from lifestream.core.db import EntryResult, EntryStore, LocationDedupLockError
@@ -65,7 +66,7 @@ def mint_api_token(secret: str) -> str:
 
 def _verify_api_token(token: str, secret: str) -> bool:
     try:
-        TimestampSigner(secret).unsign(
+        unsigned = TimestampSigner(secret).unsign(
             token.encode("ascii"), max_age=API_TOKEN_MAX_AGE_SECONDS
         )
     except (BadSignature, SignatureExpired, UnicodeEncodeError):
@@ -74,7 +75,13 @@ def _verify_api_token(token: str, secret: str) -> bool:
         # invalid, not a server error - it must be rejected the same way a
         # malformed-but-ASCII token is, not raise past this function.
         return False
-    return True
+    # A valid signature alone isn't enough: unsign() only proves *some*
+    # payload was signed with this secret, not which one. Without this
+    # check, a timestamped signature minted for anything else that ever
+    # shares this secret (present or future) would double as a valid API
+    # token - checking the payload keeps this verifier specific to tokens
+    # actually minted by mint_api_token().
+    return unsigned == _TOKEN_PAYLOAD
 
 
 def _has_valid_api_key(request: Request) -> bool:
@@ -284,22 +291,50 @@ def create_entry(
     _: None = Depends(require_api_key),
     store: EntryStore = Depends(get_entry_store),
 ) -> Entry:
-    result = store.add_entry(
-        type=body.type,
-        id=body.systemid,
-        title=body.title,
-        source=body.source,
-        date=body.date_created,
-        url=body.url or "",
-        image=body.image or "",
-        fulldata_json=body.fulldata_json,
-        update=body.update,
-    )
+    try:
+        result = store.add_entry(
+            type=body.type,
+            id=body.systemid,
+            title=body.title,
+            source=body.source,
+            date=body.date_created,
+            url=body.url or "",
+            image=body.image or "",
+            fulldata_json=body.fulldata_json,
+            update=body.update,
+        )
+    except IntegrityError:
+        # add_entry()'s own SELECT-then-INSERT isn't atomic: a concurrent
+        # request for the same (type, systemid) can insert between our
+        # SELECT and INSERT, so ours then fails the table's primary key.
+        # The other request's write already won, so this one is the same
+        # idempotent no-op its own SELECT would have hit had it run a
+        # moment later - re-read and return that row instead of a 500.
+        result = EntryResult.SKIPPED
+
+    if store.no_db:
+        # NoDbEntryStore never persists anything, so there's no row to read
+        # back - echo the input instead, mirroring create_location's no-db
+        # behavior rather than treating "nothing to read back" as failure.
+        response.status_code = 200
+        return Entry(
+            type=body.type,
+            systemid=body.systemid,
+            title=body.title,
+            source=body.source,
+            url=body.url,
+            image=body.image,
+            date_created=body.date_created,
+            date_updated=datetime.now(timezone.utc),
+            fulldata_json=body.fulldata_json,
+        )
+
     response.status_code = 201 if result == EntryResult.INSERTED else 200
     row = store.get_by_id(body.type, body.systemid)
     if row is None:
-        # Only reachable with update=False against a store that failed to
-        # persist the just-created row - not expected outside test doubles.
+        # Only reachable against a store that failed to persist a write
+        # this function didn't already special-case (no-db, a lost-race
+        # duplicate) - not expected against a real MySQL-backed store.
         raise HTTPException(status_code=400, detail="Entry could not be read back")
     return _entry_from_row(row)
 

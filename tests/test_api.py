@@ -43,7 +43,13 @@ def _auth_headers(secret=API_SECRET):
 
 @pytest.fixture
 def store():
-    return MagicMock()
+    # no_db must default to False: it's a real attribute api.py branches on
+    # (create_entry's no-db echo path), and a bare MagicMock()'s attribute
+    # access returns a truthy Mock, which would silently take that branch
+    # in every test here that doesn't care about no-db mode specifically.
+    store = MagicMock()
+    store.no_db = False
+    return store
 
 
 @pytest.fixture
@@ -211,6 +217,41 @@ class TestCreateEntry:
         response = client.post("/v1/entries", json=self.BODY, headers=_auth_headers())
 
         assert response.status_code == 200
+
+    def test_concurrent_duplicate_insert_returns_200_not_500(self, client, store):
+        """Regression: add_entry()'s SELECT-then-INSERT isn't atomic, so a
+        concurrent request for the same (type, systemid) can insert first;
+        this request's own INSERT then fails the table's primary key. That
+        must surface as the same 200 idempotent no-op a slightly-later
+        SELECT would have hit, not an uncaught 500 (a GitHub Copilot review
+        finding on PR #206)."""
+        from pymysql.err import IntegrityError
+
+        store.add_entry.side_effect = IntegrityError(1062, "Duplicate entry")
+        store.get_by_id.return_value = ENTRY_ROW
+
+        response = client.post("/v1/entries", json=self.BODY, headers=_auth_headers())
+
+        assert response.status_code == 200
+        assert response.json()["systemid"] == "123"
+
+    def test_no_db_echoes_input_instead_of_500(self, client, store):
+        """Regression: in no-db mode, add_entry() returns None and
+        get_by_id() always returns None, so this route always hit the
+        "could not read back" 400 branch even though the (printed, not
+        persisted) write succeeded (a GitHub Copilot review finding on
+        PR #206). No-db mode should echo the input back, mirroring
+        create_location's no-db behavior, not report success as a failure."""
+        store.no_db = True
+        store.add_entry.return_value = None
+        store.get_by_id.return_value = None
+
+        response = client.post("/v1/entries", json=self.BODY, headers=_auth_headers())
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["systemid"] == "123"
+        assert body["title"] == "Achieved: Thing"
 
 
 class TestListLocations:
@@ -417,6 +458,20 @@ class TestApiTokens:
 
     def test_garbage_token_fails(self):
         assert api._verify_api_token("not-a-real-token", API_SECRET) is False
+
+    def test_validly_signed_but_wrong_payload_fails(self):
+        """Regression: _verify_api_token only checked that *some* payload
+        was signed with the secret, not which one - so a timestamped
+        signature over any other payload, minted with the same secret for
+        an unrelated purpose, would double as a valid API token (a GitHub
+        Copilot review finding on PR #206)."""
+        from itsdangerous import TimestampSigner
+
+        other_token = (
+            TimestampSigner(API_SECRET).sign(b"not-the-lifestream-payload").decode()
+        )
+
+        assert api._verify_api_token(other_token, API_SECRET) is False
 
     def test_non_ascii_token_fails_cleanly(self):
         """Regression: token.encode("ascii") previously ran outside any

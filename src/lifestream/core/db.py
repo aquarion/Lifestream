@@ -4,7 +4,7 @@ import enum
 import json
 import warnings
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import pymysql as MySQLdb
@@ -557,27 +557,22 @@ class MysqlEntryStore(EntryStore):
             params.append(source)
 
         where_sql = " AND ".join(where_clauses)
+        # Aggregated in SQL (ROUND/GROUP BY), not by fetching every raw row
+        # and grouping in Python: a multi-year range can have millions of
+        # points, and this way the API - and the network/memory between it
+        # and MySQL - only ever handles one row per heatmap cell, not the
+        # underlying long tail of raw pings. MIN() picks an arbitrary (but
+        # deterministic-enough-for-a-marker-icon) representative title/icon
+        # per group - MySQL's own ANY_VALUE() isn't available on MariaDB,
+        # which is what this project actually runs against (see CI).
         cursor.execute(
-            f"SELECT lat, `long`, title, icon FROM lifestream_locations "
-            f"WHERE {where_sql}",
+            f"SELECT ROUND(lat, 2) AS lat, ROUND(`long`, 2) AS `long`, "
+            f"COUNT(*) AS count, MIN(title) AS title, MIN(icon) AS icon "
+            f"FROM lifestream_locations WHERE {where_sql} "
+            f"GROUP BY ROUND(lat, 2), ROUND(`long`, 2)",
             params,
         )
-
-        groups: dict[tuple[float, float], dict[str, Any]] = {}
-        for row in cursor.fetchall():
-            key = (round(row["lat"], 2), round(row["long"], 2))
-            group = groups.get(key)
-            if group is None:
-                groups[key] = {
-                    "lat": key[0],
-                    "long": key[1],
-                    "count": 1,
-                    "title": row["title"],
-                    "icon": row["icon"],
-                }
-            else:
-                group["count"] += 1
-        return list(groups.values())
+        return list(cursor.fetchall())
 
     def get_latest_location(self) -> dict[str, Any] | None:
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
@@ -600,6 +595,22 @@ class MysqlEntryStore(EntryStore):
         icon: str | None = None,
         fulldata_json: Any = None,
     ) -> tuple[dict[str, Any], bool]:
+        # A naive `timestamp` is ambiguous: Python's .timestamp() interprets
+        # it as the *server's local* timezone, so the same wall-clock string
+        # would derive a different epoch id depending on the server's own
+        # timezone setting, and would compare inconsistently against the
+        # UTC-implicit values already in the table. Normalize to a naive UTC
+        # value up front - matching every other timestamp in this table,
+        # none of which carry tz info - so both the epoch id and the dedup
+        # comparison below are well-defined regardless of what the caller
+        # sent or where this process runs.
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        else:
+            timestamp = timestamp.astimezone(timezone.utc)
+        epoch = int(timestamp.timestamp())
+        timestamp = timestamp.replace(tzinfo=None)
+
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
 
         # The read (last point for this source) and the write below aren't
@@ -636,10 +647,17 @@ class MysqlEntryStore(EntryStore):
             ):
                 return last, False
 
-            epoch = int(timestamp.timestamp())
             lat_vague = round(lat, 2)
             long_vague = round(lon, 2)
-            alt_vague = round(alt, 2) if alt is not None else None
+            # lifestream_locations.alt/alt_vague are both plain INT columns
+            # (see the baseline schema) - storing the raw float would let
+            # MySQL silently truncate it, so the response would claim a
+            # decimal precision that was never actually persisted. Round
+            # once here and use that same integer for both the stored value
+            # and the response, rather than a value that only matches what
+            # was requested, not what's in the database.
+            alt = round(alt) if alt is not None else None
+            alt_vague = alt
             # Both columns are NOT NULL in the schema (device also has its
             # own DEFAULT 'old-data', which binding an explicit NULL would
             # bypass rather than trigger) - normalize omitted values to the
@@ -831,22 +849,30 @@ class NoDbEntryStore(EntryStore):
             f"[NO-DB] LOCATION (API): source={source}, lat={lat}, lon={lon}, "
             f"timestamp={timestamp}, title={title}"
         )
+        # Mirrors MysqlEntryStore.create_location's normalization (naive ->
+        # UTC epoch, alt rounded to int, fulldata_json's NOT NULL default)
+        # so a no-db preview matches what the real backend would persist.
+        if timestamp.tzinfo is None:
+            epoch_ts = timestamp.replace(tzinfo=timezone.utc)
+        else:
+            epoch_ts = timestamp.astimezone(timezone.utc)
+        alt = round(alt) if alt is not None else None
         return {
-            "id": int(timestamp.timestamp()),
+            "id": int(epoch_ts.timestamp()),
             "source": source,
-            "device": device,
+            "device": device if device is not None else "old-data",
             "accuracy": accuracy,
             "lat": lat,
             "long": lon,
             "alt": alt,
             "lat_vague": round(lat, 2),
             "long_vague": round(lon, 2),
-            "alt_vague": round(alt, 2) if alt is not None else None,
+            "alt_vague": alt,
             "timestamp": timestamp,
             "title": title,
             "icon": icon,
             "fulldata_json": (
-                json.dumps(fulldata_json) if fulldata_json is not None else None
+                json.dumps(fulldata_json) if fulldata_json is not None else ""
             ),
         }, True
 

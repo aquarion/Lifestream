@@ -469,12 +469,17 @@ class TestListLocations:
 class TestGetLocationHeatmap:
     """Tests for EntryStore.get_location_heatmap (public API, #134)."""
 
-    def test_groups_and_counts_rounded_points(self):
+    def test_aggregates_in_sql_not_python(self):
+        """Regression: this used to SELECT every raw matching row and group
+        them in Python, which loads unbounded result sets into memory for a
+        wide date range (a GitHub Copilot review finding on PR #206). The
+        grouping/counting must happen in SQL - verified here via the query
+        shape, since a mocked cursor can't itself group rows the way a real
+        GROUP BY does (see the real-MariaDB verification in the PR)."""
         mock_cursor = MagicMock()
         mock_cursor.fetchall.return_value = [
-            {"lat": 51.501, "long": -0.099, "title": "Home", "icon": "house"},
-            {"lat": 51.502, "long": -0.098, "title": "Home Again", "icon": None},
-            {"lat": 40.0, "long": -70.0, "title": None, "icon": None},
+            {"lat": 51.5, "long": -0.1, "count": 2, "title": "Home", "icon": "house"},
+            {"lat": 40.0, "long": -70.0, "count": 1, "title": None, "icon": None},
         ]
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
@@ -483,10 +488,13 @@ class TestGetLocationHeatmap:
             store = db.EntryStore(no_db=False)
             points = store.get_location_heatmap(date_from="2024-01-01")
 
-        by_key = {(p["lat"], p["long"]): p for p in points}
-        assert by_key[(51.5, -0.1)]["count"] == 2
-        assert by_key[(51.5, -0.1)]["title"] == "Home"
-        assert by_key[(40.0, -70.0)]["count"] == 1
+        # No Python-side grouping: fetchall()'s rows pass straight through.
+        assert points == mock_cursor.fetchall.return_value
+        sql = mock_cursor.execute.call_args.args[0]
+        assert "GROUP BY ROUND(lat, 2), ROUND(`long`, 2)" in sql
+        assert "COUNT(*) AS count" in sql
+        assert "ROUND(lat, 2) AS lat" in sql
+        assert "ROUND(`long`, 2) AS `long`" in sql
 
     def test_no_db_returns_empty(self):
         store = db.EntryStore(no_db=True)
@@ -609,6 +617,29 @@ class TestCreateLocation:
         assert row["source"] == "owntracks"
         captured = capsys.readouterr()
         assert "[NO-DB] LOCATION (API):" in captured.out
+
+    def test_no_db_matches_mysql_normalization(self):
+        """NoDbEntryStore.create_location is a preview of what the real
+        backend would do - it should apply the same normalization
+        (device/fulldata_json NOT NULL defaults, integer altitude, UTC
+        epoch for naive timestamps), not a stale copy that drifted from
+        MysqlEntryStore's fixes."""
+        from datetime import datetime
+
+        store = db.EntryStore(no_db=True)
+        row, _ = store.create_location(
+            source="owntracks",
+            lat=51.5,
+            lon=-0.1,
+            timestamp=datetime(2024, 6, 1, 12, 0, 0),  # naive
+            alt=12.7,
+        )
+
+        assert row["device"] == "old-data"
+        assert row["fulldata_json"] == ""
+        assert row["alt"] == 13
+        assert row["alt_vague"] == 13
+        assert row["id"] == 1717243200  # UTC epoch for 2024-06-01T12:00:00Z
 
     def test_serializes_the_dedup_check_with_an_advisory_lock(self):
         """Regression: the read-then-write dedup check used to run with no
@@ -763,6 +794,96 @@ class TestCreateLocation:
             if "REPLACE INTO lifestream_locations" in c.args[0]
         )
         assert insert_params[-1] == ""
+
+    def test_naive_and_aware_timestamps_for_the_same_instant_agree(self):
+        """Regression: epoch was computed via a naive timestamp.timestamp()
+        call, which Python interprets in the server's *local* timezone - so
+        the same wall-clock string produced a different epoch id depending
+        on the server's own timezone setting (a GitHub Copilot review
+        finding on PR #206). A naive input must be treated as UTC, matching
+        every other timestamp in this table."""
+        from datetime import datetime, timezone
+
+        def _insert(ts):
+            mock_cursor = MagicMock()
+            mock_cursor.fetchone.side_effect = [self.LOCK_ACQUIRED, None]
+            mock_conn = MagicMock()
+            mock_conn.cursor.return_value = mock_cursor
+            with patch.object(db, "get_connection", return_value=mock_conn):
+                with patch.object(db, "get_cursor", return_value=mock_cursor):
+                    store = db.EntryStore(no_db=False)
+                    row, _ = store.create_location(
+                        source="owntracks", lat=51.5, lon=-0.1, timestamp=ts
+                    )
+            return row["id"]
+
+        naive_epoch = _insert(datetime(2024, 6, 1, 12, 0, 0))
+        aware_epoch = _insert(datetime(2024, 6, 1, 12, 0, 0, tzinfo=timezone.utc))
+
+        assert naive_epoch == aware_epoch
+
+    def test_non_utc_aware_timestamp_converted_before_epoch(self):
+        """A timezone-aware timestamp in a non-UTC zone must be converted,
+        not just have its tzinfo stripped - otherwise the "same wall clock,
+        different zone" case would silently derive the wrong instant."""
+        from datetime import datetime, timedelta, timezone
+
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.side_effect = [self.LOCK_ACQUIRED, None]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        plus_five = timezone(timedelta(hours=5))
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                row, _ = store.create_location(
+                    source="owntracks",
+                    lat=51.5,
+                    lon=-0.1,
+                    timestamp=datetime(2024, 6, 1, 17, 0, 0, tzinfo=plus_five),
+                )
+
+        # 17:00 in UTC+5 is 12:00 UTC - must match the UTC-noon epoch above.
+        expected = int(datetime(2024, 6, 1, 12, 0, 0, tzinfo=timezone.utc).timestamp())
+        assert row["id"] == expected
+
+    def test_altitude_rounded_to_int_for_int_column(self):
+        """lifestream_locations.alt/alt_vague are plain INT columns - a raw
+        float would be silently truncated by MySQL, so the response would
+        claim more precision than was actually persisted (a GitHub Copilot
+        review finding on PR #206). alt and alt_vague must be the same
+        rounded integer, both in the stored row and the response."""
+        from datetime import datetime
+
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                mock_cursor.fetchone.side_effect = [self.LOCK_ACQUIRED, None]
+                store = db.EntryStore(no_db=False)
+                row, _ = store.create_location(
+                    source="owntracks",
+                    lat=51.5,
+                    lon=-0.1,
+                    timestamp=datetime(2024, 6, 1, 12, 0, 0),
+                    alt=12.7,
+                )
+
+        assert row["alt"] == 13
+        assert row["alt_vague"] == 13
+        insert_params = next(
+            c.args[1]
+            for c in mock_cursor.execute.call_args_list
+            if "REPLACE INTO lifestream_locations" in c.args[0]
+        )
+        # Positional params: (id, source, device, accuracy, lat, long, alt,
+        # lat_vague, long_vague, alt_vague, ...) - alt is index 6, alt_vague
+        # index 9.
+        assert insert_params[6] == 13
+        assert insert_params[9] == 13
 
 
 class TestAddUnhandledLocation:
