@@ -162,8 +162,13 @@ class Location(BaseModel):
     device: str | None = None
     lat: float | None = None
     long: float | None = None
-    alt: float | None = None
-    alt_vague: float | None = None
+    # int, not float: lifestream_locations.alt/alt_vague are plain INT
+    # columns and create_location() always rounds to a whole number before
+    # storing - a float type here would let FastAPI's schema and the JSON
+    # response (e.g. 13.0) disagree with both the OpenAPI contract and what
+    # was actually persisted.
+    alt: int | None = None
+    alt_vague: int | None = None
     lat_vague: float | None = None
     long_vague: float | None = None
     accuracy: int = 0

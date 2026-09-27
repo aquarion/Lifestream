@@ -174,6 +174,37 @@ class TestEntryStore:
         assert any("INSERT INTO" in sql for sql in executed_sqls)
         mock_conn.commit.assert_called()
 
+    def test_add_entry_preserves_empty_fulldata_json_object(self):
+        """Regression: `if fulldata_json:` treated an explicitly-passed
+        empty object ({}) the same as omitted, leaving it as a raw dict
+        that pymysql can't bind as a query parameter at all - not silent
+        data loss but an outright TypeError, confirmed against a real
+        MySQL/MariaDB connection - unlike a populated payload (a GitHub
+        Copilot review finding on PR #206)."""
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = None
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                store.add_entry(
+                    type="test",
+                    id="abc",
+                    title="T",
+                    source="s",
+                    date="2024-01-01",
+                    fulldata_json={},
+                )
+
+        insert_params = next(
+            c.args[1]
+            for c in mock_cursor.execute.call_args_list
+            if "INSERT INTO" in c.args[0]
+        )
+        assert insert_params[-1] == "{}"
+
     def test_add_entry_updates_existing_when_update_true(self):
         """add_entry executes UPDATE when the entry exists and update=True."""
         mock_cursor = MagicMock()

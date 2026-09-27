@@ -285,6 +285,26 @@ class TestListLocations:
         assert point["lat"] == 51.5
         assert point["fulldata_json"] == {"tst": 1704110400}
 
+    def test_alt_and_alt_vague_serialize_as_integers(self, client, store):
+        """Regression: the Location response model declared alt/alt_vague
+        as float, so FastAPI's generated schema and JSON output (e.g.
+        13.0) disagreed with both docs/api/openapi.yaml and the INT
+        columns create_location() actually rounds to before storing (a
+        GitHub Copilot review finding on PR #206)."""
+        store.list_locations.return_value = [LOCATION_ROW]
+
+        response = client.get(
+            "/v1/locations",
+            params={"from": "2024-01-01T00:00:00"},
+            headers=_auth_headers(),
+        )
+
+        [point] = response.json()
+        assert point["alt"] == 10
+        assert isinstance(point["alt"], int)
+        assert point["alt_vague"] == 10
+        assert isinstance(point["alt_vague"], int)
+
     def test_invalid_api_key_still_redacts(self, client, store):
         store.list_locations.return_value = [LOCATION_ROW]
 

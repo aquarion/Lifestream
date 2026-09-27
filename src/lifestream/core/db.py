@@ -359,7 +359,14 @@ class MysqlEntryStore(EntryStore):
         update: bool = False,
         debug: bool = False,
     ) -> EntryResult | None:
-        if fulldata_json:
+        # Not `if fulldata_json:` - that treats an explicitly-passed empty
+        # object ({}) the same as omitted, leaving it as a raw dict that
+        # pymysql can't bind as a query parameter at all (TypeError) rather
+        # than encoding it like any other payload. No existing caller relies
+        # on the old truthiness check (none pass a deliberately falsy but
+        # non-None value), so narrowing to `is not None` only changes this
+        # empty-object case.
+        if fulldata_json is not None:
             fulldata_json = json.dumps(fulldata_json)
 
         sql = (
