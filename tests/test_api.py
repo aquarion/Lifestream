@@ -9,8 +9,20 @@ import pytest
 from fastapi.testclient import TestClient
 
 from lifestream.core import api, webserver
+from lifestream.core.ratelimit import limiter
 
 API_SECRET = "secret123"
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """The rate limiter (lifestream.core.ratelimit.limiter) is a single
+    process-wide, in-memory instance - see its module docstring - so
+    without this, request counts would accumulate across every test in
+    this file/session and could trip DEFAULT_RATE_LIMIT well before any
+    individual test comes close to it itself."""
+    limiter.reset()
+    yield
 
 
 def _cfg(api_key=""):
@@ -373,3 +385,33 @@ class TestApiTokens:
             )
 
         assert response.status_code == 401
+
+
+class TestRateLimiting:
+    """Tests for the rate limiting wired up in api.py/webserver.py (#134's
+    rate-limit hardening): every /v1 route carries its own
+    @limiter.limit(DEFAULT_RATE_LIMIT) - see the comment above
+    api.list_entries for why per-route decorators are used instead of
+    SlowAPIMiddleware's app-level default_limits - and /health is exempt.
+
+    These exercise the real configured DEFAULT_RATE_LIMIT (60/minute)
+    rather than swapping in a stricter limiter: the per-route decorators
+    close over lifestream.core.ratelimit.limiter directly at import time,
+    so replacing app.state.limiter in a test has no effect on them.
+    """
+
+    def test_exceeding_limit_returns_429(self, client, store):
+        store.list_entries.return_value = ([], 0)
+
+        responses = [client.get("/v1/entries") for _ in range(61)]
+
+        assert [r.status_code for r in responses[:60]] == [200] * 60
+        assert responses[60].status_code == 429
+        assert responses[60].json()["status"] == 429
+
+    def test_health_is_exempt_from_rate_limiting(self, client):
+        # One more than DEFAULT_RATE_LIMIT allows: if exemption ever broke,
+        # this would start returning 429 partway through.
+        responses = [client.get("/health") for _ in range(61)]
+
+        assert all(r.status_code == 200 for r in responses)

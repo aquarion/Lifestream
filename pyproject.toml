@@ -95,6 +95,7 @@ apscheduler = "^3.11.3"
 flake8 = "^7.3.0"
 alembic = "^1.20.0"
 itsdangerous = "^2.2.0"
+slowapi = "^0.1.10"
 
 
 [tool.poetry]

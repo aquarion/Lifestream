@@ -16,6 +16,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.types import Lifespan
 
 from lifestream.core.api import router as api_router
@@ -25,6 +27,7 @@ from lifestream.core.code_fetcher import (
     OAUTH_KEY_WANTED_REDIS_KEY,
 )
 from lifestream.core.config import config, get_project_root
+from lifestream.core.ratelimit import limiter
 
 logger = logging.getLogger("Webserver")
 
@@ -53,7 +56,22 @@ def create_app(lifespan: Lifespan[FastAPI] | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
+    # `limiter` is a shared, process-wide instance (see ratelimit.py) so
+    # every create_app() call - including in tests - enforces against the
+    # same counters; tests reset it explicitly between cases.
+    app.state.limiter = limiter
+    app.add_middleware(SlowAPIMiddleware)
+
     app.include_router(api_router, prefix="/v1")
+
+    @app.exception_handler(RateLimitExceeded)
+    async def _rate_limit_exception_handler(
+        request: Request, exc: RateLimitExceeded
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=429,
+            content={"status": 429, "message": f"Rate limit exceeded: {exc.detail}"},
+        )
 
     @app.exception_handler(HTTPException)
     async def _http_exception_handler(
@@ -81,6 +99,7 @@ def create_app(lifespan: Lifespan[FastAPI] | None = None) -> FastAPI:
         )
 
     @app.get("/health")
+    @limiter.exempt
     def health() -> dict:
         return {"status": "ok"}
 

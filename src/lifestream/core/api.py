@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from lifestream.core.config import config
 from lifestream.core.db import EntryResult, EntryStore
+from lifestream.core.ratelimit import DEFAULT_RATE_LIMIT, limiter
 
 router = APIRouter()
 
@@ -194,8 +195,20 @@ def _location_from_row(row: dict[str, Any], *, redact: bool) -> Location:
     )
 
 
+# Every route below carries its own @limiter.limit(...), rather than
+# relying on the app-level default_limits SlowAPIMiddleware applies in
+# webserver.py: this router is mounted via app.include_router(), and
+# FastAPI/Starlette represent an included router's routes as one lazy
+# proxy in app.routes rather than flattened APIRoutes, which is what
+# SlowAPIMiddleware's route lookup walks to find a handler - so its
+# default-limits path silently never matches these routes at all. The
+# per-route decorator enforces inline (it doesn't depend on that lookup),
+# which is also why every route here takes a `request: Request` parameter
+# - slowapi requires it to identify the caller.
 @router.get("/entries", response_model=EntriesPage)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 def list_entries(
+    request: Request,
     after: datetime | None = None,
     from_: datetime | None = Query(None, alias="from"),
     to: datetime | None = None,
@@ -215,7 +228,9 @@ def list_entries(
 
 
 @router.get("/entries/search", response_model=EntriesPage)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 def search_entries(
+    request: Request,
     q: str,
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
@@ -231,7 +246,9 @@ def search_entries(
 
 
 @router.post("/entries")
+@limiter.limit(DEFAULT_RATE_LIMIT)
 def create_entry(
+    request: Request,
     body: EntryInput,
     response: Response,
     _: None = Depends(require_api_key),
@@ -258,6 +275,7 @@ def create_entry(
 
 
 @router.get("/locations", response_model=list[Location])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 def list_locations(
     request: Request,
     from_: datetime = Query(..., alias="from"),
@@ -271,7 +289,9 @@ def list_locations(
 
 
 @router.post("/locations")
+@limiter.limit(DEFAULT_RATE_LIMIT)
 def create_location(
+    request: Request,
     body: LocationInput,
     response: Response,
     _: None = Depends(require_api_key),
@@ -294,7 +314,9 @@ def create_location(
 
 
 @router.get("/locations/heatmap", response_model=list[HeatmapPoint])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 def get_location_heatmap(
+    request: Request,
     from_: datetime = Query(..., alias="from"),
     to: datetime | None = None,
     source: str | None = None,
@@ -305,6 +327,7 @@ def get_location_heatmap(
 
 
 @router.get("/locations/latest", response_model=Location)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 def get_latest_location(
     request: Request, store: EntryStore = Depends(get_entry_store)
 ) -> Location:
@@ -316,7 +339,9 @@ def get_latest_location(
 
 
 @router.post("/locations/unhandled", status_code=201)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 def create_unhandled_location(
+    request: Request,
     body: UnhandledLocationInput,
     _: None = Depends(require_api_key),
     store: EntryStore = Depends(get_entry_store),
