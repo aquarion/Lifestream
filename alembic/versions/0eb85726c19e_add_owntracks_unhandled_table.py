@@ -33,7 +33,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Create owntracks_unhandled if it doesn't already exist."""
-    op.execute("""
+    op.execute(
+        """
         CREATE TABLE IF NOT EXISTS `owntracks_unhandled` (
           `id` bigint(20) NOT NULL AUTO_INCREMENT,
           `type` varchar(255) NOT NULL DEFAULT '',
@@ -41,7 +42,8 @@ def upgrade() -> None:
           `date_created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        """)
+        """
+    )
 
 
 def downgrade() -> None:
