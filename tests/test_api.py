@@ -10,6 +10,8 @@ from fastapi.testclient import TestClient
 
 from lifestream.core import api, webserver
 
+API_SECRET = "secret123"
+
 
 def _cfg(api_key=""):
     cfg = configparser.ConfigParser()
@@ -18,6 +20,12 @@ def _cfg(api_key=""):
     if api_key:
         cfg.set("webserver", "api_key", api_key)
     return cfg
+
+
+def _auth_headers(secret=API_SECRET):
+    """A valid X-API-Key header: a freshly minted token, not the raw secret
+    itself - mirrors what a real caller sends (see api.mint_api_token)."""
+    return {"X-API-Key": api.mint_api_token(secret)}
 
 
 @pytest.fixture
@@ -31,8 +39,8 @@ def client(store):
     # during create_app(): the API key check runs per-request, lazily
     # reading lifestream.core.api's module-level `config`.
     with (
-        patch.object(webserver, "config", _cfg(api_key="secret123")),
-        patch.object(api, "config", _cfg(api_key="secret123")),
+        patch.object(webserver, "config", _cfg(api_key=API_SECRET)),
+        patch.object(api, "config", _cfg(api_key=API_SECRET)),
     ):
         app = webserver.create_app()
         app.dependency_overrides[api.get_entry_store] = lambda: store
@@ -155,9 +163,7 @@ class TestCreateEntry:
         store.add_entry.return_value = EntryResult.INSERTED
         store.get_by_id.return_value = ENTRY_ROW
 
-        response = client.post(
-            "/v1/entries", json=self.BODY, headers={"X-API-Key": "secret123"}
-        )
+        response = client.post("/v1/entries", json=self.BODY, headers=_auth_headers())
 
         assert response.status_code == 201
         assert response.json()["systemid"] == "123"
@@ -168,9 +174,7 @@ class TestCreateEntry:
         store.add_entry.return_value = EntryResult.SKIPPED
         store.get_by_id.return_value = ENTRY_ROW
 
-        response = client.post(
-            "/v1/entries", json=self.BODY, headers={"X-API-Key": "secret123"}
-        )
+        response = client.post("/v1/entries", json=self.BODY, headers=_auth_headers())
 
         assert response.status_code == 200
 
@@ -199,7 +203,7 @@ class TestListLocations:
         response = client.get(
             "/v1/locations",
             params={"from": "2024-01-01T00:00:00"},
-            headers={"X-API-Key": "secret123"},
+            headers=_auth_headers(),
         )
 
         [point] = response.json()
@@ -236,9 +240,7 @@ class TestCreateLocation:
     def test_created_returns_201(self, client, store):
         store.create_location.return_value = (LOCATION_ROW, True)
 
-        response = client.post(
-            "/v1/locations", json=self.BODY, headers={"X-API-Key": "secret123"}
-        )
+        response = client.post("/v1/locations", json=self.BODY, headers=_auth_headers())
 
         assert response.status_code == 201
         # Writer supplied a valid key, so the response is never redacted.
@@ -247,9 +249,7 @@ class TestCreateLocation:
     def test_duplicate_returns_200(self, client, store):
         store.create_location.return_value = (LOCATION_ROW, False)
 
-        response = client.post(
-            "/v1/locations", json=self.BODY, headers={"X-API-Key": "secret123"}
-        )
+        response = client.post("/v1/locations", json=self.BODY, headers=_auth_headers())
 
         assert response.status_code == 200
 
@@ -257,7 +257,7 @@ class TestCreateLocation:
         response = client.post(
             "/v1/locations",
             json={**self.BODY, "lat": 200},
-            headers={"X-API-Key": "secret123"},
+            headers=_auth_headers(),
         )
 
         assert response.status_code == 400
@@ -304,9 +304,7 @@ class TestGetLatestLocation:
     def test_precise_with_api_key(self, client, store):
         store.get_latest_location.return_value = LOCATION_ROW
 
-        response = client.get(
-            "/v1/locations/latest", headers={"X-API-Key": "secret123"}
-        )
+        response = client.get("/v1/locations/latest", headers=_auth_headers())
 
         assert response.json()["lat"] == 51.5
 
@@ -325,8 +323,53 @@ class TestCreateUnhandledLocation:
         response = client.post(
             "/v1/locations/unhandled",
             json={"type": "waypoints", "fulldata_json": {"a": 1}},
-            headers={"X-API-Key": "secret123"},
+            headers=_auth_headers(),
         )
 
         assert response.status_code == 201
         store.add_unhandled_location.assert_called_once_with("waypoints", {"a": 1})
+
+
+class TestApiTokens:
+    """Tests for mint_api_token/_verify_api_token directly: the signed,
+    self-expiring token that stands in for sending the shared secret on
+    every request (see API_TOKEN_MAX_AGE_SECONDS)."""
+
+    def test_token_minted_with_secret_verifies(self):
+        token = api.mint_api_token(API_SECRET)
+
+        assert api._verify_api_token(token, API_SECRET) is True
+
+    def test_token_minted_with_wrong_secret_fails(self):
+        token = api.mint_api_token("other-secret")
+
+        assert api._verify_api_token(token, API_SECRET) is False
+
+    def test_garbage_token_fails(self):
+        assert api._verify_api_token("not-a-real-token", API_SECRET) is False
+
+    def test_expired_token_fails(self):
+        token = api.mint_api_token(API_SECRET)
+
+        with patch.object(
+            api, "API_TOKEN_MAX_AGE_SECONDS", -1
+        ):  # token is already "older" than this by the time we verify it
+            assert api._verify_api_token(token, API_SECRET) is False
+
+    def test_expired_token_rejected_over_http(self, client, store):
+        """An end-to-end check that an old token - not just a malformed one -
+        is rejected by the live dependency, mirroring a leaked-and-replayed
+        token after API_TOKEN_MAX_AGE_SECONDS has passed."""
+        token = api.mint_api_token(API_SECRET)
+
+        # -1 guarantees expiry regardless of timing jitter: a token's age at
+        # verification is always >= 0, and 0 > -1 already trips itsdangerous's
+        # "age > max_age" check.
+        with patch.object(api, "API_TOKEN_MAX_AGE_SECONDS", -1):
+            response = client.post(
+                "/v1/locations/unhandled",
+                json={"type": "waypoints", "fulldata_json": {"a": 1}},
+                headers={"X-API-Key": token},
+            )
+
+        assert response.status_code == 401

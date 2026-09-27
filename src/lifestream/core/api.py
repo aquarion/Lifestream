@@ -7,11 +7,11 @@ lifestream-web's `docs/api/openapi.yaml` / `docs/superpowers/specs/
 """
 
 import json
-import secrets
 from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from itsdangerous import BadSignature, SignatureExpired, TimestampSigner
 from pydantic import BaseModel, Field
 
 from lifestream.core.config import config
@@ -19,23 +19,56 @@ from lifestream.core.db import EntryResult, EntryStore
 
 router = APIRouter()
 
+# How long a minted X-API-Key token stays valid after signing. Callers mint a
+# fresh token (see mint_api_token) rather than sending the long-lived
+# [webserver] api_key secret itself, so a token that leaks via a log or
+# proxy is only usable for this long, unlike the raw secret it's derived
+# from.
+API_TOKEN_MAX_AGE_SECONDS = 300
+
+# Fixed payload signed into every token: it carries no per-caller claims (all
+# callers share one secret), so its only job is giving TimestampSigner
+# something to sign and embed a timestamp alongside.
+_TOKEN_PAYLOAD = b"lifestream-api"
+
 
 def get_entry_store() -> EntryStore:
     return EntryStore()
 
 
-def _configured_api_key() -> str | None:
+def _configured_api_secret() -> str | None:
     return config.get("webserver", "api_key", fallback="") or None
 
 
-def _has_valid_api_key(request: Request) -> bool:
-    """Whether `request` carries the configured X-API-Key. Used both to gate
-    writes and to decide whether reads get precise or redacted locations."""
-    configured = _configured_api_key()
-    provided = request.headers.get("X-API-Key")
-    if not configured or not provided:
+def mint_api_token(secret: str) -> str:
+    """Mint an X-API-Key token by signing a fixed payload with `secret` and
+    an embedded timestamp (itsdangerous's TimestampSigner). How long the
+    result stays valid is entirely up to the verifying side
+    (API_TOKEN_MAX_AGE_SECONDS) - deliberately not a parameter here, since a
+    caller that could pick its own expiry could just mint a token that
+    never expires."""
+    return TimestampSigner(secret).sign(_TOKEN_PAYLOAD).decode("ascii")
+
+
+def _verify_api_token(token: str, secret: str) -> bool:
+    try:
+        TimestampSigner(secret).unsign(
+            token.encode("ascii"), max_age=API_TOKEN_MAX_AGE_SECONDS
+        )
+    except (BadSignature, SignatureExpired):
         return False
-    return secrets.compare_digest(provided, configured)
+    return True
+
+
+def _has_valid_api_key(request: Request) -> bool:
+    """Whether `request` carries a valid, unexpired X-API-Key token signed
+    with the configured secret (see mint_api_token). Used both to gate
+    writes and to decide whether reads get precise or redacted locations."""
+    secret = _configured_api_secret()
+    provided = request.headers.get("X-API-Key")
+    if not secret or not provided:
+        return False
+    return _verify_api_token(provided, secret)
 
 
 def require_api_key(request: Request) -> None:

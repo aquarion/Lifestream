@@ -359,6 +359,13 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
+      description: >
+        Not the shared secret itself - a short-lived token signed with it
+        (lifestream.core.api.mint_api_token(), an itsdangerous
+        TimestampSigner signature over a fixed payload). Valid for
+        API_TOKEN_MAX_AGE_SECONDS (5 minutes by default) after minting;
+        mint a fresh one per request or per short-lived session rather
+        than reusing one past that window.
 
   responses:
     BadRequest:
