@@ -113,7 +113,9 @@ def require_owntracks_auth(
     the rest of the write API uses, so this checks the password against its
     own `[webserver] owntracks_password` (the username is ignored). Unset
     means the endpoint is closed to everyone, rather than open."""
-    expected = config.get("webserver", "owntracks_password", fallback="")
+    # raw=True: a password containing `%` would otherwise raise
+    # InterpolationSyntaxError from ConfigParser and 500 every request.
+    expected = config.get("webserver", "owntracks_password", raw=True, fallback="")
     if (
         not expected
         or credentials is None

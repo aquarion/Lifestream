@@ -355,6 +355,8 @@ paths:
               schema:
                 type: array
                 items: {}
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           description: Missing or invalid credentials.
           content:
