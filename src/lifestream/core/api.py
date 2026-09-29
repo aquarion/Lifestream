@@ -6,14 +6,16 @@ lifestream-web's `docs/api/openapi.yaml` / `docs/superpowers/specs/
 `lifestream.core.webserver.create_app()`.
 """
 
+import hmac
 import json
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from itsdangerous import BadSignature, SignatureExpired, TimestampSigner
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from pymysql.err import IntegrityError
 
 from lifestream.core.config import config
@@ -98,6 +100,34 @@ def _has_valid_api_key(request: Request) -> bool:
 def require_api_key(request: Request) -> None:
     if not _has_valid_api_key(request):
         raise HTTPException(status_code=401, detail="Missing or invalid API key")
+
+
+_owntracks_basic = HTTPBasic(auto_error=False)
+
+
+def require_owntracks_auth(
+    credentials: HTTPBasicCredentials | None = Depends(_owntracks_basic),
+) -> None:
+    """HTTP Basic auth for the OwnTracks endpoint. The OwnTracks app can only
+    send a fixed username/password, not the signed, expiring X-API-Key token
+    the rest of the write API uses, so this checks the password against its
+    own `[webserver] owntracks_password` (the username is ignored). Unset
+    means the endpoint is closed to everyone, rather than open."""
+    # raw=True: a password containing `%` would otherwise raise
+    # InterpolationSyntaxError from ConfigParser and 500 every request.
+    expected = config.get("webserver", "owntracks_password", raw=True, fallback="")
+    if (
+        not expected
+        or credentials is None
+        or not hmac.compare_digest(
+            credentials.password.encode("utf-8"), expected.encode("utf-8")
+        )
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Missing or invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
 
 def _decode_json(raw: Any) -> dict[str, Any] | None:
@@ -430,3 +460,66 @@ def create_unhandled_location(
 ) -> Response:
     store.add_unhandled_location(body.type, body.fulldata_json)
     return Response(status_code=201)
+
+
+def _location_from_owntracks(payload: dict[str, Any]) -> LocationInput | None:
+    """Map an OwnTracks `_type: location` payload to a LocationInput, or
+    None if it lacks a usable position/timestamp (see the OwnTracks JSON
+    docs for the field meanings). Mirrors what lifestream-web's
+    owntracks.php stored: `tid` as the device, `inregions` as the title."""
+    try:
+        acc = payload.get("acc")
+        inregions = payload.get("inregions")
+        return LocationInput(
+            source="owntracks",
+            device=payload.get("tid"),
+            lat=payload["lat"],
+            long=payload["lon"],
+            alt=payload.get("alt"),
+            accuracy=int(acc) if acc else 0,
+            # '' not None when absent: owntracks.php stored an empty string.
+            title=" / ".join(inregions) if isinstance(inregions, list) else "",
+            timestamp=datetime.fromtimestamp(payload["tst"], tz=timezone.utc),
+            fulldata_json=payload,
+        )
+    except (KeyError, TypeError, ValueError, OverflowError, OSError, ValidationError):
+        return None
+
+
+@router.post("/owntracks")
+@limiter.limit(DEFAULT_RATE_LIMIT)
+def receive_owntracks(
+    request: Request,
+    payload: dict[str, Any] = Body(...),
+    _: None = Depends(require_owntracks_auth),
+    store: EntryStore = Depends(get_entry_store),
+) -> list[Any]:
+    """Receive an OwnTracks app's HTTP-mode POST directly, replacing
+    lifestream-web's owntracks.php shim (#135). Location payloads are stored
+    as location points; every payload is also archived raw, as the shim did.
+    A location that can't be stored (missing/invalid fields) is only
+    archived, not rejected: OwnTracks retries non-2xx responses, so failing
+    here would make the app resend the same bad payload indefinitely."""
+    if payload.get("_type") == "location":
+        location = _location_from_owntracks(payload)
+        if location is not None:
+            try:
+                store.create_location(
+                    source=location.source,
+                    lat=location.lat,
+                    lon=location.long,
+                    timestamp=location.timestamp,
+                    device=location.device,
+                    alt=location.alt,
+                    accuracy=location.accuracy,
+                    title=location.title,
+                    icon=location.icon,
+                    fulldata_json=location.fulldata_json,
+                )
+            except LocationDedupLockError as e:
+                # Not the payload's fault: 503 so the app retries it.
+                raise HTTPException(status_code=503, detail=str(e)) from e
+    store.add_unhandled_location(str(payload.get("_type", "unknown")), payload)
+    # The OwnTracks protocol lets the response carry objects for the app
+    # (friends, cards); we have none to send.
+    return []

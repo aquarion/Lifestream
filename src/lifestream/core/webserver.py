@@ -80,6 +80,9 @@ def create_app(lifespan: Lifespan[FastAPI] | None = None) -> FastAPI:
         return JSONResponse(
             status_code=exc.status_code,
             content={"status": exc.status_code, "message": exc.detail},
+            # Keep headers set by the raiser, e.g. the 401 challenge's
+            # WWW-Authenticate: Basic (see api.require_owntracks_auth).
+            headers=exc.headers,
         )
 
     @app.exception_handler(RequestValidationError)

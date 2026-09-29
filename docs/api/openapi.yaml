@@ -319,6 +319,64 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /owntracks:
+    post:
+      tags: [locations]
+      summary: Receive an OwnTracks app's HTTP-mode POST
+      description: >
+        Accepts the raw OwnTracks JSON payload directly (replaces lifestream-web's
+        `owntracks.php`). `location` payloads with a valid `lat`, `lon` and `tst` are
+        recorded as `Location` points (source `owntracks`, `tid` as device, `inregions`
+        as title (empty if absent), same dedup rule as `POST /locations`); every payload is also
+        archived as in `POST /locations/unhandled`. A `location` payload that can't be
+        stored is archived only and still returns 200, since OwnTracks retries
+        non-2xx responses. Authenticated with HTTP Basic auth against the
+        `[webserver] owntracks_password` setting (username ignored), not `X-API-Key`;
+        401 if unset.
+      operationId: receiveOwntracksPayload
+      security:
+        - BasicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: >
+                Any JSON object. `_type` is normally present; if missing, the
+                payload is archived under type `unknown`.
+              properties:
+                _type:
+                  type: string
+              additionalProperties: true
+      responses:
+        "200":
+          description: Payload accepted. Always an empty array (no friends/cards).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Missing or invalid credentials.
+          headers:
+            WWW-Authenticate:
+              schema:
+                type: string
+              description: Always `Basic`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Location dedup lock contention; retry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /locations/unhandled:
     post:
       tags: [locations]
@@ -355,6 +413,12 @@ paths:
 
 components:
   securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: >
+        Only for `POST /owntracks`. The password is `[webserver] owntracks_password`;
+        the username is ignored.
     ApiKeyAuth:
       type: apiKey
       in: header

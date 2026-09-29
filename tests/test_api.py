@@ -3,16 +3,18 @@
 
 import configparser
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from lifestream.core import api, webserver
+from lifestream.core.db import LocationDedupLockError
 from lifestream.core.ratelimit import limiter
 
 API_SECRET = "secret123"
+OWNTRACKS_PASSWORD = "phone-pass"
 
 
 @pytest.fixture(autouse=True)
@@ -26,12 +28,14 @@ def _reset_rate_limits():
     yield
 
 
-def _cfg(api_key=""):
+def _cfg(api_key="", owntracks_password=""):
     cfg = configparser.ConfigParser()
     cfg.add_section("webserver")
     cfg.set("webserver", "allowed_origins", "")
     if api_key:
         cfg.set("webserver", "api_key", api_key)
+    if owntracks_password:
+        cfg.set("webserver", "owntracks_password", owntracks_password)
     return cfg
 
 
@@ -59,7 +63,11 @@ def client(store):
     # reading lifestream.core.api's module-level `config`.
     with (
         patch.object(webserver, "config", _cfg(api_key=API_SECRET)),
-        patch.object(api, "config", _cfg(api_key=API_SECRET)),
+        patch.object(
+            api,
+            "config",
+            _cfg(api_key=API_SECRET, owntracks_password=OWNTRACKS_PASSWORD),
+        ),
     ):
         app = webserver.create_app()
         app.dependency_overrides[api.get_entry_store] = lambda: store
@@ -593,3 +601,112 @@ class TestGetEntryStore:
                 generator.throw(RuntimeError("route handler blew up"))
 
         mock_store.close.assert_called_once()
+
+
+class TestOwntracks:
+    AUTH = ("anyone", OWNTRACKS_PASSWORD)
+    LOCATION = {
+        "_type": "location",
+        "lat": 51.5,
+        "lon": -0.12,
+        "tst": 1704110400,
+        "tid": "ab",
+        "acc": 12,
+        "alt": 30,
+        "inregions": ["Home", "Garage"],
+    }
+
+    def test_location_is_stored_and_archived(self, client, store):
+        store.create_location.return_value = ({}, True)
+        resp = client.post("/v1/owntracks", json=self.LOCATION, auth=self.AUTH)
+        assert resp.status_code == 200
+        assert resp.json() == []
+        kwargs = store.create_location.call_args.kwargs
+        assert kwargs["source"] == "owntracks"
+        assert kwargs["device"] == "ab"
+        assert kwargs["lat"] == 51.5
+        assert kwargs["lon"] == -0.12
+        assert kwargs["accuracy"] == 12
+        assert kwargs["title"] == "Home / Garage"
+        assert kwargs["timestamp"] == datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc)
+        store.add_unhandled_location.assert_called_once_with("location", self.LOCATION)
+
+    def test_missing_inregions_stores_empty_title(self, client, store):
+        payload = {k: v for k, v in self.LOCATION.items() if k != "inregions"}
+        store.create_location.return_value = ({}, True)
+        client.post("/v1/owntracks", json=payload, auth=self.AUTH)
+        assert store.create_location.call_args.kwargs["title"] == ""
+
+    def test_missing_type_is_archived_as_unknown(self, client, store):
+        resp = client.post("/v1/owntracks", json={}, auth=self.AUTH)
+        assert resp.status_code == 200
+        store.add_unhandled_location.assert_called_once_with("unknown", {})
+
+    def test_401_carries_basic_challenge(self, client):
+        resp = client.post("/v1/owntracks", json=self.LOCATION)
+        assert resp.status_code == 401
+        assert resp.headers["WWW-Authenticate"] == "Basic"
+
+    def test_non_location_only_archived(self, client, store):
+        payload = {"_type": "transition", "event": "enter"}
+        resp = client.post("/v1/owntracks", json=payload, auth=self.AUTH)
+        assert resp.status_code == 200
+        store.create_location.assert_not_called()
+        store.add_unhandled_location.assert_called_once_with("transition", payload)
+
+    def test_unusable_location_is_archived_not_rejected(self, client, store):
+        payload = {"_type": "location", "lat": 999, "lon": 0, "tst": 1704110400}
+        resp = client.post("/v1/owntracks", json=payload, auth=self.AUTH)
+        assert resp.status_code == 200
+        store.create_location.assert_not_called()
+        store.add_unhandled_location.assert_called_once_with("location", payload)
+
+    def test_dedup_lock_contention_returns_503_and_skips_archive(self, client, store):
+        store.create_location.side_effect = LocationDedupLockError("busy")
+        resp = client.post("/v1/owntracks", json=self.LOCATION, auth=self.AUTH)
+        assert resp.status_code == 503
+        store.add_unhandled_location.assert_not_called()
+
+    @pytest.mark.parametrize("auth", [None, ("u", "wrong")])
+    def test_bad_credentials_rejected(self, client, store, auth):
+        resp = client.post("/v1/owntracks", json=self.LOCATION, auth=auth)
+        assert resp.status_code == 401
+        store.create_location.assert_not_called()
+        store.add_unhandled_location.assert_not_called()
+
+    def test_closed_when_password_unset(self, store):
+        with (
+            patch.object(webserver, "config", _cfg()),
+            patch.object(api, "config", _cfg()),
+        ):
+            app = webserver.create_app()
+            app.dependency_overrides[api.get_entry_store] = lambda: store
+            resp = TestClient(app).post(
+                "/v1/owntracks", json=self.LOCATION, auth=("u", "")
+            )
+        assert resp.status_code == 401
+
+    def test_password_with_percent_authenticates(self, store):
+        # Built via read_string, as a config file would be: ConfigParser's
+        # interpolation rejects a bare `%` unless the value is read raw.
+        cfg = configparser.ConfigParser()
+        cfg.read_string("[webserver]\nowntracks_password = phone%pass\n")
+        with (
+            patch.object(webserver, "config", _cfg()),
+            patch.object(api, "config", cfg),
+        ):
+            app = webserver.create_app()
+            app.dependency_overrides[api.get_entry_store] = lambda: store
+            client = TestClient(app)
+            ok = client.post(
+                "/v1/owntracks", json={"_type": "status"}, auth=("u", "phone%pass")
+            )
+            bad = client.post(
+                "/v1/owntracks", json={"_type": "status"}, auth=("u", "phone")
+            )
+        assert ok.status_code == 200
+        assert bad.status_code == 401
+
+    def test_non_object_body_is_400(self, client):
+        resp = client.post("/v1/owntracks", json=[1, 2], auth=self.AUTH)
+        assert resp.status_code == 400
