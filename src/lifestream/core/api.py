@@ -477,7 +477,8 @@ def _location_from_owntracks(payload: dict[str, Any]) -> LocationInput | None:
             long=payload["lon"],
             alt=payload.get("alt"),
             accuracy=int(acc) if acc else 0,
-            title=" / ".join(inregions) if isinstance(inregions, list) else None,
+            # '' not None when absent: owntracks.php stored an empty string.
+            title=" / ".join(inregions) if isinstance(inregions, list) else "",
             timestamp=datetime.fromtimestamp(payload["tst"], tz=timezone.utc),
             fulldata_json=payload,
         )

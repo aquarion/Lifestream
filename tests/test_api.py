@@ -631,6 +631,22 @@ class TestOwntracks:
         assert kwargs["timestamp"] == datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc)
         store.add_unhandled_location.assert_called_once_with("location", self.LOCATION)
 
+    def test_missing_inregions_stores_empty_title(self, client, store):
+        payload = {k: v for k, v in self.LOCATION.items() if k != "inregions"}
+        store.create_location.return_value = ({}, True)
+        client.post("/v1/owntracks", json=payload, auth=self.AUTH)
+        assert store.create_location.call_args.kwargs["title"] == ""
+
+    def test_missing_type_is_archived_as_unknown(self, client, store):
+        resp = client.post("/v1/owntracks", json={}, auth=self.AUTH)
+        assert resp.status_code == 200
+        store.add_unhandled_location.assert_called_once_with("unknown", {})
+
+    def test_401_carries_basic_challenge(self, client):
+        resp = client.post("/v1/owntracks", json=self.LOCATION)
+        assert resp.status_code == 401
+        assert resp.headers["WWW-Authenticate"] == "Basic"
+
     def test_non_location_only_archived(self, client, store):
         payload = {"_type": "transition", "event": "enter"}
         resp = client.post("/v1/owntracks", json=payload, auth=self.AUTH)

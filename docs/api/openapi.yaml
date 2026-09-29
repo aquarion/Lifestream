@@ -327,7 +327,7 @@ paths:
         Accepts the raw OwnTracks JSON payload directly (replaces lifestream-web's
         `owntracks.php`). `location` payloads with a valid `lat`, `lon` and `tst` are
         recorded as `Location` points (source `owntracks`, `tid` as device, `inregions`
-        as title, same dedup rule as `POST /locations`); every payload is also
+        as title (empty if absent), same dedup rule as `POST /locations`); every payload is also
         archived as in `POST /locations/unhandled`. A `location` payload that can't be
         stored is archived only and still returns 200, since OwnTracks retries
         non-2xx responses. Authenticated with HTTP Basic auth against the
@@ -342,7 +342,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [_type]
+              description: >
+                Any JSON object. `_type` is normally present; if missing, the
+                payload is archived under type `unknown`.
               properties:
                 _type:
                   type: string
@@ -359,6 +361,11 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           description: Missing or invalid credentials.
+          headers:
+            WWW-Authenticate:
+              schema:
+                type: string
+              description: Always `Basic`.
           content:
             application/json:
               schema:
