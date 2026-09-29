@@ -299,10 +299,13 @@ class EntryStore(ABC):
         self, *, arrived_after: datetime
     ) -> list[dict[str, Any]]:
         """Archived OwnTracks `location` payloads (`owntracks_unhandled`,
-        type = 'location') that were archived at or after `arrived_after`,
-        oldest-archived first. Used by the OwnTracks backfill, which replays
-        them through `create_location`. Rows carry `id`, `datestamp` and the
-        raw `fulldata_json` string."""
+        type = 'location') with no `why` - the legacy rows written before
+        `POST /v1/owntracks` recorded what became of each payload - that
+        were archived at or after `arrived_after`, oldest-archived first.
+        Rows the native endpoint archived (`why` set) were already handled
+        and are excluded. Used by the OwnTracks backfill, which replays them
+        through `create_location`. Rows carry `id`, `datestamp` and the raw
+        `fulldata_json` string."""
 
 
 class MysqlEntryStore(EntryStore):
@@ -747,7 +750,8 @@ class MysqlEntryStore(EntryStore):
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
         cursor.execute(
             "SELECT id, datestamp, fulldata_json FROM owntracks_unhandled "
-            "WHERE type = 'location' AND datestamp >= %s ORDER BY id ASC",
+            "WHERE type = 'location' AND why IS NULL AND datestamp >= %s "
+            "ORDER BY id ASC",
             (arrived_after,),
         )
         return list(cursor.fetchall())

@@ -983,6 +983,8 @@ class TestListUnhandledLocations:
         sql, params = mock_cursor.execute.call_args.args
         assert "owntracks_unhandled" in sql
         assert "type = 'location'" in sql
+        # Only legacy rows: the native endpoint's (why set) were handled.
+        assert "why IS NULL" in sql
         assert "datestamp >= %s" in sql
         assert params == (datetime(2024, 11, 15),)
 
