@@ -462,7 +462,7 @@ def create_unhandled_location(
     return Response(status_code=201)
 
 
-def _location_from_owntracks(payload: dict[str, Any]) -> LocationInput | None:
+def location_from_owntracks(payload: dict[str, Any]) -> LocationInput | None:
     """Map an OwnTracks `_type: location` payload to a LocationInput, or
     None if it lacks a usable position/timestamp (see the OwnTracks JSON
     docs for the field meanings). Mirrors what lifestream-web's
@@ -486,6 +486,41 @@ def _location_from_owntracks(payload: dict[str, Any]) -> LocationInput | None:
         return None
 
 
+# Why an OwnTracks payload was archived to `owntracks_unhandled` (its `why`
+# column). Every payload is archived, so this says what else happened to it.
+WHY_STORED = "stored"  # a location, saved as a point
+WHY_DEDUPE = "dedupe"  # a valid location skipped: same 0.1 degree cell as the last
+WHY_INVALID_LOCATION = "invalid_location"  # a location without usable lat/lon/tst
+WHY_UNHANDLED_TYPE = "unhandled_type"  # any other _type (status, transition, ...)
+
+
+def _store_owntracks_location(store: EntryStore, payload: dict[str, Any]) -> str:
+    """Store `payload` as a location point if it is a usable location, and
+    return the WHY_* reason it should be archived under."""
+    if payload.get("_type") != "location":
+        return WHY_UNHANDLED_TYPE
+    location = location_from_owntracks(payload)
+    if location is None:
+        return WHY_INVALID_LOCATION
+    try:
+        _, created = store.create_location(
+            source=location.source,
+            lat=location.lat,
+            lon=location.long,
+            timestamp=location.timestamp,
+            device=location.device,
+            alt=location.alt,
+            accuracy=location.accuracy,
+            title=location.title,
+            icon=location.icon,
+            fulldata_json=location.fulldata_json,
+        )
+    except LocationDedupLockError as e:
+        # Not the payload's fault: 503 so the app retries it.
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    return WHY_STORED if created else WHY_DEDUPE
+
+
 @router.post("/owntracks")
 @limiter.limit(DEFAULT_RATE_LIMIT)
 def receive_owntracks(
@@ -496,30 +531,13 @@ def receive_owntracks(
 ) -> list[Any]:
     """Receive an OwnTracks app's HTTP-mode POST directly, replacing
     lifestream-web's owntracks.php shim (#135). Location payloads are stored
-    as location points; every payload is also archived raw, as the shim did.
-    A location that can't be stored (missing/invalid fields) is only
-    archived, not rejected: OwnTracks retries non-2xx responses, so failing
-    here would make the app resend the same bad payload indefinitely."""
-    if payload.get("_type") == "location":
-        location = _location_from_owntracks(payload)
-        if location is not None:
-            try:
-                store.create_location(
-                    source=location.source,
-                    lat=location.lat,
-                    lon=location.long,
-                    timestamp=location.timestamp,
-                    device=location.device,
-                    alt=location.alt,
-                    accuracy=location.accuracy,
-                    title=location.title,
-                    icon=location.icon,
-                    fulldata_json=location.fulldata_json,
-                )
-            except LocationDedupLockError as e:
-                # Not the payload's fault: 503 so the app retries it.
-                raise HTTPException(status_code=503, detail=str(e)) from e
-    store.add_unhandled_location(str(payload.get("_type", "unknown")), payload)
+    as location points; every payload is also archived raw, as the shim did,
+    with a `why` saying what became of it. A location that can't be stored
+    (missing/invalid fields) is only archived, not rejected: OwnTracks
+    retries non-2xx responses, so failing here would make the app resend the
+    same bad payload indefinitely."""
+    why = _store_owntracks_location(store, payload)
+    store.add_unhandled_location(str(payload.get("_type", "unknown")), payload, why)
     # The OwnTracks protocol lets the response carry objects for the app
     # (friends, cards); we have none to send.
     return []

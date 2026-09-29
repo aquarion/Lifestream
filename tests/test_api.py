@@ -629,7 +629,9 @@ class TestOwntracks:
         assert kwargs["accuracy"] == 12
         assert kwargs["title"] == "Home / Garage"
         assert kwargs["timestamp"] == datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc)
-        store.add_unhandled_location.assert_called_once_with("location", self.LOCATION)
+        store.add_unhandled_location.assert_called_once_with(
+            "location", self.LOCATION, "stored"
+        )
 
     def test_missing_inregions_stores_empty_title(self, client, store):
         payload = {k: v for k, v in self.LOCATION.items() if k != "inregions"}
@@ -640,26 +642,40 @@ class TestOwntracks:
     def test_missing_type_is_archived_as_unknown(self, client, store):
         resp = client.post("/v1/owntracks", json={}, auth=self.AUTH)
         assert resp.status_code == 200
-        store.add_unhandled_location.assert_called_once_with("unknown", {})
+        store.add_unhandled_location.assert_called_once_with(
+            "unknown", {}, "unhandled_type"
+        )
 
     def test_401_carries_basic_challenge(self, client):
         resp = client.post("/v1/owntracks", json=self.LOCATION)
         assert resp.status_code == 401
         assert resp.headers["WWW-Authenticate"] == "Basic"
 
+    def test_location_skipped_by_dedupe_is_archived_as_such(self, client, store):
+        store.create_location.return_value = ({}, False)
+        resp = client.post("/v1/owntracks", json=self.LOCATION, auth=self.AUTH)
+        assert resp.status_code == 200
+        store.add_unhandled_location.assert_called_once_with(
+            "location", self.LOCATION, "dedupe"
+        )
+
     def test_non_location_only_archived(self, client, store):
         payload = {"_type": "transition", "event": "enter"}
         resp = client.post("/v1/owntracks", json=payload, auth=self.AUTH)
         assert resp.status_code == 200
         store.create_location.assert_not_called()
-        store.add_unhandled_location.assert_called_once_with("transition", payload)
+        store.add_unhandled_location.assert_called_once_with(
+            "transition", payload, "unhandled_type"
+        )
 
     def test_unusable_location_is_archived_not_rejected(self, client, store):
         payload = {"_type": "location", "lat": 999, "lon": 0, "tst": 1704110400}
         resp = client.post("/v1/owntracks", json=payload, auth=self.AUTH)
         assert resp.status_code == 200
         store.create_location.assert_not_called()
-        store.add_unhandled_location.assert_called_once_with("location", payload)
+        store.add_unhandled_location.assert_called_once_with(
+            "location", payload, "invalid_location"
+        )
 
     def test_dedup_lock_contention_returns_503_and_skips_archive(self, client, store):
         store.create_location.side_effect = LocationDedupLockError("busy")
