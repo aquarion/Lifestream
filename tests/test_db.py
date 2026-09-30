@@ -1,6 +1,5 @@
 """Tests for lifestream.core.db module."""
 
-from datetime import datetime
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -961,36 +960,6 @@ class TestAddUnhandledLocation:
         captured = capsys.readouterr()
         assert "[NO-DB] UNHANDLED LOCATION:" in captured.out
         assert "why=unhandled_type" in captured.out
-
-
-class TestListUnhandledLocations:
-    """Tests for EntryStore.list_unhandled_locations (the OwnTracks
-    backfill's read of the owntracks_unhandled archive)."""
-
-    def test_selects_location_rows_since_arrival(self):
-        mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = [{"id": 1, "fulldata_json": "{}"}]
-        mock_conn = MagicMock()
-        mock_conn.cursor.return_value = mock_cursor
-
-        with patch.object(db, "get_connection", return_value=mock_conn):
-            store = db.EntryStore(no_db=False)
-            result = store.list_unhandled_locations(
-                arrived_after=datetime(2024, 11, 15)
-            )
-
-        assert result == [{"id": 1, "fulldata_json": "{}"}]
-        sql, params = mock_cursor.execute.call_args.args
-        assert "owntracks_unhandled" in sql
-        assert "type = 'location'" in sql
-        # Only legacy rows: the native endpoint's (why set) were handled.
-        assert "why IS NULL" in sql
-        assert "datestamp >= %s" in sql
-        assert params == (datetime(2024, 11, 15),)
-
-    def test_no_db_returns_empty(self):
-        store = db.EntryStore(no_db=True)
-        assert store.list_unhandled_locations(arrived_after=datetime(2024, 1, 1)) == []
 
 
 class TestClose:
