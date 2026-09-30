@@ -286,9 +286,26 @@ class EntryStore(ABC):
         """
 
     @abstractmethod
-    def add_unhandled_location(self, type: str, data: Any) -> None:
+    def add_unhandled_location(
+        self, type: str, data: Any, why: str | None = None
+    ) -> None:
         """Archive a raw OwnTracks payload, mirroring `raw_location_data()`,
-        for the public API's `POST /v1/locations/unhandled` (#134)."""
+        for the public API's `POST /v1/locations/unhandled` (#134). `why`
+        records the reason it is archived (see lifestream.core.api's
+        WHY_* constants); NULL when the caller doesn't say."""
+
+    @abstractmethod
+    def list_unhandled_locations(
+        self, *, arrived_after: datetime
+    ) -> list[dict[str, Any]]:
+        """Archived OwnTracks `location` payloads (`owntracks_unhandled`,
+        type = 'location') with no `why` - the legacy rows written before
+        `POST /v1/owntracks` recorded what became of each payload - that
+        were archived at or after `arrived_after`, oldest-archived first.
+        Rows the native endpoint archived (`why` set) were already handled
+        and are excluded. Used by the OwnTracks backfill, which replays them
+        through `create_location`. Rows carry `id`, `datestamp` and the raw
+        `fulldata_json` string."""
 
 
 class MysqlEntryStore(EntryStore):
@@ -717,12 +734,27 @@ class MysqlEntryStore(EntryStore):
         finally:
             cursor.execute("SELECT RELEASE_LOCK(%s)", (lock_name,))
 
-    def add_unhandled_location(self, type: str, data: Any) -> None:
+    def add_unhandled_location(
+        self, type: str, data: Any, why: str | None = None
+    ) -> None:
         self.cursor.execute(
-            "INSERT INTO owntracks_unhandled (`type`, `fulldata_json`) VALUES (%s, %s)",
-            (type, json.dumps(data)),
+            "INSERT INTO owntracks_unhandled (`type`, `fulldata_json`, `why`) "
+            "VALUES (%s, %s, %s)",
+            (type, json.dumps(data), why),
         )
         self.dbcxn.commit()
+
+    def list_unhandled_locations(
+        self, *, arrived_after: datetime
+    ) -> list[dict[str, Any]]:
+        cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
+        cursor.execute(
+            "SELECT id, datestamp, fulldata_json FROM owntracks_unhandled "
+            "WHERE type = 'location' AND why IS NULL AND datestamp >= %s "
+            "ORDER BY id ASC",
+            (arrived_after,),
+        )
+        return list(cursor.fetchall())
 
 
 class NoDbEntryStore(EntryStore):
@@ -883,5 +915,12 @@ class NoDbEntryStore(EntryStore):
             ),
         }, True
 
-    def add_unhandled_location(self, type: str, data: Any) -> None:
-        print(f"[NO-DB] UNHANDLED LOCATION: type={type}, data={data}")
+    def add_unhandled_location(
+        self, type: str, data: Any, why: str | None = None
+    ) -> None:
+        print(f"[NO-DB] UNHANDLED LOCATION: type={type}, why={why}, data={data}")
+
+    def list_unhandled_locations(
+        self, *, arrived_after: datetime
+    ) -> list[dict[str, Any]]:
+        return []
