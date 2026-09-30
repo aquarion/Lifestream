@@ -220,11 +220,11 @@ paths:
       tags: [locations]
       summary: Record a location ping
       description: >
-        Mirrors the existing `add_location()` helper. If, for the given source, the
-        point most recently recorded strictly before this one's timestamp rounds to
-        the same lat/long (1 decimal place) as this one, the request is a no-op and
-        no new row is written. Note this compares against the last point *before*
-        this timestamp, not the source's overall latest point — an out-of-order or
+        If, for the given source, the point most recently recorded strictly before
+        this one's timestamp is within `[locations] dedup_distance_meters` (default
+        100m, great-circle distance) of this one, the request is a no-op and no new
+        row is written. Note this compares against the last point *before* this
+        timestamp, not the source's overall latest point — an out-of-order or
         replayed ping is deduped against its chronological predecessor.
       operationId: createLocation
       security:

@@ -2,6 +2,7 @@
 
 import enum
 import json
+import math
 import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
@@ -23,6 +24,56 @@ class EntryResult(enum.Enum):
     INSERTED = "inserted"
     UPDATED = "updated"
     SKIPPED = "skipped"
+
+
+DEFAULT_LOCATION_DEDUP_DISTANCE_METERS = 100.0
+# Mean Earth radius in metres, for the haversine distance below - matches
+# the value used by most GIS/GPS tooling closely enough for a dedup
+# threshold (WGS84's actual radius varies by ~0.3% with latitude).
+_EARTH_RADIUS_METERS = 6371000.0
+
+
+def _location_dedup_distance_meters() -> float:
+    """The [locations] dedup_distance_meters config value (see
+    create_location): how close two consecutive points from the same
+    source must be, in metres, to count as the same spot and skip the
+    write. Replaces an earlier fixed ~0.1 degree lat/long grid, which at
+    mid latitudes is tens of kilometres wide - wide enough that a several
+    kilometre walk or drive could never register as having moved.
+
+    Raises ValueError for a value that isn't a finite, non-negative number:
+    left unchecked, `float()` happily accepts "nan" (every comparison
+    against it is False, so every point would be a "new" one - the dedup
+    rule silently stops doing anything), a negative number (same effect),
+    and "inf" (every comparison is True - after the first point, every
+    later one for that source is silently skipped as a duplicate forever).
+    """
+    raw = config.get(
+        "locations",
+        "dedup_distance_meters",
+        fallback=str(DEFAULT_LOCATION_DEDUP_DISTANCE_METERS),
+    )
+    value = float(raw)
+    if not math.isfinite(value) or value < 0:
+        raise ValueError(
+            "[locations] dedup_distance_meters must be a finite, "
+            f"non-negative number of metres, got {raw!r}"
+        )
+    return value
+
+
+def _haversine_distance_meters(
+    lat1: float, lon1: float, lat2: float, lon2: float
+) -> float:
+    """Great-circle distance between two lat/long points, in metres."""
+    lat1_rad, lon1_rad, lat2_rad, lon2_rad = map(math.radians, (lat1, lon1, lat2, lon2))
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2) ** 2
+    )
+    return 2 * _EARTH_RADIUS_METERS * math.asin(math.sqrt(a))
 
 
 class LocationDedupLockError(RuntimeError):
@@ -273,10 +324,14 @@ class EntryStore(ABC):
     ) -> tuple[dict[str, Any], bool]:
         """
         Record a location ping for the public API's `POST /v1/locations`
-        (#134). Mirrors lifestream-web's `add_location()` dedup rule: if
-        the source's chronologically-preceding point rounds to the same
-        lat/long (1 decimal place), the write is skipped and that existing
-        point is returned instead.
+        (#134). If the source's chronologically-preceding point is within
+        `[locations] dedup_distance_meters` (default 100m, see
+        _location_dedup_distance_meters) of this one, the write is skipped
+        and that existing point is returned instead. Originally mirrored
+        lifestream-web's `add_location()`, which instead rounded lat/long to
+        1 decimal place and compared for equality - at this project's mid
+        latitudes that's tens of kilometres wide, wide enough that a several
+        kilometre walk or drive would never register as having moved.
 
         Returns (row, created) — created is False when the write was
         skipped as a duplicate.
@@ -649,14 +704,24 @@ class MysqlEntryStore(EntryStore):
                 (source, timestamp),
             )
             last = cursor.fetchone()
-            if (
-                last is not None
-                and last.get("lat_vague") is not None
-                and last.get("long_vague") is not None
-                and round(last["lat_vague"], 1) == round(lat, 1)
-                and round(last["long_vague"], 1) == round(lon, 1)
-            ):
-                return last, False
+            if last is not None:
+                # Prefer the full-precision lat/long over lat_vague/
+                # long_vague (rounded to 2dp, ~1km) for the distance check -
+                # every row create_location itself writes has both, but
+                # fall back for any row that predates that guarantee.
+                last_lat = last.get("lat")
+                if last_lat is None:
+                    last_lat = last.get("lat_vague")
+                last_lon = last.get("long")
+                if last_lon is None:
+                    last_lon = last.get("long_vague")
+                if (
+                    last_lat is not None
+                    and last_lon is not None
+                    and _haversine_distance_meters(last_lat, last_lon, lat, lon)
+                    <= _location_dedup_distance_meters()
+                ):
+                    return last, False
 
             lat_vague = round(lat, 2)
             long_vague = round(lon, 2)
