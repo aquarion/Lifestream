@@ -110,11 +110,12 @@ poetry run alembic revision -m "describe the change"
 ```
 
 If you have an existing deployment that predates Alembic and already has the
-schema applied, don't run `upgrade head` — it would try to recreate tables
-that already exist. Instead, tell Alembic it's already at the baseline:
+schema applied, you can run `upgrade head` directly. The baseline migration
+uses `CREATE TABLE IF NOT EXISTS`, so existing tables are preserved while any
+later migrations are applied:
 
 ```bash
-poetry run alembic stamp 827f4a24602a
+poetry run alembic upgrade head
 ```
 
 The `baseline schema` migration in `alembic/versions/` is the source of
