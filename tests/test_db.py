@@ -1,5 +1,6 @@
 """Tests for lifestream.core.db module."""
 
+import configparser
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -566,7 +567,13 @@ class TestGetLatestLocation:
 
 class TestCreateLocation:
     """Tests for EntryStore.create_location (public API's POST /v1/locations,
-    #134) — mirrors lifestream-web's add_location() dedup rule.
+    #134): dedup rule, configurable via [locations] dedup_distance_meters.
+
+    Originally mirrored lifestream-web's add_location(), which rounded
+    lat/long to 1 decimal place and compared for equality - tens of
+    kilometres wide at this project's mid latitudes, so a several kilometre
+    walk or drive would never register as having moved (see the tests
+    below using a ~1.7km-apart pair that the old rule wrongly deduped).
 
     Every real MySQL round trip here issues GET_LOCK before the dedup
     SELECT, so mocked fetchone() results are supplied via side_effect as
@@ -577,53 +584,102 @@ class TestCreateLocation:
     LOCK_ACQUIRED = {"acquired": 1}
     LOCK_NOT_ACQUIRED = {"acquired": 0}
 
-    def test_skips_duplicate_within_rounding(self):
+    def _store(self, mock_cursor, mock_conn, **overrides):
         from datetime import datetime
 
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            with patch.object(db, "get_cursor", return_value=mock_cursor):
+                store = db.EntryStore(no_db=False)
+                kwargs = {
+                    "source": "owntracks",
+                    "lat": 51.5,
+                    "lon": -0.1,
+                    "timestamp": datetime(2024, 6, 1, 12, 0, 0),
+                }
+                kwargs.update(overrides)
+                return store.create_location(**kwargs)
+
+    def test_skips_a_point_within_the_default_threshold(self):
+        # ~35m from the last point - well under the 100m default.
         mock_cursor = MagicMock()
         mock_cursor.fetchone.side_effect = [
             self.LOCK_ACQUIRED,
-            {"lat_vague": 51.51, "long_vague": -0.09},
+            {"lat": 51.5, "long": -0.1, "lat_vague": 51.5, "long_vague": -0.1},
         ]
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
 
-        with patch.object(db, "get_connection", return_value=mock_conn):
-            store = db.EntryStore(no_db=False)
-            row, created = store.create_location(
-                source="owntracks",
-                lat=51.53,
-                lon=-0.08,
-                timestamp=datetime(2024, 6, 1, 12, 0, 0),
-            )
+        row, created = self._store(mock_cursor, mock_conn, lat=51.50030, lon=-0.10030)
 
         assert created is False
-        assert row == {"lat_vague": 51.51, "long_vague": -0.09}
-        # No INSERT/REPLACE should have run for a deduped write.
+        assert row["lat"] == 51.5
         executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
         assert not any("REPLACE" in sql for sql in executed_sqls)
 
-    def test_inserts_when_not_a_duplicate(self):
-        from datetime import datetime
+    def test_stores_a_point_past_the_default_threshold(self):
+        # ~1.7km from the last point: further than the 100m default, but
+        # still inside the same 0.1-degree cell the old rounding-based rule
+        # compared - proof the old rule's dedup radius (tens of km at these
+        # latitudes) is gone, not just narrowed.
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.side_effect = [
+            self.LOCK_ACQUIRED,
+            {"lat": 51.51, "long": -0.09, "lat_vague": 51.51, "long_vague": -0.09},
+        ]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
 
+        row, created = self._store(mock_cursor, mock_conn, lat=51.53, lon=-0.08)
+
+        assert created is True
+        assert row["lat"] == 51.53
+        executed_sqls = [c.args[0] for c in mock_cursor.execute.call_args_list]
+        assert any("REPLACE INTO lifestream_locations" in sql for sql in executed_sqls)
+
+    def test_falls_back_to_lat_vague_when_lat_is_missing(self):
+        # A row that predates create_location always writing full-precision
+        # lat/long: only lat_vague/long_vague are set.
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.side_effect = [
+            self.LOCK_ACQUIRED,
+            {"lat": None, "long": None, "lat_vague": 51.5, "long_vague": -0.1},
+        ]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        _, created = self._store(mock_cursor, mock_conn, lat=51.5001, lon=-0.1001)
+
+        assert created is False
+
+    def test_distance_threshold_is_configurable(self):
+        # The same ~1.7km move that test_stores_a_point_past_the_default_
+        # threshold stores is deduped once the configured threshold is
+        # widened past it.
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.side_effect = [
+            self.LOCK_ACQUIRED,
+            {"lat": 51.51, "long": -0.09, "lat_vague": 51.51, "long_vague": -0.09},
+        ]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        cfg = configparser.ConfigParser()
+        cfg.read_dict({"locations": {"dedup_distance_meters": "5000"}})
+        with patch.object(db, "config", cfg):
+            _, created = self._store(mock_cursor, mock_conn, lat=51.53, lon=-0.08)
+
+        assert created is False
+
+    def test_inserts_when_not_a_duplicate(self):
         mock_cursor = MagicMock()
         mock_conn = MagicMock()
         mock_conn.cursor.return_value = mock_cursor
 
-        with patch.object(db, "get_connection", return_value=mock_conn):
-            with patch.object(db, "get_cursor", return_value=mock_cursor):
-                mock_cursor.fetchone.side_effect = [
-                    self.LOCK_ACQUIRED,
-                    None,  # no prior point
-                ]
-                store = db.EntryStore(no_db=False)
-                row, created = store.create_location(
-                    source="owntracks",
-                    lat=51.5,
-                    lon=-0.1,
-                    timestamp=datetime(2024, 6, 1, 12, 0, 0),
-                    title="Home",
-                )
+        mock_cursor.fetchone.side_effect = [
+            self.LOCK_ACQUIRED,
+            None,  # no prior point
+        ]
+        row, created = self._store(mock_cursor, mock_conn, title="Home")
 
         assert created is True
         assert row["source"] == "owntracks"

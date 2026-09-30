@@ -489,7 +489,7 @@ def _location_from_owntracks(payload: dict[str, Any]) -> LocationInput | None:
 # Why an OwnTracks payload was archived to `owntracks_unhandled` (its `why`
 # column). Every payload is archived, so this says what else happened to it.
 WHY_STORED = "stored"  # a location, saved as a point
-WHY_DEDUPE = "dedupe"  # a valid location skipped: same 0.1 degree cell as the last
+WHY_DEDUPE = "dedupe"  # a valid location skipped: too close to the last point
 WHY_INVALID_LOCATION = "invalid_location"  # a location without usable lat/lon/tst
 WHY_UNHANDLED_TYPE = "unhandled_type"  # any other _type (status, transition, ...)
 
