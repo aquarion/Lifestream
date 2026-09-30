@@ -670,6 +670,44 @@ class TestCreateLocation:
 
         assert created is False
 
+    @pytest.mark.parametrize("bad_value", ["nan", "-nan", "inf", "-inf", "-1", "-0.5"])
+    def test_rejects_non_finite_and_negative_thresholds(self, bad_value):
+        # nan/negative would silently disable dedup entirely (every
+        # comparison is False); inf would silently dedup every point
+        # forever after the first (every comparison is True) - either way
+        # a bad config value must fail loudly, not misbehave quietly.
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.side_effect = [
+            self.LOCK_ACQUIRED,
+            {"lat": 51.5, "long": -0.1, "lat_vague": 51.5, "long_vague": -0.1},
+        ]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        cfg = configparser.ConfigParser()
+        cfg.read_dict({"locations": {"dedup_distance_meters": bad_value}})
+        with patch.object(db, "config", cfg):
+            with pytest.raises(ValueError, match="dedup_distance_meters"):
+                self._store(mock_cursor, mock_conn, lat=51.5001, lon=-0.1001)
+
+    def test_zero_threshold_is_allowed(self):
+        # Not a footgun in the same way: only an exact-coordinate repeat
+        # dedupes, which is a legitimate (if unusual) choice.
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.side_effect = [
+            self.LOCK_ACQUIRED,
+            {"lat": 51.5, "long": -0.1, "lat_vague": 51.5, "long_vague": -0.1},
+        ]
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        cfg = configparser.ConfigParser()
+        cfg.read_dict({"locations": {"dedup_distance_meters": "0"}})
+        with patch.object(db, "config", cfg):
+            _, created = self._store(mock_cursor, mock_conn, lat=51.5, lon=-0.1)
+
+        assert created is False
+
     def test_inserts_when_not_a_duplicate(self):
         mock_cursor = MagicMock()
         mock_conn = MagicMock()
