@@ -6,9 +6,8 @@ deployment created before Alembic was introduced. This is taken from
 schema.sql — the two have drifted apart over the years (column types,
 an added `lifestream_locations.device` column, charsets), and schema.sql
 was the stale one. A fresh install runs this via `alembic upgrade head`;
-an existing deployment that already has this schema should instead run
-`alembic stamp 827f4a24602a` to record that it's already at this point,
-without re-running the DDL.
+an existing deployment that already has this schema can also run
+`alembic upgrade head`; the `IF NOT EXISTS` clauses preserve its tables.
 
 Revision ID: 827f4a24602a
 Revises:
@@ -31,7 +30,7 @@ def upgrade() -> None:
     """Create the three tables, matching production's SHOW CREATE TABLE output."""
     op.execute(
         """
-        CREATE TABLE `lifestream` (
+        CREATE TABLE IF NOT EXISTS `lifestream` (
           `id` int(11) DEFAULT NULL,
           `type` varchar(15) NOT NULL DEFAULT '',
           `systemid` varchar(128) NOT NULL DEFAULT '',
@@ -50,7 +49,7 @@ def upgrade() -> None:
 
     op.execute(
         """
-        CREATE TABLE `lifestream_locations` (
+        CREATE TABLE IF NOT EXISTS `lifestream_locations` (
           `id` bigint(20) unsigned NOT NULL,
           `source` char(32) NOT NULL,
           `device` char(128) NOT NULL DEFAULT 'old-data',
@@ -72,7 +71,7 @@ def upgrade() -> None:
 
     op.execute(
         """
-        CREATE TABLE `lifestream_stats` (
+        CREATE TABLE IF NOT EXISTS `lifestream_stats` (
           `date` datetime NOT NULL,
           `statistic` char(31) NOT NULL,
           `number` int(11) NOT NULL,
@@ -83,7 +82,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Drop all three tables."""
-    op.execute("DROP TABLE IF EXISTS `lifestream_stats`")
-    op.execute("DROP TABLE IF EXISTS `lifestream_locations`")
-    op.execute("DROP TABLE IF EXISTS `lifestream`")
+    """Intentionally leave the tables in place.
+
+    upgrade() uses CREATE TABLE IF NOT EXISTS because some deployments may
+    already have these tables before this migration existed. There is no
+    reliable way to tell, after the fact, whether this migration created a
+    table, so dropping them during downgrade could destroy pre-existing data.
+    """
