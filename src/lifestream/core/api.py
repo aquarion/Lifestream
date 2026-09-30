@@ -462,7 +462,7 @@ def create_unhandled_location(
     return Response(status_code=201)
 
 
-def location_from_owntracks(payload: dict[str, Any]) -> LocationInput | None:
+def _location_from_owntracks(payload: dict[str, Any]) -> LocationInput | None:
     """Map an OwnTracks `_type: location` payload to a LocationInput, or
     None if it lacks a usable position/timestamp (see the OwnTracks JSON
     docs for the field meanings). Mirrors what lifestream-web's
@@ -499,7 +499,7 @@ def _store_owntracks_location(store: EntryStore, payload: dict[str, Any]) -> str
     return the WHY_* reason it should be archived under."""
     if payload.get("_type") != "location":
         return WHY_UNHANDLED_TYPE
-    location = location_from_owntracks(payload)
+    location = _location_from_owntracks(payload)
     if location is None:
         return WHY_INVALID_LOCATION
     try:

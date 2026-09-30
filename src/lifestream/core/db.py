@@ -294,19 +294,6 @@ class EntryStore(ABC):
         records the reason it is archived (see lifestream.core.api's
         WHY_* constants); NULL when the caller doesn't say."""
 
-    @abstractmethod
-    def list_unhandled_locations(
-        self, *, arrived_after: datetime
-    ) -> list[dict[str, Any]]:
-        """Archived OwnTracks `location` payloads (`owntracks_unhandled`,
-        type = 'location') with no `why` - the legacy rows written before
-        `POST /v1/owntracks` recorded what became of each payload - that
-        were archived at or after `arrived_after`, oldest-archived first.
-        Rows the native endpoint archived (`why` set) were already handled
-        and are excluded. Used by the OwnTracks backfill, which replays them
-        through `create_location`. Rows carry `id`, `datestamp` and the raw
-        `fulldata_json` string."""
-
 
 class MysqlEntryStore(EntryStore):
     """EntryStore backend that reads and writes the real MySQL database."""
@@ -744,18 +731,6 @@ class MysqlEntryStore(EntryStore):
         )
         self.dbcxn.commit()
 
-    def list_unhandled_locations(
-        self, *, arrived_after: datetime
-    ) -> list[dict[str, Any]]:
-        cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
-        cursor.execute(
-            "SELECT id, datestamp, fulldata_json FROM owntracks_unhandled "
-            "WHERE type = 'location' AND why IS NULL AND datestamp >= %s "
-            "ORDER BY id ASC",
-            (arrived_after,),
-        )
-        return list(cursor.fetchall())
-
 
 class NoDbEntryStore(EntryStore):
     """EntryStore backend that prints intended writes instead of executing them."""
@@ -919,8 +894,3 @@ class NoDbEntryStore(EntryStore):
         self, type: str, data: Any, why: str | None = None
     ) -> None:
         print(f"[NO-DB] UNHANDLED LOCATION: type={type}, why={why}, data={data}")
-
-    def list_unhandled_locations(
-        self, *, arrived_after: datetime
-    ) -> list[dict[str, Any]]:
-        return []
