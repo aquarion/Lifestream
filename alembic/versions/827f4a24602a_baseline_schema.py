@@ -31,7 +31,7 @@ def upgrade() -> None:
     """Create the three tables, matching production's SHOW CREATE TABLE output."""
     op.execute(
         """
-        CREATE TABLE `lifestream` (
+        CREATE TABLE IF NOT EXISTS `lifestream` (
           `id` int(11) DEFAULT NULL,
           `type` varchar(15) NOT NULL DEFAULT '',
           `systemid` varchar(128) NOT NULL DEFAULT '',
@@ -50,7 +50,7 @@ def upgrade() -> None:
 
     op.execute(
         """
-        CREATE TABLE `lifestream_locations` (
+        CREATE TABLE IF NOT EXISTS `lifestream_locations` (
           `id` bigint(20) unsigned NOT NULL,
           `source` char(32) NOT NULL,
           `device` char(128) NOT NULL DEFAULT 'old-data',
@@ -72,7 +72,7 @@ def upgrade() -> None:
 
     op.execute(
         """
-        CREATE TABLE `lifestream_stats` (
+        CREATE TABLE IF NOT EXISTS `lifestream_stats` (
           `date` datetime NOT NULL,
           `statistic` char(31) NOT NULL,
           `number` int(11) NOT NULL,
