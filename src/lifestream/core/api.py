@@ -8,6 +8,7 @@ lifestream-web's `docs/api/openapi.yaml` / `docs/superpowers/specs/
 
 import hmac
 import json
+import logging
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any, Literal
@@ -23,6 +24,8 @@ from lifestream.core.db import EntryResult, EntryStore, LocationDedupLockError
 from lifestream.core.ratelimit import DEFAULT_RATE_LIMIT, limiter
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 # How long a minted X-API-Key token stays valid after signing. Callers mint a
 # fresh token (see mint_api_token) rather than sending the long-lived
@@ -248,6 +251,24 @@ def _entry_from_row(row: dict[str, Any]) -> Entry:
     )
 
 
+def _entries_from_rows(rows: list[dict[str, Any]]) -> list[Entry]:
+    """Convert rows to Entry models, skipping (with a warning) any that
+    don't validate - e.g. a legacy row with a NULL date_created - so one
+    malformed row can't 500 a whole page of results."""
+    entries = []
+    for row in rows:
+        try:
+            entries.append(_entry_from_row(row))
+        except ValidationError as exc:
+            logger.warning(
+                "Skipping malformed lifestream row (source=%r, systemid=%r): %s",
+                row.get("source"),
+                row.get("systemid"),
+                exc,
+            )
+    return entries
+
+
 def _location_from_row(row: dict[str, Any], *, redact: bool) -> Location:
     return Location(
         id=row.get("id"),
@@ -306,7 +327,7 @@ def list_entries(
         limit=limit,
     )
     return EntriesPage(
-        items=[_entry_from_row(row) for row in rows],
+        items=_entries_from_rows(rows),
         total=total,
         offset=offset,
         limit=limit,
@@ -324,7 +345,7 @@ def search_entries(
 ) -> EntriesPage:
     rows, total = store.search_entries(q=q, offset=offset, limit=limit)
     return EntriesPage(
-        items=[_entry_from_row(row) for row in rows],
+        items=_entries_from_rows(rows),
         total=total,
         offset=offset,
         limit=limit,

@@ -268,7 +268,8 @@ class EntryStore(ABC):
         List feed entries for the public API (#134).
 
         Always excludes null-title rows and `source in (tumblr, lastfm)`,
-        matching the current public feed. Ordered by `date_updated` when
+        matching the current public feed, plus null-`date_created` rows,
+        which can't be placed on a timeline (and would 500 the API). Ordered by `date_updated` when
         `after` is given (polling for changes), else by `date_created`, in
         `order` direction ("asc" or "desc"). `month` and `day` (both or
         neither) restrict to entries created on that calendar day in any
@@ -548,7 +549,11 @@ class MysqlEntryStore(EntryStore):
 
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
 
-        where_clauses = ["title IS NOT NULL", "source NOT IN (%s, %s)"]
+        where_clauses = [
+            "title IS NOT NULL",
+            "date_created IS NOT NULL",
+            "source NOT IN (%s, %s)",
+        ]
         params: list[Any] = ["tumblr", "lastfm"]
 
         if after is not None:
@@ -586,7 +591,10 @@ class MysqlEntryStore(EntryStore):
     ) -> tuple[list[dict[str, Any]], int]:
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
 
-        where_sql = "title IS NOT NULL AND source NOT IN (%s, %s) AND title LIKE %s"
+        where_sql = (
+            "title IS NOT NULL AND date_created IS NOT NULL "
+            "AND source NOT IN (%s, %s) AND title LIKE %s"
+        )
         params: list[Any] = ["tumblr", "lastfm", f"%{q}%"]
 
         cursor.execute(

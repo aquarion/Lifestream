@@ -392,6 +392,7 @@ class TestListEntries:
         assert total == 2
         count_sql, count_params = mock_cursor.execute.call_args_list[0].args
         assert "title IS NOT NULL" in count_sql
+        assert "date_created IS NOT NULL" in count_sql
         assert "source NOT IN" in count_sql
         assert count_params == ["tumblr", "lastfm"]
 
@@ -532,7 +533,8 @@ class TestSearchEntries:
 
         assert items == [{"title": "Matching Entry"}]
         assert total == 1
-        _, count_params = mock_cursor.execute.call_args_list[0].args
+        count_sql, count_params = mock_cursor.execute.call_args_list[0].args
+        assert "date_created IS NOT NULL" in count_sql
         assert count_params[-1] == "%Match%"
 
     def test_no_db_returns_empty(self):
