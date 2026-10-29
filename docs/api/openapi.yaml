@@ -31,8 +31,9 @@ paths:
       tags: [entries]
       summary: List feed entries
       description: >
-        Paginated feed, ordered by `date_created` ascending unless `after` is supplied
-        (used for polling new items, ordered ascending by `date_updated`).
+        Paginated feed, ordered by `date_created` unless `after` is supplied
+        (used for polling new items, ordered by `date_updated`), ascending by
+        default or descending with `order=desc`.
         Always excludes `source in (tumblr, lastfm)` and entries with a null title.
       operationId: listEntries
       parameters:
@@ -54,6 +55,29 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: month
+          in: query
+          description: >
+            With `day`, return only entries created on that calendar day in any
+            year ("on this day"). `month` and `day` must be given together.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: day
+          in: query
+          description: Day of month to pair with `month`; see `month`.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 31
+        - name: order
+          in: query
+          description: Sort direction for the ordering column.
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
         - name: offset
           in: query
           schema:
@@ -89,6 +113,12 @@ paths:
                     type: integer
         "400":
           $ref: "#/components/responses/BadRequest"
+        "422":
+          description: Only one of `month` and `day` was given.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     post:
       tags: [entries]
       summary: Create or update a feed entry
