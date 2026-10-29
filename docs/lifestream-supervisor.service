@@ -2,7 +2,8 @@
 #
 # Installation:
 #   0. Build the venv: bin/setup
-#   1. Copy this file and lifestream-notify-failure@.service to /etc/systemd/system/
+#   1. Copy this file, lifestream-notify-failure@.service and
+#      lifestream-notify-failure-escalate@.service to /etc/systemd/system/
 #   2. Edit the paths and user as needed
 #   3. Run: sudo systemctl daemon-reload
 #   4. Run: sudo systemctl enable lifestream-supervisor
@@ -18,9 +19,10 @@ Description=Lifestream Supervisor (scheduler + webserver)
 After=network.target redis.service mysql.service
 Wants=redis.service
 # If it keeps crashing, stop retrying and send an alert (bin/notify-failure)
-# rather than restart-looping silently. 5 failures in 10 minutes, with
-# RestartSec=30, gives up after ~2.5 minutes of failing.
-StartLimitIntervalSec=600
+# rather than restart-looping silently. 5 failures in an hour, with
+# RestartSec=30, also catches a slow crash loop (one failure every few
+# minutes) that a shorter window would let restart forever without alerting.
+StartLimitIntervalSec=3600
 StartLimitBurst=5
 OnFailure=lifestream-notify-failure@%n.service
 
@@ -33,6 +35,11 @@ WorkingDirectory=/home/aquarion/code/lifestream
 # Run the venv's Python directly. bin/setup builds .venv on a uv-managed
 # Python rather than the distro's, so OS upgrades can't break it.
 ExecStart=/home/aquarion/code/lifestream/.venv/bin/python supervisor.py
+
+# `!`-prefixed schedule entries in config.ini run as `python`/`poetry` via a
+# shell (src/lifestream/core/jobs.py's run_shell_command); without this they'd
+# resolve against systemd's default PATH instead of the venv.
+Environment=PATH=/home/aquarion/code/lifestream/.venv/bin:/usr/local/bin:/usr/bin:/bin
 
 Restart=on-failure
 RestartSec=30

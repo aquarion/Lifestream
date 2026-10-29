@@ -1,0 +1,18 @@
+# Last-resort escalation for when lifestream-notify-failure@.service itself
+# fails (e.g. sendmail and the Slack webhook are both unreachable). No
+# network/mail dependency: writes to the journal at a critical priority and
+# broadcasts to logged-in terminals, so the failure isn't just a line in a
+# oneshot unit's own journal that nobody is watching.
+#
+# Installation: copy alongside the other lifestream unit files into
+# /etc/systemd/system/ and run: sudo systemctl daemon-reload
+#
+# Test: sudo systemctl start lifestream-notify-failure-escalate@lifestream-supervisor.service
+
+[Unit]
+Description=Lifestream failure alert escalation for %i
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/logger -p user.crit -t lifestream "ALERT: lifestream-notify-failure could not deliver the failure alert for %i (email and/or Slack delivery failed) - check manually"
+ExecStart=/usr/bin/wall "lifestream: failed to alert about %i failing - email/Slack delivery broke too, check it manually"

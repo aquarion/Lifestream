@@ -13,7 +13,7 @@
 
 set -uo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 UNIT="${1:?usage: notify-failure <unit> [--dry-run]}"
 DRY_RUN="${2:-}"
@@ -26,6 +26,10 @@ ini_get() {
             sub(/^[^=]*=[ \t]*/, ""); sub(/[ \t]+$/, ""); print; exit
         }' config.ini
 }
+
+if [ ! -r config.ini ]; then
+    echo "notify-failure: config.ini is missing or unreadable; using defaults (local mailbox, no Slack)" >&2
+fi
 
 TO=$(ini_get notifications to_address)
 TO="${TO:-$(id -un)}"
@@ -56,8 +60,11 @@ printf 'To: %s\nFrom: %s\nSubject: %s\n\n%s\n' "$TO" "$FROM" "$SUBJECT" "$BODY" 
 
 if [ -n "$WEBHOOK" ]; then
     text=$(printf '*%s*\n```%s```' "$SUBJECT" "$(journalctl -u "$UNIT" --no-pager -n 15 2>&1)")
-    # Escape for JSON: backslashes, quotes, then newlines/tabs.
-    text=$(printf '%s' "$text" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\t/\\t/g' | awk '{printf "%s\\n", $0}')
+    # Escape for JSON: drop control chars JSON can't contain (keeping \t and \n,
+    # which the later stages escape), then backslashes, quotes, newlines/tabs.
+    text=$(printf '%s' "$text" \
+        | tr -d '\000-\010\013-\037\177' \
+        | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\t/\\t/g' | awk '{printf "%s\\n", $0}')
     curl -fsS --max-time 10 -H 'Content-Type: application/json' \
         -d "{\"text\": \"$text\"}" "$WEBHOOK" > /dev/null || status=1
 fi

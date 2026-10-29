@@ -14,7 +14,9 @@ LOCKFILE=$LOCKDIR/$1.lock
 trap "{ rm -f $LOCKFILE; exit 255; }" 2
 trap "{ rm -f $LOCKFILE; exit 255; }" 9
 trap "{ rm -f $LOCKFILE; exit 255; }" 15
-trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
+# Preserve the real exit code instead of always reporting success, so a
+# failed import is visible to cron (e.g. via its MAILTO) instead of silent.
+trap 'rc=$?; rm -f "$LOCKFILE"; exit $rc' EXIT
 touch $LOCKFILE
 
 DIRNAME=$(dirname $0)/../

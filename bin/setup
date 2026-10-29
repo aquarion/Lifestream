@@ -12,6 +12,7 @@
 # Usage:
 #   bin/setup            # create .venv if missing/broken, then install deps
 #   bin/setup --rebuild  # always recreate .venv from scratch
+#   bin/setup --relock   # re-lock poetry.lock against pyproject.toml first
 
 set -euo pipefail
 
@@ -30,7 +31,16 @@ VENV="$PWD/.venv"
 
 uv python install "$PYTHON_VERSION"
 
-if [ "${1:-}" = "--rebuild" ] || ! "$VENV/bin/python" -c "" 2> /dev/null; then
+rebuild=0
+relock=0
+for arg in "$@"; do
+    case "$arg" in
+        --rebuild) rebuild=1 ;;
+        --relock) relock=1 ;;
+    esac
+done
+
+if [ "$rebuild" = 1 ] || ! "$VENV/bin/python" -c "" 2> /dev/null; then
     echo "Creating $VENV on Python $PYTHON_VERSION"
     uv venv --clear --managed-python --python "$PYTHON_VERSION" "$VENV"
 fi
@@ -41,11 +51,15 @@ poetry() {
     VIRTUAL_ENV="$VENV" uvx --python "$PYTHON_VERSION" --from 'poetry>=2,<3' poetry "$@"
 }
 
-# poetry.lock isn't tracked in git, so it goes stale whenever pyproject.toml
-# changes (e.g. dependabot merges). Re-lock rather than fail.
-if ! poetry check --lock > /dev/null 2>&1; then
-    echo "poetry.lock is out of date with pyproject.toml; re-locking"
+# poetry.lock is tracked in git; a deploy should stop and say so rather than
+# silently re-resolve dependencies nobody reviewed. Pass --relock to update
+# it deliberately (e.g. after bumping pyproject.toml yourself).
+if [ "$relock" = 1 ]; then
     poetry lock --no-interaction
+elif ! poetry check --lock > /dev/null 2>&1; then
+    echo "poetry.lock is out of date with pyproject.toml." >&2
+    echo "Run 'bin/setup --relock', review the poetry.lock diff, and commit it." >&2
+    exit 1
 fi
 
 poetry install --no-interaction

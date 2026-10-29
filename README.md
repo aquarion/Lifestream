@@ -66,14 +66,18 @@ poetry run python supervisor.py
 For production, install the systemd service:
 
 ```bash
-sudo cp docs/lifestream-supervisor.service docs/lifestream-notify-failure@.service /etc/systemd/system/
+sudo cp docs/lifestream-supervisor.service docs/lifestream-notify-failure@.service \
+    docs/lifestream-notify-failure-escalate@.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now lifestream-supervisor
 ```
 
 If the supervisor fails repeatedly, systemd stops restarting it and runs
 `bin/notify-failure`, which emails `[notifications] to_address` (or the local
-user) and posts to the `[slack] webhook_url` if set.
+user) and posts to the `[slack] webhook_url` if set. If that itself fails
+(e.g. email and Slack both unreachable), `lifestream-notify-failure-escalate@`
+logs a critical journal entry and `wall`s all logged-in terminals as a
+last-resort, dependency-free fallback.
 
 ### Python environment
 
@@ -85,6 +89,9 @@ so OS release upgrades can't remove the interpreter from under it.
 - After pulling dependency changes: `bin/setup`
 - To change Python version: edit `.python-version`, run `bin/setup --rebuild`,
   then `sudo systemctl restart lifestream-supervisor`
+- After changing `pyproject.toml` yourself: `bin/setup --relock`, review the
+  `poetry.lock` diff, then commit both. `bin/setup` otherwise fails loudly
+  if the lock is stale rather than re-resolving dependencies silently.
 
 ### Manual
 
