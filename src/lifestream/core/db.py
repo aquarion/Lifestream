@@ -32,6 +32,9 @@ DEFAULT_LOCATION_DEDUP_DISTANCE_METERS = 100.0
 # threshold (WGS84's actual radius varies by ~0.3% with latitude).
 _EARTH_RADIUS_METERS = 6371000.0
 
+# Allowed list_entries() sort directions, mapped to the SQL keyword.
+_LIST_ENTRIES_ORDER = {"asc": "ASC", "desc": "DESC"}
+
 
 def _location_dedup_distance_meters() -> float:
     """The [locations] dedup_distance_meters config value (see
@@ -255,6 +258,9 @@ class EntryStore(ABC):
         after: datetime | str | None = None,
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
+        month: int | None = None,
+        day: int | None = None,
+        order: str = "asc",
         offset: int = 0,
         limit: int = 100,
     ) -> tuple[list[dict[str, Any]], int]:
@@ -262,10 +268,11 @@ class EntryStore(ABC):
         List feed entries for the public API (#134).
 
         Always excludes null-title rows and `source in (tumblr, lastfm)`,
-        matching the current public feed. Ordered ascending by
-        `date_updated` when `after` is given (polling for changes), else by
-        `date_created`. Returns (items, total) where total ignores
-        offset/limit.
+        matching the current public feed. Ordered by `date_updated` when
+        `after` is given (polling for changes), else by `date_created`, in
+        `order` direction ("asc" or "desc"). `month` and `day` (both or
+        neither) restrict to entries created on that calendar day in any
+        year. Returns (items, total) where total ignores offset/limit.
         """
 
     @abstractmethod
@@ -525,9 +532,20 @@ class MysqlEntryStore(EntryStore):
         after: datetime | str | None = None,
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
+        month: int | None = None,
+        day: int | None = None,
+        order: str = "asc",
         offset: int = 0,
         limit: int = 100,
     ) -> tuple[list[dict[str, Any]], int]:
+        # Whitelisted, never interpolated from the caller: the direction
+        # is spliced into ORDER BY, which can't take a bound parameter.
+        order_sql = _LIST_ENTRIES_ORDER.get(order)
+        if order_sql is None:
+            raise ValueError(f"order must be 'asc' or 'desc', not {order!r}")
+        if (month is None) != (day is None):
+            raise ValueError("month and day must be given together")
+
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
 
         where_clauses = ["title IS NOT NULL", "source NOT IN (%s, %s)"]
@@ -542,6 +560,11 @@ class MysqlEntryStore(EntryStore):
         if date_to is not None:
             where_clauses.append("date_created < %s")
             params.append(date_to)
+        if month is not None:
+            where_clauses.append(
+                "MONTH(date_created) = %s AND DAYOFMONTH(date_created) = %s"
+            )
+            params.extend([month, day])
 
         where_sql = " AND ".join(where_clauses)
 
@@ -553,7 +576,7 @@ class MysqlEntryStore(EntryStore):
         order_column = "date_updated" if after is not None else "date_created"
         cursor.execute(
             f"SELECT * FROM lifestream WHERE {where_sql} "
-            f"ORDER BY {order_column} ASC LIMIT %s OFFSET %s",
+            f"ORDER BY {order_column} {order_sql} LIMIT %s OFFSET %s",
             [*params, limit, offset],
         )
         return list(cursor.fetchall()), total
@@ -879,6 +902,9 @@ class NoDbEntryStore(EntryStore):
         after: datetime | str | None = None,
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
+        month: int | None = None,
+        day: int | None = None,
+        order: str = "asc",
         offset: int = 0,
         limit: int = 100,
     ) -> tuple[list[dict[str, Any]], int]:

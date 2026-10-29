@@ -441,9 +441,79 @@ class TestListEntries:
         assert "date_created < %s" in select_sql
         assert select_params[-4:-2] == ["2024-01-01", "2024-02-01"]
 
+    def test_orders_descending_when_asked(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.list_entries(order="desc")
+
+        select_sql, _ = mock_cursor.execute.call_args_list[1].args
+        assert "ORDER BY date_created DESC" in select_sql
+
+    def test_orders_date_updated_descending_when_after_and_desc(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.list_entries(after="2024-01-01T00:00:00", order="desc")
+
+        select_sql, _ = mock_cursor.execute.call_args_list[1].args
+        assert "ORDER BY date_updated DESC" in select_sql
+
+    def test_rejects_unknown_order(self):
+        mock_conn = MagicMock()
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            with pytest.raises(ValueError):
+                store.list_entries(order="ASC; DROP TABLE lifestream")
+
+        mock_conn.cursor.return_value.execute.assert_not_called()
+
+    def test_filters_month_and_day_in_count_and_select(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 3}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            _, total = store.list_entries(
+                date_from="2010-01-01", month=10, day=29, order="desc"
+            )
+
+        assert total == 3
+        clause = "MONTH(date_created) = %s AND DAYOFMONTH(date_created) = %s"
+        count_sql, count_params = mock_cursor.execute.call_args_list[0].args
+        select_sql, select_params = mock_cursor.execute.call_args_list[1].args
+        assert clause in count_sql
+        assert clause in select_sql
+        assert count_params[-3:] == ["2010-01-01", 10, 29]
+        assert select_params[-5:-2] == ["2010-01-01", 10, 29]
+
+    @pytest.mark.parametrize("kwargs", [{"month": 1}, {"day": 1}])
+    def test_rejects_month_or_day_alone(self, kwargs):
+        mock_conn = MagicMock()
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            with pytest.raises(ValueError):
+                store.list_entries(**kwargs)
+
     def test_no_db_returns_empty(self):
         store = db.EntryStore(no_db=True)
         assert store.list_entries() == ([], 0)
+        assert store.list_entries(month=1, day=1, order="desc") == ([], 0)
 
 
 class TestSearchEntries:

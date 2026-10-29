@@ -10,7 +10,7 @@ import hmac
 import json
 from collections.abc import Generator
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -284,12 +284,26 @@ def list_entries(
     after: datetime | None = None,
     from_: datetime | None = Query(None, alias="from"),
     to: datetime | None = None,
+    month: int | None = Query(None, ge=1, le=12),
+    day: int | None = Query(None, ge=1, le=31),
+    order: Literal["asc", "desc"] = "asc",
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     store: EntryStore = Depends(get_entry_store),
 ) -> EntriesPage:
+    if (month is None) != (day is None):
+        raise HTTPException(
+            status_code=400, detail="month and day must be given together"
+        )
     rows, total = store.list_entries(
-        after=after, date_from=from_, date_to=to, offset=offset, limit=limit
+        after=after,
+        date_from=from_,
+        date_to=to,
+        month=month,
+        day=day,
+        order=order,
+        offset=offset,
+        limit=limit,
     )
     return EntriesPage(
         items=[_entry_from_row(row) for row in rows],

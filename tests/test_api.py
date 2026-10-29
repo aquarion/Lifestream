@@ -162,6 +162,71 @@ class TestListEntries:
 
         assert response.status_code == 400
 
+    def test_defaults_to_ascending_with_no_month_day(self, client, store):
+        store.list_entries.return_value = ([], 0)
+
+        client.get("/v1/entries")
+
+        _, kwargs = store.list_entries.call_args
+        assert kwargs["order"] == "asc"
+        assert kwargs["month"] is None
+        assert kwargs["day"] is None
+
+    def test_passes_order_desc_through(self, client, store):
+        store.list_entries.return_value = ([], 0)
+
+        response = client.get("/v1/entries", params={"order": "desc"})
+
+        assert response.status_code == 200
+        _, kwargs = store.list_entries.call_args
+        assert kwargs["order"] == "desc"
+
+    def test_rejects_unknown_order(self, client, store):
+        response = client.get("/v1/entries", params={"order": "date_created; --"})
+
+        assert response.status_code == 400
+        store.list_entries.assert_not_called()
+
+    def test_passes_month_day_through_with_other_filters(self, client, store):
+        store.list_entries.return_value = ([ENTRY_ROW], 1)
+
+        response = client.get(
+            "/v1/entries",
+            params={
+                "month": 1,
+                "day": 1,
+                "from": "2010-01-01T00:00:00",
+                "offset": 0,
+                "limit": 50,
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["total"] == 1
+        _, kwargs = store.list_entries.call_args
+        assert kwargs["month"] == 1
+        assert kwargs["day"] == 1
+        assert kwargs["date_from"] is not None
+        assert kwargs["limit"] == 50
+
+    @pytest.mark.parametrize("params", [{"month": 3}, {"day": 14}])
+    def test_rejects_month_or_day_alone(self, client, store, params):
+        response = client.get("/v1/entries", params=params)
+
+        assert response.status_code == 400
+        assert response.json()["message"] == "month and day must be given together"
+        store.list_entries.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "params",
+        [{"month": 0, "day": 1}, {"month": 13, "day": 1}, {"month": 1, "day": 32}],
+    )
+    def test_rejects_out_of_range_month_day(self, client, store, params):
+        response = client.get("/v1/entries", params=params)
+
+        assert response.status_code == 400
+        store.list_entries.assert_not_called()
+
 
 class TestSearchEntries:
     def test_requires_q(self, client, store):
