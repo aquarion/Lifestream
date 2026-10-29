@@ -1,0 +1,21 @@
+# Lifestream failure alert (email + optional Slack) for a failed unit
+#
+# Triggered by OnFailure= in lifestream-supervisor.service, with the failed
+# unit's name as the instance (%i). See bin/notify-failure.
+#
+# Installation: copy alongside lifestream-supervisor.service into
+# /etc/systemd/system/ and run: sudo systemctl daemon-reload
+#
+# Test: sudo systemctl start lifestream-notify-failure@lifestream-supervisor.service
+
+[Unit]
+Description=Lifestream failure alert for %i
+
+[Service]
+Type=oneshot
+User=aquarion
+Group=aquarion
+# Needs to read the failed unit's journal
+SupplementaryGroups=systemd-journal
+WorkingDirectory=/home/aquarion/code/lifestream
+ExecStart=/home/aquarion/code/lifestream/bin/notify-failure %i

@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+# (Re)build the project virtualenv at .venv.
+#
+# The venv is built on a uv-managed Python (version from .python-version),
+# not the distro's /usr/bin/python3, so an OS release upgrade can't remove
+# the interpreter out from under it. Everything that runs lifestream
+# (systemd unit, .envrc, cron via bin/run_import.sh) uses .venv/bin/python,
+# so changing Python version is: edit .python-version, run bin/setup --rebuild,
+# restart the service.
+#
+# Usage:
+#   bin/setup            # create .venv if missing/broken, then install deps
+#   bin/setup --rebuild  # always recreate .venv from scratch
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+export PATH="$HOME/.local/bin:$PATH"
+
+if ! command -v uv > /dev/null; then
+    echo "uv is not installed. Install it with:" >&2
+    echo "  curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
+    exit 1
+fi
+
+PYTHON_VERSION=$(cat .python-version)
+VENV="$PWD/.venv"
+
+uv python install "$PYTHON_VERSION"
+
+if [ "${1:-}" = "--rebuild" ] || ! "$VENV/bin/python" -c "" 2> /dev/null; then
+    echo "Creating $VENV on Python $PYTHON_VERSION"
+    uv venv --clear --managed-python --python "$PYTHON_VERSION" "$VENV"
+fi
+
+# Run Poetry via uv too, so it doesn't depend on a system or pipx install
+# that an OS upgrade can break.
+poetry() {
+    VIRTUAL_ENV="$VENV" uvx --python "$PYTHON_VERSION" --from 'poetry>=2,<3' poetry "$@"
+}
+
+# poetry.lock isn't tracked in git, so it goes stale whenever pyproject.toml
+# changes (e.g. dependabot merges). Re-lock rather than fail.
+if ! poetry check --lock > /dev/null 2>&1; then
+    echo "poetry.lock is out of date with pyproject.toml; re-locking"
+    poetry lock --no-interaction
+fi
+
+poetry install --no-interaction
+
+"$VENV/bin/python" supervisor.py --list > /dev/null
+echo "OK: $("$VENV/bin/python" --version) at $VENV"

@@ -22,3 +22,4 @@ super-linter-output/
 poetry.lock
 .claude/settings.local.json
 graphify-out/
+.venv

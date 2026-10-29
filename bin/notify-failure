@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+# Alert that a systemd unit has failed. Run by lifestream-notify-failure@.service
+# via OnFailure= in lifestream-supervisor.service.
+#
+# Deliberately plain bash + sendmail + curl, with no Python: the failure being
+# reported may well be that the Python environment is broken.
+#
+# Recipients come from config.ini: [notifications] to_address (falls back to
+# the local user's mailbox) and [slack] webhook_url (optional).
+#
+# Usage: bin/notify-failure <unit> [--dry-run]
+
+set -uo pipefail
+
+cd "$(dirname "$0")/.."
+
+UNIT="${1:?usage: notify-failure <unit> [--dry-run]}"
+DRY_RUN="${2:-}"
+
+# Read a key from an ini section; prints nothing if absent or commented out.
+ini_get() {
+    awk -F= -v section="[$1]" -v key="$2" '
+        /^\[/ { in_section = ($0 == section) }
+        in_section && $1 ~ "^[ \t]*" key "[ \t]*$" {
+            sub(/^[^=]*=[ \t]*/, ""); sub(/[ \t]+$/, ""); print; exit
+        }' config.ini
+}
+
+TO=$(ini_get notifications to_address)
+TO="${TO:-$(id -un)}"
+FROM=$(ini_get notifications from_address)
+FROM="${FROM:-lifestream@$(hostname -f)}"
+WEBHOOK=$(ini_get slack webhook_url)
+
+SUBJECT="[lifestream] $UNIT failed on $(hostname -s)"
+BODY="$(systemctl status "$UNIT" --no-pager 2>&1 | head -12)
+
+Recent log:
+$(journalctl -u "$UNIT" --no-pager -n 30 2>&1)"
+
+if [ "$DRY_RUN" = "--dry-run" ]; then
+    echo "To: $TO"
+    echo "From: $FROM"
+    echo "Slack: ${WEBHOOK:+configured}${WEBHOOK:-not configured}"
+    echo "Subject: $SUBJECT"
+    echo
+    echo "$BODY"
+    exit 0
+fi
+
+status=0
+
+printf 'To: %s\nFrom: %s\nSubject: %s\n\n%s\n' "$TO" "$FROM" "$SUBJECT" "$BODY" |
+    /usr/sbin/sendmail -t || status=1
+
+if [ -n "$WEBHOOK" ]; then
+    text=$(printf '*%s*\n```%s```' "$SUBJECT" "$(journalctl -u "$UNIT" --no-pager -n 15 2>&1)")
+    # Escape for JSON: backslashes, quotes, then newlines/tabs.
+    text=$(printf '%s' "$text" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\t/\\t/g' | awk '{printf "%s\\n", $0}')
+    curl -fsS --max-time 10 -H 'Content-Type: application/json' \
+        -d "{\"text\": \"$text\"}" "$WEBHOOK" > /dev/null || status=1
+fi
+
+exit $status
