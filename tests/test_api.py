@@ -117,6 +117,23 @@ class TestListEntries:
         assert body["items"][0]["fulldata_json"] == {"raw": True}
         assert body["items"][0]["type"] == "steam"
 
+    def test_skips_row_with_null_date_created_instead_of_500(
+        self, client, store, caplog
+    ):
+        """Regression: a legacy Plex row with date_created NULL failed Entry
+        validation and 500'd every page of GET /v1/entries containing it
+        (the oldest row in ascending order). It's now skipped and logged."""
+        bad_row = {**ENTRY_ROW, "systemid": "", "date_created": None}
+        store.list_entries.return_value = ([bad_row, ENTRY_ROW], 2)
+
+        with caplog.at_level("WARNING", logger=api.logger.name):
+            response = client.get("/v1/entries")
+
+        assert response.status_code == 200
+        items = response.json()["items"]
+        assert [item["systemid"] for item in items] == ["123"]
+        assert "Skipping malformed lifestream row" in caplog.text
+
     def test_passes_query_params_through(self, client, store):
         store.list_entries.return_value = ([], 0)
 
@@ -242,6 +259,17 @@ class TestSearchEntries:
         assert response.status_code == 200
         assert response.json()["total"] == 1
         store.search_entries.assert_called_once_with(q="Thing", offset=0, limit=100)
+
+    def test_skips_malformed_row(self, client, store, caplog):
+        bad_row = {**ENTRY_ROW, "date_created": None}
+        store.search_entries.return_value = ([bad_row, ENTRY_ROW], 2)
+
+        with caplog.at_level("WARNING", logger=api.logger.name):
+            response = client.get("/v1/entries/search", params={"q": "Thing"})
+
+        assert response.status_code == 200
+        assert len(response.json()["items"]) == 1
+        assert "Skipping malformed lifestream row" in caplog.text
 
 
 class TestCreateEntry:
