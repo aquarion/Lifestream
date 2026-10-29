@@ -14,16 +14,15 @@ LOCKFILE=$LOCKDIR/$1.lock
 trap "{ rm -f $LOCKFILE; exit 255; }" 2
 trap "{ rm -f $LOCKFILE; exit 255; }" 9
 trap "{ rm -f $LOCKFILE; exit 255; }" 15
-trap "{ rm -f $LOCKFILE; exit 0; }" EXIT
+# Preserve the real exit code instead of always reporting success, so a
+# failed import is visible to cron (e.g. via its MAILTO) instead of silent.
+trap 'rc=$?; rm -f "$LOCKFILE"; exit $rc' EXIT
 touch $LOCKFILE
 
-export DIRENV_WARN_TIMEOUT=300s
-export DIRENV_LOG_FORMAT=""
 DIRNAME=$(dirname $0)/../
 cd $DIRNAME
-eval "$(direnv export bash)"
 
-python imports/$1.py $2
+.venv/bin/python imports/$1.py $2
 
 # IMPORTANT: Run this first in a terminal or ssh session to go though the oauth keys
 # before you add it to cron.

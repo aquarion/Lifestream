@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+# (Re)build the project virtualenv at .venv.
+#
+# The venv is built on a uv-managed Python (version from .python-version),
+# not the distro's /usr/bin/python3, so an OS release upgrade can't remove
+# the interpreter out from under it. Everything that runs lifestream
+# (systemd unit, .envrc, cron via bin/run_import.sh) uses .venv/bin/python,
+# so changing Python version is: edit .python-version, run bin/setup --rebuild,
+# restart the service.
+#
+# Usage:
+#   bin/setup            # create .venv if missing/broken, then install deps
+#   bin/setup --rebuild  # always recreate .venv from scratch
+#   bin/setup --relock   # re-lock poetry.lock against pyproject.toml first
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+export PATH="$HOME/.local/bin:$PATH"
+
+if ! command -v uv > /dev/null; then
+    echo "uv is not installed. Install it with:" >&2
+    echo "  curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
+    exit 1
+fi
+
+PYTHON_VERSION=$(cat .python-version)
+VENV="$PWD/.venv"
+
+uv python install "$PYTHON_VERSION"
+
+rebuild=0
+relock=0
+for arg in "$@"; do
+    case "$arg" in
+        --rebuild) rebuild=1 ;;
+        --relock) relock=1 ;;
+    esac
+done
+
+if [ "$rebuild" = 1 ] || ! "$VENV/bin/python" -c "" 2> /dev/null; then
+    echo "Creating $VENV on Python $PYTHON_VERSION"
+    uv venv --clear --managed-python --python "$PYTHON_VERSION" "$VENV"
+fi
+
+# Run Poetry via uv too, so it doesn't depend on a system or pipx install
+# that an OS upgrade can break.
+poetry() {
+    VIRTUAL_ENV="$VENV" uvx --python "$PYTHON_VERSION" --from 'poetry>=2,<3' poetry "$@"
+}
+
+# poetry.lock is tracked in git; a deploy should stop and say so rather than
+# silently re-resolve dependencies nobody reviewed. Pass --relock to update
+# it deliberately (e.g. after bumping pyproject.toml yourself).
+if [ "$relock" = 1 ]; then
+    poetry lock --no-interaction
+elif ! poetry check --lock > /dev/null 2>&1; then
+    echo "poetry.lock is out of date with pyproject.toml." >&2
+    echo "Run 'bin/setup --relock', review the poetry.lock diff, and commit it." >&2
+    exit 1
+fi
+
+poetry install --no-interaction
+
+"$VENV/bin/python" supervisor.py --list > /dev/null
+echo "OK: $("$VENV/bin/python" --version) at $VENV"
