@@ -269,9 +269,9 @@ class EntryStore(ABC):
 
         Always excludes null-title rows and `source in (tumblr, lastfm)`,
         matching the current public feed, plus null-`date_created` rows,
-        which can't be placed on a timeline (and would 500 the API). Ordered by `date_updated` when
-        `after` is given (polling for changes), else by `date_created`, in
-        `order` direction ("asc" or "desc"). `month` and `day` (both or
+        which can't be placed on a timeline (and would 500 the API).
+        Ordered by `date_updated` when `after` is given (polling for
+        changes), else by `date_created`, in `order` direction ("asc" or "desc"). `month` and `day` (both or
         neither) restrict to entries created on that calendar day in any
         year. Returns (items, total) where total ignores offset/limit.
         """

@@ -254,7 +254,11 @@ def _entry_from_row(row: dict[str, Any]) -> Entry:
 def _entries_from_rows(rows: list[dict[str, Any]]) -> list[Entry]:
     """Convert rows to Entry models, skipping (with a warning) any that
     don't validate - e.g. a legacy row with a NULL date_created - so one
-    malformed row can't 500 a whole page of results."""
+    malformed row can't 500 a whole page of results.
+
+    A skipped row still counts towards the store's `total`, so that page
+    comes back short of `limit`. Known bad shapes should also be excluded
+    in the store's query (as NULL date_created is) to keep the two in step."""
     entries = []
     for row in rows:
         try:
