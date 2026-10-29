@@ -113,12 +113,6 @@ paths:
                     type: integer
         "400":
           $ref: "#/components/responses/BadRequest"
-        "422":
-          description: Only one of `month` and `day` was given.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
     post:
       tags: [entries]
       summary: Create or update a feed entry

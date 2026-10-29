@@ -455,6 +455,20 @@ class TestListEntries:
         select_sql, _ = mock_cursor.execute.call_args_list[1].args
         assert "ORDER BY date_created DESC" in select_sql
 
+    def test_orders_date_updated_descending_when_after_and_desc(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.list_entries(after="2024-01-01T00:00:00", order="desc")
+
+        select_sql, _ = mock_cursor.execute.call_args_list[1].args
+        assert "ORDER BY date_updated DESC" in select_sql
+
     def test_rejects_unknown_order(self):
         mock_conn = MagicMock()
 

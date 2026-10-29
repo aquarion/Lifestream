@@ -293,7 +293,7 @@ def list_entries(
 ) -> EntriesPage:
     if (month is None) != (day is None):
         raise HTTPException(
-            status_code=422, detail="month and day must be given together"
+            status_code=400, detail="month and day must be given together"
         )
     rows, total = store.list_entries(
         after=after,

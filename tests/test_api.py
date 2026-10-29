@@ -210,10 +210,10 @@ class TestListEntries:
         assert kwargs["limit"] == 50
 
     @pytest.mark.parametrize("params", [{"month": 3}, {"day": 14}])
-    def test_rejects_month_or_day_alone_with_422(self, client, store, params):
+    def test_rejects_month_or_day_alone(self, client, store, params):
         response = client.get("/v1/entries", params=params)
 
-        assert response.status_code == 422
+        assert response.status_code == 400
         assert response.json()["message"] == "month and day must be given together"
         store.list_entries.assert_not_called()
 
