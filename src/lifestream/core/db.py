@@ -33,6 +33,9 @@ DEFAULT_LOCATION_DEDUP_DISTANCE_METERS = 100.0
 # threshold (WGS84's actual radius varies by ~0.3% with latitude).
 _EARTH_RADIUS_METERS = 6371000.0
 
+# Allowed list_entries() sort directions, mapped to the SQL keyword.
+_LIST_ENTRIES_ORDER = {"asc": "ASC", "desc": "DESC"}
+
 
 def _source_not_in_clause(sources: Sequence[str]) -> str:
     """A `source NOT IN (%s, ...)` clause with one placeholder per source."""
@@ -263,17 +266,23 @@ class EntryStore(ABC):
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
         exclude_sources: Sequence[str] | None = None,
+        month: int | None = None,
+        day: int | None = None,
+        order: str = "asc",
         offset: int = 0,
         limit: int = 100,
     ) -> tuple[list[dict[str, Any]], int]:
         """
         List feed entries for the public API (#134).
 
-        Always excludes null-title rows, plus any row whose `source` is in
-        `exclude_sources` (none by default). Ordered ascending by
-        `date_updated` when `after` is given (polling for changes), else by
-        `date_created`. Returns (items, total) where total ignores
-        offset/limit.
+        Always excludes null-title rows, plus null-`date_created` rows,
+        which can't be placed on a timeline (and would 500 the API), and
+        any row whose `source` is in `exclude_sources` (none by default).
+        Ordered by `date_updated` when `after` is given (polling for
+        changes), else by `date_created`, in `order` direction ("asc" or
+        "desc"). `month` and `day` (both or neither) restrict to entries
+        created on that calendar day in any year. Returns (items, total)
+        where total ignores offset/limit.
         """
 
     @abstractmethod
@@ -539,12 +548,23 @@ class MysqlEntryStore(EntryStore):
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
         exclude_sources: Sequence[str] | None = None,
+        month: int | None = None,
+        day: int | None = None,
+        order: str = "asc",
         offset: int = 0,
         limit: int = 100,
     ) -> tuple[list[dict[str, Any]], int]:
+        # Whitelisted, never interpolated from the caller: the direction
+        # is spliced into ORDER BY, which can't take a bound parameter.
+        order_sql = _LIST_ENTRIES_ORDER.get(order)
+        if order_sql is None:
+            raise ValueError(f"order must be 'asc' or 'desc', not {order!r}")
+        if (month is None) != (day is None):
+            raise ValueError("month and day must be given together")
+
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
 
-        where_clauses = ["title IS NOT NULL"]
+        where_clauses = ["title IS NOT NULL", "date_created IS NOT NULL"]
         params: list[Any] = []
         if exclude_sources:
             where_clauses.append(_source_not_in_clause(exclude_sources))
@@ -559,6 +579,11 @@ class MysqlEntryStore(EntryStore):
         if date_to is not None:
             where_clauses.append("date_created < %s")
             params.append(date_to)
+        if month is not None:
+            where_clauses.append(
+                "MONTH(date_created) = %s AND DAYOFMONTH(date_created) = %s"
+            )
+            params.extend([month, day])
 
         where_sql = " AND ".join(where_clauses)
 
@@ -570,7 +595,7 @@ class MysqlEntryStore(EntryStore):
         order_column = "date_updated" if after is not None else "date_created"
         cursor.execute(
             f"SELECT * FROM lifestream WHERE {where_sql} "
-            f"ORDER BY {order_column} ASC LIMIT %s OFFSET %s",
+            f"ORDER BY {order_column} {order_sql} LIMIT %s OFFSET %s",
             [*params, limit, offset],
         )
         return list(cursor.fetchall()), total
@@ -585,7 +610,7 @@ class MysqlEntryStore(EntryStore):
     ) -> tuple[list[dict[str, Any]], int]:
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
 
-        where_clauses = ["title IS NOT NULL"]
+        where_clauses = ["title IS NOT NULL", "date_created IS NOT NULL"]
         params: list[Any] = []
         if exclude_sources:
             where_clauses.append(_source_not_in_clause(exclude_sources))
@@ -909,6 +934,9 @@ class NoDbEntryStore(EntryStore):
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
         exclude_sources: Sequence[str] | None = None,
+        month: int | None = None,
+        day: int | None = None,
+        order: str = "asc",
         offset: int = 0,
         limit: int = 100,
     ) -> tuple[list[dict[str, Any]], int]:
