@@ -129,6 +129,18 @@ class TestListEntries:
         assert kwargs["offset"] == 5
         assert kwargs["limit"] == 10
         assert kwargs["after"] is not None
+        assert kwargs["exclude_sources"] is None
+
+    def test_passes_repeated_exclude_source_through(self, client, store):
+        store.list_entries.return_value = ([], 0)
+
+        client.get(
+            "/v1/entries",
+            params=[("exclude_source", "tumblr"), ("exclude_source", "lastfm")],
+        )
+
+        _, kwargs = store.list_entries.call_args
+        assert kwargs["exclude_sources"] == ["tumblr", "lastfm"]
 
     def test_decodes_double_encoded_fulldata_json(self, client, store):
         """Regression: the existing atproto_posts importer calls
@@ -176,7 +188,20 @@ class TestSearchEntries:
 
         assert response.status_code == 200
         assert response.json()["total"] == 1
-        store.search_entries.assert_called_once_with(q="Thing", offset=0, limit=100)
+        store.search_entries.assert_called_once_with(
+            q="Thing", exclude_sources=None, offset=0, limit=100
+        )
+
+    def test_passes_repeated_exclude_source_through(self, client, store):
+        store.search_entries.return_value = ([], 0)
+
+        client.get(
+            "/v1/entries/search",
+            params=[("q", "Thing"), ("exclude_source", "tumblr")],
+        )
+
+        _, kwargs = store.search_entries.call_args
+        assert kwargs["exclude_sources"] == ["tumblr"]
 
 
 class TestCreateEntry:

@@ -377,7 +377,7 @@ class TestEntryStore:
 class TestListEntries:
     """Tests for EntryStore.list_entries (public API, #134)."""
 
-    def test_applies_exclusions_and_returns_total(self):
+    def test_excludes_no_sources_by_default(self):
         mock_cursor = MagicMock()
         mock_cursor.fetchone.return_value = {"total": 2}
         mock_cursor.fetchall.return_value = [{"type": "steam", "systemid": "1"}]
@@ -392,8 +392,41 @@ class TestListEntries:
         assert total == 2
         count_sql, count_params = mock_cursor.execute.call_args_list[0].args
         assert "title IS NOT NULL" in count_sql
-        assert "source NOT IN" in count_sql
-        assert count_params == ["tumblr", "lastfm"]
+        assert "source NOT IN" not in count_sql
+        assert count_params == []
+
+    def test_excludes_given_sources_in_count_and_select(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.list_entries(exclude_sources=["tumblr", "lastfm", "steam"])
+
+        count_sql, count_params = mock_cursor.execute.call_args_list[0].args
+        select_sql, select_params = mock_cursor.execute.call_args_list[1].args
+        assert "source NOT IN (%s, %s, %s)" in count_sql
+        assert "source NOT IN (%s, %s, %s)" in select_sql
+        assert count_params == ["tumblr", "lastfm", "steam"]
+        assert select_params[:3] == ["tumblr", "lastfm", "steam"]
+
+    def test_empty_exclude_sources_excludes_nothing(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.list_entries(exclude_sources=[])
+
+        count_sql, count_params = mock_cursor.execute.call_args_list[0].args
+        assert "source NOT IN" not in count_sql
+        assert count_params == []
 
     def test_orders_by_date_created_by_default(self):
         mock_cursor = MagicMock()
@@ -462,8 +495,26 @@ class TestSearchEntries:
 
         assert items == [{"title": "Matching Entry"}]
         assert total == 1
-        _, count_params = mock_cursor.execute.call_args_list[0].args
-        assert count_params[-1] == "%Match%"
+        count_sql, count_params = mock_cursor.execute.call_args_list[0].args
+        assert "source NOT IN" not in count_sql
+        assert count_params == ["%Match%"]
+
+    def test_excludes_given_sources(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.search_entries(q="Match", exclude_sources=["tumblr"])
+
+        count_sql, count_params = mock_cursor.execute.call_args_list[0].args
+        select_sql, _ = mock_cursor.execute.call_args_list[1].args
+        assert "source NOT IN (%s)" in count_sql
+        assert "source NOT IN (%s)" in select_sql
+        assert count_params == ["tumblr", "%Match%"]
 
     def test_no_db_returns_empty(self):
         store = db.EntryStore(no_db=True)

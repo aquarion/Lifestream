@@ -33,7 +33,8 @@ paths:
       description: >
         Paginated feed, ordered by `date_created` ascending unless `after` is supplied
         (used for polling new items, ordered ascending by `date_updated`).
-        Always excludes `source in (tumblr, lastfm)` and entries with a null title.
+        Always excludes entries with a null title. Entries from any source named in
+        `exclude_source` are also excluded.
       operationId: listEntries
       parameters:
         - name: after
@@ -54,6 +55,18 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: exclude_source
+          in: query
+          description: >
+            Exclude entries whose `source` is this value. Repeatable
+            (`?exclude_source=tumblr&exclude_source=lastfm`). Omitted means no
+            source is excluded.
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
         - name: offset
           in: query
           schema:
@@ -131,7 +144,7 @@ paths:
       summary: Search feed entries by title
       description: >
         Title `LIKE %q%` match, ordered ascending by `date_created`. Applies the same
-        `source in (tumblr, lastfm)` and null-`title` exclusions as `GET /entries`.
+        null-`title` and `exclude_source` exclusions as `GET /entries`.
       operationId: searchEntries
       parameters:
         - name: q
@@ -139,6 +152,17 @@ paths:
           required: true
           schema:
             type: string
+        - name: exclude_source
+          in: query
+          description: >
+            Exclude entries whose `source` is this value. Repeatable, as on
+            `GET /entries`.
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
         - name: offset
           in: query
           schema:

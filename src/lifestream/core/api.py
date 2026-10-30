@@ -284,12 +284,18 @@ def list_entries(
     after: datetime | None = None,
     from_: datetime | None = Query(None, alias="from"),
     to: datetime | None = None,
+    exclude_source: list[str] | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     store: EntryStore = Depends(get_entry_store),
 ) -> EntriesPage:
     rows, total = store.list_entries(
-        after=after, date_from=from_, date_to=to, offset=offset, limit=limit
+        after=after,
+        date_from=from_,
+        date_to=to,
+        exclude_sources=exclude_source,
+        offset=offset,
+        limit=limit,
     )
     return EntriesPage(
         items=[_entry_from_row(row) for row in rows],
@@ -304,11 +310,14 @@ def list_entries(
 def search_entries(
     request: Request,
     q: str,
+    exclude_source: list[str] | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     store: EntryStore = Depends(get_entry_store),
 ) -> EntriesPage:
-    rows, total = store.search_entries(q=q, offset=offset, limit=limit)
+    rows, total = store.search_entries(
+        q=q, exclude_sources=exclude_source, offset=offset, limit=limit
+    )
     return EntriesPage(
         items=[_entry_from_row(row) for row in rows],
         total=total,
