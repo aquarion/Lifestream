@@ -5,6 +5,7 @@ import json
 import math
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any
 
@@ -34,6 +35,16 @@ _EARTH_RADIUS_METERS = 6371000.0
 
 # Allowed list_entries() sort directions, mapped to the SQL keyword.
 _LIST_ENTRIES_ORDER = {"asc": "ASC", "desc": "DESC"}
+
+
+def _source_not_in_clause(sources: Sequence[str]) -> str:
+    """A `source NOT IN (%s, ...)` clause with one placeholder per source.
+
+    `sources` must be non-empty: `NOT IN ()` is a MySQL syntax error, so
+    callers skip the clause when there is nothing to exclude.
+    """
+    placeholders = ", ".join(["%s"] * len(sources))
+    return f"source NOT IN ({placeholders})"
 
 
 def _location_dedup_distance_meters() -> float:
@@ -258,6 +269,7 @@ class EntryStore(ABC):
         after: datetime | str | None = None,
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
+        exclude_sources: Sequence[str] | None = None,
         month: int | None = None,
         day: int | None = None,
         order: str = "asc",
@@ -267,18 +279,24 @@ class EntryStore(ABC):
         """
         List feed entries for the public API (#134).
 
-        Always excludes null-title rows and `source in (tumblr, lastfm)`,
-        matching the current public feed, plus null-`date_created` rows,
-        which can't be placed on a timeline (and would 500 the API).
+        Always excludes null-title rows, plus null-`date_created` rows,
+        which can't be placed on a timeline (and would 500 the API), and
+        any row whose `source` is in `exclude_sources` (none by default).
         Ordered by `date_updated` when `after` is given (polling for
-        changes), else by `date_created`, in `order` direction ("asc" or "desc"). `month` and `day` (both or
-        neither) restrict to entries created on that calendar day in any
-        year. Returns (items, total) where total ignores offset/limit.
+        changes), else by `date_created`, in `order` direction ("asc" or
+        "desc"). `month` and `day` (both or neither) restrict to entries
+        created on that calendar day in any year. Returns (items, total)
+        where total ignores offset/limit.
         """
 
     @abstractmethod
     def search_entries(
-        self, *, q: str, offset: int = 0, limit: int = 100
+        self,
+        *,
+        q: str,
+        exclude_sources: Sequence[str] | None = None,
+        offset: int = 0,
+        limit: int = 100,
     ) -> tuple[list[dict[str, Any]], int]:
         """
         Title `LIKE %q%` search over feed entries for the public API (#134),
@@ -533,6 +551,7 @@ class MysqlEntryStore(EntryStore):
         after: datetime | str | None = None,
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
+        exclude_sources: Sequence[str] | None = None,
         month: int | None = None,
         day: int | None = None,
         order: str = "asc",
@@ -549,12 +568,11 @@ class MysqlEntryStore(EntryStore):
 
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
 
-        where_clauses = [
-            "title IS NOT NULL",
-            "date_created IS NOT NULL",
-            "source NOT IN (%s, %s)",
-        ]
-        params: list[Any] = ["tumblr", "lastfm"]
+        where_clauses = ["title IS NOT NULL", "date_created IS NOT NULL"]
+        params: list[Any] = []
+        if exclude_sources:
+            where_clauses.append(_source_not_in_clause(exclude_sources))
+            params.extend(exclude_sources)
 
         if after is not None:
             where_clauses.append("date_updated >= %s")
@@ -587,15 +605,24 @@ class MysqlEntryStore(EntryStore):
         return list(cursor.fetchall()), total
 
     def search_entries(
-        self, *, q: str, offset: int = 0, limit: int = 100
+        self,
+        *,
+        q: str,
+        exclude_sources: Sequence[str] | None = None,
+        offset: int = 0,
+        limit: int = 100,
     ) -> tuple[list[dict[str, Any]], int]:
         cursor = self.dbcxn.cursor(pymysql.cursors.DictCursor)
 
-        where_sql = (
-            "title IS NOT NULL AND date_created IS NOT NULL "
-            "AND source NOT IN (%s, %s) AND title LIKE %s"
-        )
-        params: list[Any] = ["tumblr", "lastfm", f"%{q}%"]
+        where_clauses = ["title IS NOT NULL", "date_created IS NOT NULL"]
+        params: list[Any] = []
+        if exclude_sources:
+            where_clauses.append(_source_not_in_clause(exclude_sources))
+            params.extend(exclude_sources)
+        where_clauses.append("title LIKE %s")
+        params.append(f"%{q}%")
+
+        where_sql = " AND ".join(where_clauses)
 
         cursor.execute(
             f"SELECT COUNT(*) AS total FROM lifestream WHERE {where_sql}", params
@@ -910,6 +937,7 @@ class NoDbEntryStore(EntryStore):
         after: datetime | str | None = None,
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
+        exclude_sources: Sequence[str] | None = None,
         month: int | None = None,
         day: int | None = None,
         order: str = "asc",
@@ -919,7 +947,12 @@ class NoDbEntryStore(EntryStore):
         return [], 0
 
     def search_entries(
-        self, *, q: str, offset: int = 0, limit: int = 100
+        self,
+        *,
+        q: str,
+        exclude_sources: Sequence[str] | None = None,
+        offset: int = 0,
+        limit: int = 100,
     ) -> tuple[list[dict[str, Any]], int]:
         return [], 0
 

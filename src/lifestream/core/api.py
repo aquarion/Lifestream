@@ -1,8 +1,7 @@
 """Public HTTP API (#134): read/write access to the `lifestream` /
 `lifestream_locations` / `owntracks_unhandled` tables, replacing Panopticon
 (lifestream-web)'s direct database access. Implements the contract in
-lifestream-web's `docs/api/openapi.yaml` / `docs/superpowers/specs/
-2026-09-04-lifestream-api-design.md`. Mounted under `/v1` by
+`docs/api/openapi.yaml`. Mounted under `/v1` by
 `lifestream.core.webserver.create_app()`.
 """
 
@@ -309,6 +308,7 @@ def list_entries(
     after: datetime | None = None,
     from_: datetime | None = Query(None, alias="from"),
     to: datetime | None = None,
+    exclude_source: list[str] | None = Query(None),
     month: int | None = Query(None, ge=1, le=12),
     day: int | None = Query(None, ge=1, le=31),
     order: Literal["asc", "desc"] = "asc",
@@ -324,6 +324,7 @@ def list_entries(
         after=after,
         date_from=from_,
         date_to=to,
+        exclude_sources=exclude_source,
         month=month,
         day=day,
         order=order,
@@ -343,11 +344,14 @@ def list_entries(
 def search_entries(
     request: Request,
     q: str,
+    exclude_source: list[str] | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     store: EntryStore = Depends(get_entry_store),
 ) -> EntriesPage:
-    rows, total = store.search_entries(q=q, offset=offset, limit=limit)
+    rows, total = store.search_entries(
+        q=q, exclude_sources=exclude_source, offset=offset, limit=limit
+    )
     return EntriesPage(
         items=_entries_from_rows(rows),
         total=total,
