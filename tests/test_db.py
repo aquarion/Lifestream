@@ -414,6 +414,44 @@ class TestListEntries:
         assert count_params == ["tumblr", "lastfm", "steam"]
         assert select_params[:3] == ["tumblr", "lastfm", "steam"]
 
+    def test_exclude_sources_params_align_with_other_filters(self):
+        """Every placeholder binds the right value when the source exclusion
+        is combined with all the other filters and paging."""
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.list_entries(
+                exclude_sources=["tumblr", "lastfm"],
+                after="2024-01-01T00:00:00",
+                date_from="2024-01-01",
+                date_to="2024-02-01",
+                month=10,
+                day=29,
+                offset=5,
+                limit=10,
+            )
+
+        count_sql, count_params = mock_cursor.execute.call_args_list[0].args
+        select_sql, select_params = mock_cursor.execute.call_args_list[1].args
+        assert count_params == [
+            "tumblr",
+            "lastfm",
+            "2024-01-01T00:00:00",
+            "2024-01-01",
+            "2024-02-01",
+            10,
+            29,
+        ]
+        assert select_params == [*count_params, 10, 5]
+        assert count_sql.count("%s") == len(count_params)
+        assert select_sql.count("%s") == len(select_params)
+        assert count_sql.index("source NOT IN") < count_sql.index("date_updated >= %s")
+
     def test_empty_exclude_sources_excludes_nothing(self):
         mock_cursor = MagicMock()
         mock_cursor.fetchone.return_value = {"total": 0}
@@ -587,6 +625,26 @@ class TestSearchEntries:
         assert "source NOT IN (%s)" in count_sql
         assert "source NOT IN (%s)" in select_sql
         assert count_params == ["tumblr", "%Match%"]
+
+    def test_exclude_sources_params_align_with_paging(self):
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = {"total": 0}
+        mock_cursor.fetchall.return_value = []
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch.object(db, "get_connection", return_value=mock_conn):
+            store = db.EntryStore(no_db=False)
+            store.search_entries(
+                q="Match", exclude_sources=["tumblr", "lastfm"], offset=5, limit=10
+            )
+
+        count_sql, count_params = mock_cursor.execute.call_args_list[0].args
+        select_sql, select_params = mock_cursor.execute.call_args_list[1].args
+        assert select_params == ["tumblr", "lastfm", "%Match%", 10, 5]
+        assert count_params == select_params[:-2]
+        assert count_sql.count("%s") == len(count_params)
+        assert select_sql.count("%s") == len(select_params)
 
     def test_no_db_returns_empty(self):
         store = db.EntryStore(no_db=True)

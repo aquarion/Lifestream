@@ -38,7 +38,11 @@ _LIST_ENTRIES_ORDER = {"asc": "ASC", "desc": "DESC"}
 
 
 def _source_not_in_clause(sources: Sequence[str]) -> str:
-    """A `source NOT IN (%s, ...)` clause with one placeholder per source."""
+    """A `source NOT IN (%s, ...)` clause with one placeholder per source.
+
+    `sources` must be non-empty: `NOT IN ()` is a MySQL syntax error, so
+    callers skip the clause when there is nothing to exclude.
+    """
     placeholders = ", ".join(["%s"] * len(sources))
     return f"source NOT IN ({placeholders})"
 

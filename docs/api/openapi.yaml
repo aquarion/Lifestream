@@ -34,8 +34,9 @@ paths:
         Paginated feed, ordered by `date_created` unless `after` is supplied
         (used for polling new items, ordered by `date_updated`), ascending by
         default or descending with `order=desc`.
-        Always excludes entries with a null title. Entries from any source named in
-        `exclude_source` are also excluded.
+        Always excludes entries with a null `title` or a null `date_created`.
+        Entries whose `source` is named in `exclude_source` are also excluded;
+        with no `exclude_source`, no source is excluded.
       operationId: listEntries
       parameters:
         - name: after
@@ -168,7 +169,8 @@ paths:
       summary: Search feed entries by title
       description: >
         Title `LIKE %q%` match, ordered ascending by `date_created`. Applies the same
-        null-`title` and `exclude_source` exclusions as `GET /entries`.
+        exclusions as `GET /entries` (null `title`, null `date_created`, and any
+        `exclude_source` values).
       operationId: searchEntries
       parameters:
         - name: q
@@ -180,7 +182,7 @@ paths:
           in: query
           description: >
             Exclude entries whose `source` is this value. Repeatable, as on
-            `GET /entries`.
+            `GET /entries`. Omitted means no source is excluded.
           schema:
             type: array
             items:
