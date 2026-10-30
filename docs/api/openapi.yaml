@@ -5,10 +5,8 @@ info:
     API abstracting database access to the `lifestream` / `lifestream_locations` /
     `owntracks_unhandled` tables previously shared directly between `lifestream-web`
     and this project. Implemented by `lifestream.core.api`, mounted at `/v1` by
-    `lifestream.core.webserver.create_app()` (see docs/superpowers/specs/
-    2026-09-04-lifestream-api-design.md for the original design). Covers the read
-    and write needs of `lifestream-web` (feed, search, maps, and the
-    OwnTracks/Plex ingest webhooks).
+    `lifestream.core.webserver.create_app()`. Covers the read and write needs of
+    `lifestream-web` (feed, search, maps, and the OwnTracks/Plex ingest webhooks).
   version: "1.0.0"
 servers:
   - url: https://{domain}/v1
