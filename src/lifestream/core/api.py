@@ -1,8 +1,7 @@
 """Public HTTP API (#134): read/write access to the `lifestream` /
 `lifestream_locations` / `owntracks_unhandled` tables, replacing Panopticon
 (lifestream-web)'s direct database access. Implements the contract in
-lifestream-web's `docs/api/openapi.yaml` / `docs/superpowers/specs/
-2026-09-04-lifestream-api-design.md`. Mounted under `/v1` by
+`docs/api/openapi.yaml`. Mounted under `/v1` by
 `lifestream.core.webserver.create_app()`.
 """
 
