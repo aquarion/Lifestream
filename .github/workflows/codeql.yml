@@ -10,13 +10,17 @@ on:
 
 jobs:
   analyze:
-    name: Analyze (python)
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
       packages: read
       actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, actions]
 
     steps:
       - name: Checkout repository
@@ -25,8 +29,8 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: python
-          # Python is interpreted; CodeQL needs no build step, and this
+          languages: ${{ matrix.language }}
+          # Python and Actions need no build step, and this
           # avoids invoking poetry against the monorepo's SSH-only git
           # dependencies (see .github/workflows/ffxiv-icons-tests.yml).
           build-mode: none
@@ -34,4 +38,4 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
-          category: "/language:python"
+          category: "/language:${{ matrix.language }}"
