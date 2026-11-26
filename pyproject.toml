@@ -130,6 +130,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
 black = "^26"
-httpx2 = "^2.16.0"
+httpx2 = "^2.16.2"
 isort = "^9"
 pytest = "^9.0.2"
